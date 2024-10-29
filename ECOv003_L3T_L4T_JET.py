@@ -5,7 +5,7 @@ import colored_logging as cl
 
 logger = logging.getLogger(__name__)
 
-def SBGv001_L4T_JET(runconfig_filename = argv[1]) -> int:
+def ECOv003_L3T_L4T_JET(runconfig_filename = argv[1]) -> int:
     """
     entry point for SBG collection 1 level 4 evapotranspiration PGE
     """
