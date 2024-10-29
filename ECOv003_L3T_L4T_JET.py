@@ -5,6 +5,8 @@ import colored_logging as cl
 
 logger = logging.getLogger(__name__)
 
+# FIXME revert to XML instead of YAML for ECOSTRESS Collection 3 run-configs
+
 def ECOv003_L3T_L4T_JET(runconfig_filename = argv[1]) -> int:
     """
     entry point for ECOSTRESS Collection 3 Level 3/4 Evapotranspiration PGE
