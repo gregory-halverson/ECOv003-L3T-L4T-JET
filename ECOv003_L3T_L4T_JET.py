@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 def ECOv003_L3T_L4T_JET(runconfig_filename = argv[1]) -> int:
     """
-    entry point for SBG collection 1 level 4 evapotranspiration PGE
+    entry point for ECOSTRESS Collection 3 Level 3/4 Evapotranspiration PGE
     """
     with open(runconfig_filename, "r") as file:
         runconfig_dict = yaml.safe_load(file)
