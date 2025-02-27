@@ -61,6 +61,8 @@ requires-python = ">=3.10"
 dev = [
     "pytest>=6.0",
     "pytest-cov",
+    "jupyter",
+    "pytest"
 ]
 
 [tool.setuptools.package-data]

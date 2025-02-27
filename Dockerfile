@@ -5,8 +5,9 @@ ENV HOME /root
 FROM base as environment
 
 # Update Debian and install required dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends tzdata wget
+RUN apt-get update && apt-get install -y --no-install-recommends tzdata wget fish
 RUN pip install --upgrade pip
+RUN pip install tomli
 
 FROM environment as installation
 
@@ -20,6 +21,11 @@ COPY . /app/
 COPY pyproject.toml /app/pyproject.toml
 WORKDIR /app
 
+# FROM installation as dependencies
+
+# RUN python -c "import tomli; print(' '.join(tomli.load(open('pyproject.toml', 'rb'))['project']['dependencies']))" | xargs pip install
+
+# FROM dependencies as build
 FROM installation as build
-RUN pip install .
+RUN pip install -e .[dev]
 RUN rm -rvf build; rm -rvf dist; rm -rvf *.egg-info; rm -rvf CMakeFiles
