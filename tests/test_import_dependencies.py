@@ -5,7 +5,7 @@ dependencies = [
     "affine",
     "astropy",
     "colored_logging",
-    "ECOv002_CMR",  # for packages with versions use the base name
+    "ECOv002_CMR",  
     "ECOv002_granules",
     "FLiESANN",
     "gedi_canopy_height",
