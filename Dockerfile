@@ -21,11 +21,7 @@ COPY . /app/
 COPY pyproject.toml /app/pyproject.toml
 WORKDIR /app
 
-# FROM installation as dependencies
-
-# RUN python -c "import tomli; print(' '.join(tomli.load(open('pyproject.toml', 'rb'))['project']['dependencies']))" | xargs pip install
-
 # FROM dependencies as build
 FROM installation as build
 RUN pip install -e .[dev]
-RUN rm -rvf build; rm -rvf dist; rm -rvf *.egg-info; rm -rvf CMakeFiles
+RUN rm -rvf build; rm -rvf dist; rm -rvf *.egg-info
