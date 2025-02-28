@@ -1115,7 +1115,7 @@ def L3T_L4T_JET(
         doy_solar = time_solar.timetuple().tm_yday
         kg = load_koppen_geiger(albedo.geometry)
 
-        FLiES_results = FLiESANN.process_FLiES(
+        FLiES_results = FLiESANN.process_FLiES_ANN(
             doy=doy_solar,
             albedo=albedo,
             COT=COT,
