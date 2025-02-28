@@ -3,9 +3,9 @@ requires = ["setuptools>=60", "setuptools-scm>=8.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ECOv002_L3T_L4T_JET"
+name = "ECOv003_L3T_L4T_JET"
 version = "1.0.0"
-description = "ECOSTRESS Collection 2 JPL Evapotranspiration (JET) Product Generating Executable (PGE)"
+description = "ECOSTRESS Collection 3 JPL Evapotranspiration (JET) Product Generating Executable (PGE)"
 readme = "README.md"
 authors = [
     { name = "Gregory H. Halverson", email = "gregory.h.halverson@jpl.nasa.gov" },
@@ -69,8 +69,8 @@ dev = [
 ECOv002_L3T_L4T_JET = ["*.txt"]
 
 [project.urls]
-"Homepage" = "https://github.com/ECOSTRESS-Collection-2/ECOv002-L3T-L4T-JET"
+"Homepage" = "https://github.com/ECOSTRESS-Collection-2/ECOv003-L3T-L4T-JET"
 
 [tool.setuptools.packages.find]
-include = ["ECOv002_L3T_L4T_JET"]
+include = ["ECOv003_L3T_L4T_JET"]
 exclude = []

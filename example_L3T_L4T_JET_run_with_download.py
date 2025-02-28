@@ -4,7 +4,7 @@
 # %%
 import numpy as np
 from ECOv002_CMR import download_ECOSTRESS_granule
-from ECOv002_L3T_L4T_JET import generate_L3T_L4T_JET_runconfig, L3T_L4T_JET
+from ECOv003_L3T_L4T_JET import generate_L3T_L4T_JET_runconfig, L3T_L4T_JET
 
 # %% [markdown]
 # Disable logger output in notebook
