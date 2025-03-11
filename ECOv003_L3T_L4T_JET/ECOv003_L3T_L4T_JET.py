@@ -28,11 +28,13 @@ from sun_angles import calculate_SZA_from_DOY_and_hour
 from ECOv002_granules import L2TLSTE, L2TSTARS, L3TJET, L3TSM, L3TSEB, L3TMET, L4TESI, L4TWUE
 from ECOv002_granules import ET_COLORMAP, SM_COLORMAP, WATER_COLORMAP, CLOUD_COLORMAP, RH_COLORMAP, GPP_COLORMAP
 
+from FLiESANN import BlankOutputError
+from FLiESLUT import FLiESLUT
+from breathing_earth_system_simulator import BESS
+
 from .exit_codes import *
-from .BESS.BESS import BESS
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
-from .FLiES import BlankOutputError
-from .FLiES.FLiESLUT import FLiESLUT
+
 from .LPDAAC.LPDAACDataPool import LPDAACServerUnreachable
 from .MCD12.MCD12C1 import MCD12C1
 from .MOD16.MOD16 import MOD16
