@@ -29,7 +29,10 @@ from ECOv002_granules import L2TLSTE, L2TSTARS, L3TJET, L3TSM, L3TSEB, L3TMET, L
 from ECOv002_granules import ET_COLORMAP, SM_COLORMAP, WATER_COLORMAP, CLOUD_COLORMAP, RH_COLORMAP, GPP_COLORMAP
 
 from FLiESLUT import FLiESLUT
+
 from breathing_earth_system_simulator import BESS
+from MOD16_JPL import MOD16
+from STIC import STIC
 
 from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
@@ -1057,16 +1060,14 @@ def L3T_L4T_JET(
             save_intermediate=save_intermediate,
             show_distribution=show_distribution
         )
-
-        # FIXME replace BESS sub-module with package
-        BESS_model = BESS(
-            working_directory=working_directory,
-            GEDI_download=GEDI_directory,
-            CI_directory=MODISCI_directory,
-            GEOS5FP_connection=GEOS5FP_connection,
-            save_intermediate=save_intermediate,
-            show_distribution=show_distribution
-        )
+        # BESS_model = BESS(
+        #     working_directory=working_directory,
+        #     GEDI_download=GEDI_directory,
+        #     CI_directory=MODISCI_directory,
+        #     GEOS5FP_connection=GEOS5FP_connection,
+        #     save_intermediate=save_intermediate,
+        #     show_distribution=show_distribution
+        # )
 
         # SZA = FLiES_ANN_model.SZA(day_of_year=day_of_year, hour_of_day=hour_of_day, geometry=geometry)
         SZA = calculate_SZA_from_DOY_and_hour(
@@ -1400,7 +1401,7 @@ def L3T_L4T_JET(
 
         logger.info(f"running Breathing Earth System Simulator for {cl.place(tile)} at {cl.time(time_UTC)} UTC")
 
-        BESS_results = BESS_model.BESS(
+        BESS_results = BESS(
             geometry=geometry,
             target=tile,
             time_UTC=time_UTC,
@@ -1455,15 +1456,15 @@ def L3T_L4T_JET(
         if np.all(np.isnan(Rn)) or np.all(Rn == 0):
             raise BlankOutput(f"blank net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
-        STIC_model = STIC(
-            working_directory=working_directory,
-            static_directory=static_directory,
-            GEOS5FP_connection=GEOS5FP_connection,
-            save_intermediate=save_intermediate,
-            show_distribution=show_distribution
-        )
+        # STIC_model = STIC(
+        #     working_directory=working_directory,
+        #     static_directory=static_directory,
+        #     GEOS5FP_connection=GEOS5FP_connection,
+        #     save_intermediate=save_intermediate,
+        #     show_distribution=show_distribution
+        # )
 
-        STIC_results = STIC_model.STIC(
+        STIC_results = STIC(
             geometry=geometry,
             target=tile,
             time_UTC=time_UTC,
@@ -1549,27 +1550,27 @@ def L3T_L4T_JET(
             raise BlankOutput(
                 f"blank soil moisture output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
-        MOD16_model = MOD16(
-            working_directory=working_directory,
-            static_directory=static_directory,
-            GEOS5FP_connection=GEOS5FP_connection,
-            # MCD12_connnection=MCD12_connnection,
-            save_intermediate=save_intermediate,
-            show_distribution=show_distribution
-        )
+        # MOD16_model = MOD16(
+        #     working_directory=working_directory,
+        #     static_directory=static_directory,
+        #     GEOS5FP_connection=GEOS5FP_connection,
+        #     # MCD12_connnection=MCD12_connnection,
+        #     save_intermediate=save_intermediate,
+        #     show_distribution=show_distribution
+        # )
 
         # Ta_K = Ta_C + 273.15
         # Ea_Pa = Ea_kPa * 1000
 
-        MOD16_results = MOD16_model.MOD16(
+        MOD16_results = MOD16(
             geometry=geometry,
             target=tile,
             time_UTC=time_UTC,
-            ST_K=ST_K,
+            # ST_K=ST_K,
             emissivity=emissivity,
             NDVI=NDVI,
             albedo=albedo,
-            Ta_K=Ta_K,
+            Ta_C=Ta_C,
             Ea_Pa=Ea_Pa,
             elevation_km=elevation_km,
             SWin=SWin,
