@@ -43,6 +43,7 @@ dependencies = [
     "pykdtree",
     "pyproj",
     "pyresample",
+    "PTJPLSM",
     "rasterio",
     "rasters>=1.4.6",
     "scikit-image",

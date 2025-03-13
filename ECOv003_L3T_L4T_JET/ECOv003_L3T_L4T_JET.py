@@ -33,6 +33,8 @@ from FLiESLUT import FLiESLUT
 from breathing_earth_system_simulator import BESS
 from MOD16_JPL import MOD16
 from STIC import STIC
+from PTJPLSM import PTJPLSM
+from .verma_net_radiation import process_verma_net_radiation
 
 from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
@@ -1018,25 +1020,25 @@ def L3T_L4T_JET(
             download_directory=GEOS5FP_directory
         )
 
-        PTJPLSM_model = PTJPLSM(
-            working_directory=working_directory,
-            GEDI_download=GEDI_directory,
-            CI_directory=MODISCI_directory,
-            soil_grids_download=soil_grids_directory,
-            GEOS5FP_connection=GEOS5FP_connection,
-            save_intermediate=save_intermediate,
-            show_distribution=show_distribution,
-            floor_Topt=floor_Topt
-        )
+        # PTJPLSM_model = PTJPLSM(
+        #     working_directory=working_directory,
+        #     GEDI_download=GEDI_directory,
+        #     CI_directory=MODISCI_directory,
+        #     soil_grids_download=soil_grids_directory,
+        #     GEOS5FP_connection=GEOS5FP_connection,
+        #     save_intermediate=save_intermediate,
+        #     show_distribution=show_distribution,
+        #     floor_Topt=floor_Topt
+        # )
 
-        PTJPL_model = PTJPL(
-            working_directory=working_directory,
-            GEDI_download=GEDI_directory,
-            CI_directory=MODISCI_directory,
-            GEOS5FP_connection=GEOS5FP_connection,
-            save_intermediate=save_intermediate,
-            show_distribution=show_distribution
-        )
+        # PTJPL_model = PTJPL(
+        #     working_directory=working_directory,
+        #     GEDI_download=GEDI_directory,
+        #     CI_directory=MODISCI_directory,
+        #     GEOS5FP_connection=GEOS5FP_connection,
+        #     save_intermediate=save_intermediate,
+        #     show_distribution=show_distribution
+        # )
 
         # FLiES_ANN_model = FLiES(
         #     working_directory=working_directory,
@@ -1434,16 +1436,27 @@ def L3T_L4T_JET(
         AncillaryNWP = ",".join(NWP_filenames)
         metadata["ProductMetadata"]["AncillaryNWP"] = AncillaryNWP
 
-        Rn_verma = PTJPLSM_model.Rn(
-            date_UTC=date_UTC,
-            target=tile,
+        ## FIXME need Verma net radiation model
+
+        # Rn_verma = PTJPLSM_model.Rn(
+        #     date_UTC=date_UTC,
+        #     target=tile,
+        #     SWin=SWin,
+        #     albedo=albedo,
+        #     ST_C=ST_C,
+        #     emissivity=emissivity,
+        #     Ea_kPa=Ea_kPa,
+        #     Ta_C=Ta_C,
+        #     cloud_mask=cloud
+        # )
+
+        Rn_verma = process_verma_net_radiation(
             SWin=SWin,
             albedo=albedo,
             ST_C=ST_C,
             emissivity=emissivity,
-            Ea_kPa=Ea_kPa,
             Ta_C=Ta_C,
-            cloud_mask=cloud
+            RH=RH
         )
 
         if Rn_model_name == "verma":
