@@ -4,6 +4,7 @@ import pytest
 dependencies = [
     "affine",
     "astropy",
+    "breathing_earth_system_simulator",
     "colored_logging",
     "ECOv002_CMR",  
     "ECOv002_granules",
@@ -15,6 +16,7 @@ dependencies = [
     "koppengeiger",
     "matplotlib",
     "MCD12C1_2019_v006",
+    "MOD16_JPL",
     "modisci",
     "msgpack",
     "msgpack_numpy",

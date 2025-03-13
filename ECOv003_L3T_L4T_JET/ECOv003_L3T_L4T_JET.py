@@ -36,10 +36,7 @@ from .runconfig import read_runconfig, ECOSTRESSRunConfig
 
 from .LPDAAC.LPDAACDataPool import LPDAACServerUnreachable
 from .MCD12.MCD12C1 import MCD12C1
-from .MOD16.MOD16 import MOD16
-from .PTJPL import PTJPL
-from .PTJPLSM import PTJPLSM
-from .STIC import STIC
+
 from .downscaling.linear_downscale import linear_downscale, bias_correct
 from .model.model import check_distribution
 from .timer import Timer

@@ -31,6 +31,7 @@ dependencies = [
     "koppengeiger>=1.0.4",
     "matplotlib",
     "MCD12C1-2019-v006",
+    "MOD16-JPL>=1.1.0",
     "modisci>=1.1.2",
     "msgpack",
     "msgpack_numpy",
