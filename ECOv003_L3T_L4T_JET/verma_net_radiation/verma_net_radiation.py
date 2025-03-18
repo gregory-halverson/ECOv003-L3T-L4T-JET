@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 from sun_angles import daylight_from_SHA
 from sun_angles import sunrise_from_SHA
-from sun_angles import SHA_deg_from_doy_lat
+from sun_angles import SHA_deg_from_DOY_lat
 from rasters import Raster
 
 STEFAN_BOLTZMAN_CONSTANT = 5.67036713e-8  # SI units watts per square meter per kelvin to the fourth
@@ -97,7 +97,7 @@ def daily_Rn_integration_verma(
     :return:
     """
     if daylight_hours is None or sunrise_hour is None and doy is not None and lat is not None:
-        sha_deg = SHA_deg_from_doy_lat(doy, lat)
+        sha_deg = SHA_deg_from_DOY_lat(doy, lat)
         daylight_hours = daylight_from_SHA(sha_deg)
         sunrise_hour = sunrise_from_SHA(sha_deg)
 

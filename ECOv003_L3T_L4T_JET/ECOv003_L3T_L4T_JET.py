@@ -28,7 +28,7 @@ from sun_angles import calculate_SZA_from_DOY_and_hour
 from ECOv002_granules import L2TLSTE, L2TSTARS, L3TJET, L3TSM, L3TSEB, L3TMET, L4TESI, L4TWUE
 from ECOv002_granules import ET_COLORMAP, SM_COLORMAP, WATER_COLORMAP, CLOUD_COLORMAP, RH_COLORMAP, GPP_COLORMAP
 
-from FLiESLUT import FLiESLUT
+from FLiESLUT import process_FLiES_LUT_raster
 
 from breathing_earth_system_simulator import BESS
 from MOD16_JPL import MOD16
@@ -1054,14 +1054,14 @@ def L3T_L4T_JET(
         # )
 
         # FIXME replace FLiESLUT sub-module with package
-        FLiES_LUT_model = FLiESLUT(
-            working_directory=working_directory,
-            static_directory=static_directory,
-            GEOS5FP_connection=GEOS5FP_connection,
-            # MCD12_connnection=MCD12_connnection,
-            save_intermediate=save_intermediate,
-            show_distribution=show_distribution
-        )
+        # FLiES_LUT_model = FLiESLUT(
+        #     working_directory=working_directory,
+        #     static_directory=static_directory,
+        #     GEOS5FP_connection=GEOS5FP_connection,
+        #     # MCD12_connnection=MCD12_connnection,
+        #     save_intermediate=save_intermediate,
+        #     show_distribution=show_distribution
+        # )
         # BESS_model = BESS(
         #     working_directory=working_directory,
         #     GEDI_download=GEDI_directory,
@@ -1140,14 +1140,24 @@ def L3T_L4T_JET(
         VISdir = FLiES_results["VISdir"]
         NIRdir = FLiES_results["NIRdir"]
 
-        SWin_FLiES_LUT = FLiES_LUT_model.FLiES_LUT(
+        # SWin_FLiES_LUT = FLiES_LUT_model.FLiES_LUT(
+        #     geometry=geometry,
+        #     target=tile,
+        #     time_UTC=time_UTC,
+        #     cloud_mask=cloud,
+        #     COT=COT,
+        #     albedo=albedo,
+        #     AOT=AOT
+        # )
+        SWin_FLiES_LUT= process_FLiES_LUT_raster(
             geometry=geometry,
-            target=tile,
             time_UTC=time_UTC,
             cloud_mask=cloud,
             COT=COT,
+            koppen_geiger=kg,
             albedo=albedo,
-            AOT=AOT
+            SZA=SZA,
+            GEOS5FP_connection=GEOS5FP_connection
         )
 
         # Rg = Rg.mask(~np.isnan(ST_K))
