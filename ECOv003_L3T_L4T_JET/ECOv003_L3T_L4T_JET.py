@@ -39,14 +39,16 @@ from .verma_net_radiation import process_verma_net_radiation
 from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
 
-from .LPDAAC.LPDAACDataPool import LPDAACServerUnreachable
-from .MCD12.MCD12C1 import MCD12C1
+from MCD12C1_2019_v006 import load_MCD12C1_IGBP
 
 from .downscaling.linear_downscale import linear_downscale, bias_correct
 from .model.model import check_distribution
 from .timer import Timer
 
 from .PGEVersion import PGEVersion
+
+class LPDAACServerUnreachable(Exception):
+    pass
 
 with open(join(abspath(dirname(__file__)), "version.txt")) as f:
     version = f.read()
