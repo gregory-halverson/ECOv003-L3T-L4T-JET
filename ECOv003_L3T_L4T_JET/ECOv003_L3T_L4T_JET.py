@@ -1413,25 +1413,45 @@ def L3T_L4T_JET(
 
         logger.info(f"running Breathing Earth System Simulator for {cl.place(tile)} at {cl.time(time_UTC)} UTC")
 
+        # BESS_results = BESS(
+        #     geometry=geometry,
+        #     target=tile,
+        #     time_UTC=time_UTC,
+        #     ST_K=ST_K,
+        #     Ta_K=Ta_K,
+        #     RH=RH,
+        #     elevation_km=elevation_km,
+        #     NDVI=NDVI,
+        #     albedo=albedo,
+        #     Rg=SWin_FLiES_ANN,
+        #     SM=SM,
+        #     VISdiff=VISdiff,
+        #     VISdir=VISdir,
+        #     NIRdiff=NIRdiff,
+        #     NIRdir=NIRdir,
+        #     UV=UV,
+        #     water=water,
+        #     output_variables=["Rn", "LE", "GPP"]
+        # )
+
         BESS_results = BESS(
-            geometry=geometry,
-            target=tile,
-            time_UTC=time_UTC,
-            ST_K=ST_K,
-            Ta_K=Ta_K,
-            RH=RH,
+            hour_of_day=hour_of_day,
+            day_of_year=day_of_year,
             elevation_km=elevation_km,
+            ST_C=ST_C,
             NDVI=NDVI,
             albedo=albedo,
+            geometry=geometry,
+            datetime_UTC=time_UTC,
+            GEOS5FP_connection=GEOS5FP_connection,
+            Ta_C=Ta_C,
+            RH=RH,
             Rg=SWin_FLiES_ANN,
-            SM=SM,
             VISdiff=VISdiff,
             VISdir=VISdir,
             NIRdiff=NIRdiff,
             NIRdir=NIRdir,
-            UV=UV,
-            water=water,
-            output_variables=["Rn", "LE", "GPP"]
+            UV=UV
         )
 
         Rn_BESS = BESS_results["Rn"]
