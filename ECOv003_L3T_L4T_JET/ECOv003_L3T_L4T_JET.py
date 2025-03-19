@@ -28,18 +28,20 @@ from sun_angles import calculate_SZA_from_DOY_and_hour
 from ECOv002_granules import L2TLSTE, L2TSTARS, L3TJET, L3TSM, L3TSEB, L3TMET, L4TESI, L4TWUE
 from ECOv002_granules import ET_COLORMAP, SM_COLORMAP, WATER_COLORMAP, CLOUD_COLORMAP, RH_COLORMAP, GPP_COLORMAP
 
-from FLiESLUT import FLiESLUT
+from FLiESLUT import process_FLiES_LUT_raster
+
 from breathing_earth_system_simulator import BESS
+from MOD16_JPL import MOD16
+from STIC import STIC
+from PTJPLSM import PTJPLSM
+from .verma_net_radiation import process_verma_net_radiation
 
 from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
 
 from .LPDAAC.LPDAACDataPool import LPDAACServerUnreachable
 from .MCD12.MCD12C1 import MCD12C1
-from .MOD16.MOD16 import MOD16
-from .PTJPL import PTJPL
-from .PTJPLSM import PTJPLSM
-from .STIC import STIC
+
 from .downscaling.linear_downscale import linear_downscale, bias_correct
 from .model.model import check_distribution
 from .timer import Timer
@@ -1018,25 +1020,25 @@ def L3T_L4T_JET(
             download_directory=GEOS5FP_directory
         )
 
-        PTJPLSM_model = PTJPLSM(
-            working_directory=working_directory,
-            GEDI_download=GEDI_directory,
-            CI_directory=MODISCI_directory,
-            soil_grids_download=soil_grids_directory,
-            GEOS5FP_connection=GEOS5FP_connection,
-            save_intermediate=save_intermediate,
-            show_distribution=show_distribution,
-            floor_Topt=floor_Topt
-        )
+        # PTJPLSM_model = PTJPLSM(
+        #     working_directory=working_directory,
+        #     GEDI_download=GEDI_directory,
+        #     CI_directory=MODISCI_directory,
+        #     soil_grids_download=soil_grids_directory,
+        #     GEOS5FP_connection=GEOS5FP_connection,
+        #     save_intermediate=save_intermediate,
+        #     show_distribution=show_distribution,
+        #     floor_Topt=floor_Topt
+        # )
 
-        PTJPL_model = PTJPL(
-            working_directory=working_directory,
-            GEDI_download=GEDI_directory,
-            CI_directory=MODISCI_directory,
-            GEOS5FP_connection=GEOS5FP_connection,
-            save_intermediate=save_intermediate,
-            show_distribution=show_distribution
-        )
+        # PTJPL_model = PTJPL(
+        #     working_directory=working_directory,
+        #     GEDI_download=GEDI_directory,
+        #     CI_directory=MODISCI_directory,
+        #     GEOS5FP_connection=GEOS5FP_connection,
+        #     save_intermediate=save_intermediate,
+        #     show_distribution=show_distribution
+        # )
 
         # FLiES_ANN_model = FLiES(
         #     working_directory=working_directory,
@@ -1052,24 +1054,22 @@ def L3T_L4T_JET(
         # )
 
         # FIXME replace FLiESLUT sub-module with package
-        FLiES_LUT_model = FLiESLUT(
-            working_directory=working_directory,
-            static_directory=static_directory,
-            GEOS5FP_connection=GEOS5FP_connection,
-            # MCD12_connnection=MCD12_connnection,
-            save_intermediate=save_intermediate,
-            show_distribution=show_distribution
-        )
-
-        # FIXME replace BESS sub-module with package
-        BESS_model = BESS(
-            working_directory=working_directory,
-            GEDI_download=GEDI_directory,
-            CI_directory=MODISCI_directory,
-            GEOS5FP_connection=GEOS5FP_connection,
-            save_intermediate=save_intermediate,
-            show_distribution=show_distribution
-        )
+        # FLiES_LUT_model = FLiESLUT(
+        #     working_directory=working_directory,
+        #     static_directory=static_directory,
+        #     GEOS5FP_connection=GEOS5FP_connection,
+        #     # MCD12_connnection=MCD12_connnection,
+        #     save_intermediate=save_intermediate,
+        #     show_distribution=show_distribution
+        # )
+        # BESS_model = BESS(
+        #     working_directory=working_directory,
+        #     GEDI_download=GEDI_directory,
+        #     CI_directory=MODISCI_directory,
+        #     GEOS5FP_connection=GEOS5FP_connection,
+        #     save_intermediate=save_intermediate,
+        #     show_distribution=show_distribution
+        # )
 
         # SZA = FLiES_ANN_model.SZA(day_of_year=day_of_year, hour_of_day=hour_of_day, geometry=geometry)
         SZA = calculate_SZA_from_DOY_and_hour(
@@ -1140,14 +1140,24 @@ def L3T_L4T_JET(
         VISdir = FLiES_results["VISdir"]
         NIRdir = FLiES_results["NIRdir"]
 
-        SWin_FLiES_LUT = FLiES_LUT_model.FLiES_LUT(
+        # SWin_FLiES_LUT = FLiES_LUT_model.FLiES_LUT(
+        #     geometry=geometry,
+        #     target=tile,
+        #     time_UTC=time_UTC,
+        #     cloud_mask=cloud,
+        #     COT=COT,
+        #     albedo=albedo,
+        #     AOT=AOT
+        # )
+        SWin_FLiES_LUT= process_FLiES_LUT_raster(
             geometry=geometry,
-            target=tile,
             time_UTC=time_UTC,
             cloud_mask=cloud,
             COT=COT,
+            koppen_geiger=kg,
             albedo=albedo,
-            AOT=AOT
+            SZA=SZA,
+            GEOS5FP_connection=GEOS5FP_connection
         )
 
         # Rg = Rg.mask(~np.isnan(ST_K))
@@ -1403,25 +1413,45 @@ def L3T_L4T_JET(
 
         logger.info(f"running Breathing Earth System Simulator for {cl.place(tile)} at {cl.time(time_UTC)} UTC")
 
-        BESS_results = BESS_model.BESS(
-            geometry=geometry,
-            target=tile,
-            time_UTC=time_UTC,
-            ST_K=ST_K,
-            Ta_K=Ta_K,
-            RH=RH,
+        # BESS_results = BESS(
+        #     geometry=geometry,
+        #     target=tile,
+        #     time_UTC=time_UTC,
+        #     ST_K=ST_K,
+        #     Ta_K=Ta_K,
+        #     RH=RH,
+        #     elevation_km=elevation_km,
+        #     NDVI=NDVI,
+        #     albedo=albedo,
+        #     Rg=SWin_FLiES_ANN,
+        #     SM=SM,
+        #     VISdiff=VISdiff,
+        #     VISdir=VISdir,
+        #     NIRdiff=NIRdiff,
+        #     NIRdir=NIRdir,
+        #     UV=UV,
+        #     water=water,
+        #     output_variables=["Rn", "LE", "GPP"]
+        # )
+
+        BESS_results = BESS(
+            hour_of_day=hour_of_day,
+            day_of_year=day_of_year,
             elevation_km=elevation_km,
+            ST_C=ST_C,
             NDVI=NDVI,
             albedo=albedo,
+            geometry=geometry,
+            datetime_UTC=time_UTC,
+            GEOS5FP_connection=GEOS5FP_connection,
+            Ta_C=Ta_C,
+            RH=RH,
             Rg=SWin_FLiES_ANN,
-            SM=SM,
             VISdiff=VISdiff,
             VISdir=VISdir,
             NIRdiff=NIRdiff,
             NIRdir=NIRdir,
-            UV=UV,
-            water=water,
-            output_variables=["Rn", "LE", "GPP"]
+            UV=UV
         )
 
         Rn_BESS = BESS_results["Rn"]
@@ -1436,16 +1466,27 @@ def L3T_L4T_JET(
         AncillaryNWP = ",".join(NWP_filenames)
         metadata["ProductMetadata"]["AncillaryNWP"] = AncillaryNWP
 
-        Rn_verma = PTJPLSM_model.Rn(
-            date_UTC=date_UTC,
-            target=tile,
+        ## FIXME need Verma net radiation model
+
+        # Rn_verma = PTJPLSM_model.Rn(
+        #     date_UTC=date_UTC,
+        #     target=tile,
+        #     SWin=SWin,
+        #     albedo=albedo,
+        #     ST_C=ST_C,
+        #     emissivity=emissivity,
+        #     Ea_kPa=Ea_kPa,
+        #     Ta_C=Ta_C,
+        #     cloud_mask=cloud
+        # )
+
+        Rn_verma = process_verma_net_radiation(
             SWin=SWin,
             albedo=albedo,
             ST_C=ST_C,
             emissivity=emissivity,
-            Ea_kPa=Ea_kPa,
             Ta_C=Ta_C,
-            cloud_mask=cloud
+            RH=RH
         )
 
         if Rn_model_name == "verma":
@@ -1458,15 +1499,15 @@ def L3T_L4T_JET(
         if np.all(np.isnan(Rn)) or np.all(Rn == 0):
             raise BlankOutput(f"blank net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
-        STIC_model = STIC(
-            working_directory=working_directory,
-            static_directory=static_directory,
-            GEOS5FP_connection=GEOS5FP_connection,
-            save_intermediate=save_intermediate,
-            show_distribution=show_distribution
-        )
+        # STIC_model = STIC(
+        #     working_directory=working_directory,
+        #     static_directory=static_directory,
+        #     GEOS5FP_connection=GEOS5FP_connection,
+        #     save_intermediate=save_intermediate,
+        #     show_distribution=show_distribution
+        # )
 
-        STIC_results = STIC_model.STIC(
+        STIC_results = STIC(
             geometry=geometry,
             target=tile,
             time_UTC=time_UTC,
@@ -1552,27 +1593,27 @@ def L3T_L4T_JET(
             raise BlankOutput(
                 f"blank soil moisture output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
-        MOD16_model = MOD16(
-            working_directory=working_directory,
-            static_directory=static_directory,
-            GEOS5FP_connection=GEOS5FP_connection,
-            # MCD12_connnection=MCD12_connnection,
-            save_intermediate=save_intermediate,
-            show_distribution=show_distribution
-        )
+        # MOD16_model = MOD16(
+        #     working_directory=working_directory,
+        #     static_directory=static_directory,
+        #     GEOS5FP_connection=GEOS5FP_connection,
+        #     # MCD12_connnection=MCD12_connnection,
+        #     save_intermediate=save_intermediate,
+        #     show_distribution=show_distribution
+        # )
 
         # Ta_K = Ta_C + 273.15
         # Ea_Pa = Ea_kPa * 1000
 
-        MOD16_results = MOD16_model.MOD16(
+        MOD16_results = MOD16(
             geometry=geometry,
             target=tile,
             time_UTC=time_UTC,
-            ST_K=ST_K,
+            # ST_K=ST_K,
             emissivity=emissivity,
             NDVI=NDVI,
             albedo=albedo,
-            Ta_K=Ta_K,
+            Ta_C=Ta_C,
             Ea_Pa=Ea_Pa,
             elevation_km=elevation_km,
             SWin=SWin,
