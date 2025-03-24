@@ -29,6 +29,7 @@ from ECOv002_granules import L2TLSTE, L2TSTARS, L3TJET, L3TSM, L3TSEB, L3TMET, L
 from ECOv002_granules import ET_COLORMAP, SM_COLORMAP, WATER_COLORMAP, CLOUD_COLORMAP, RH_COLORMAP, GPP_COLORMAP
 
 from FLiESLUT import process_FLiES_LUT_raster
+from FLiESANN import process_FLiES_ANN
 
 from breathing_earth_system_simulator import BESS
 from MOD16_JPL import MOD16
@@ -1120,8 +1121,9 @@ def L3T_L4T_JET(
         doy_solar = time_solar.timetuple().tm_yday
         kg = load_koppen_geiger(albedo.geometry)
 
-        FLiES_results = FLiESANN.process_FLiES_ANN(
-            doy=doy_solar,
+        FLiES_results = process_FLiES_ANN(
+            day_of_year=doy_solar,
+            hour_of_day=hour_of_day,
             albedo=albedo,
             COT=COT,
             AOT=AOT,
