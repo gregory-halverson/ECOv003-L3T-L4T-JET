@@ -1122,9 +1122,11 @@ def L3T_L4T_JET(
         kg = load_koppen_geiger(albedo.geometry)
 
         FLiES_results = process_FLiES_ANN(
+            albedo=albedo,
+            geometry=geometry,
+            time_UTC=time_UTC,
             day_of_year=doy_solar,
             hour_of_day=hour_of_day,
-            albedo=albedo,
             COT=COT,
             AOT=AOT,
             vapor_gccm=vapor_gccm,
