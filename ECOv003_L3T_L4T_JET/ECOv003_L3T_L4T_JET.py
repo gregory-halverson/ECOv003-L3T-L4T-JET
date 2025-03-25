@@ -1439,13 +1439,14 @@ def L3T_L4T_JET(
         # )
 
         BESS_results = BESS(
-            hour_of_day=hour_of_day,
-            day_of_year=day_of_year,
-            elevation_km=elevation_km,
             ST_C=ST_C,
             NDVI=NDVI,
             albedo=albedo,
+            elevation_km=elevation_km,
             geometry=geometry,
+            time_UTC=time_UTC,
+            hour_of_day=hour_of_day,
+            day_of_year=day_of_year,
             datetime_UTC=time_UTC,
             GEOS5FP_connection=GEOS5FP_connection,
             Ta_C=Ta_C,
