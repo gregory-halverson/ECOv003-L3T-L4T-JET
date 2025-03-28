@@ -39,11 +39,8 @@ from .verma_net_radiation import process_verma_net_radiation
 from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
 
-from .LPDAAC.LPDAACDataPool import LPDAACServerUnreachable
-from .MCD12.MCD12C1 import MCD12C1
-
 from .downscaling.linear_downscale import linear_downscale, bias_correct
-from .model.model import check_distribution
+from .check_distribution import check_distribution
 from .timer import Timer
 
 from .PGEVersion import PGEVersion
@@ -1019,57 +1016,6 @@ def L3T_L4T_JET(
             working_directory=working_directory,
             download_directory=GEOS5FP_directory
         )
-
-        # PTJPLSM_model = PTJPLSM(
-        #     working_directory=working_directory,
-        #     GEDI_download=GEDI_directory,
-        #     CI_directory=MODISCI_directory,
-        #     soil_grids_download=soil_grids_directory,
-        #     GEOS5FP_connection=GEOS5FP_connection,
-        #     save_intermediate=save_intermediate,
-        #     show_distribution=show_distribution,
-        #     floor_Topt=floor_Topt
-        # )
-
-        # PTJPL_model = PTJPL(
-        #     working_directory=working_directory,
-        #     GEDI_download=GEDI_directory,
-        #     CI_directory=MODISCI_directory,
-        #     GEOS5FP_connection=GEOS5FP_connection,
-        #     save_intermediate=save_intermediate,
-        #     show_distribution=show_distribution
-        # )
-
-        # FLiES_ANN_model = FLiES(
-        #     working_directory=working_directory,
-        #     GEOS5FP_connection=GEOS5FP_connection,
-        #     save_intermediate=save_intermediate,
-        #     show_distribution=show_distribution
-        # )
-
-
-        # MCD12_connnection = MCD12C1(
-        #     working_directory=static_directory,
-        #     download_directory=MCD12_directory
-        # )
-
-        # FIXME replace FLiESLUT sub-module with package
-        # FLiES_LUT_model = FLiESLUT(
-        #     working_directory=working_directory,
-        #     static_directory=static_directory,
-        #     GEOS5FP_connection=GEOS5FP_connection,
-        #     # MCD12_connnection=MCD12_connnection,
-        #     save_intermediate=save_intermediate,
-        #     show_distribution=show_distribution
-        # )
-        # BESS_model = BESS(
-        #     working_directory=working_directory,
-        #     GEDI_download=GEDI_directory,
-        #     CI_directory=MODISCI_directory,
-        #     GEOS5FP_connection=GEOS5FP_connection,
-        #     save_intermediate=save_intermediate,
-        #     show_distribution=show_distribution
-        # )
 
         # SZA = FLiES_ANN_model.SZA(day_of_year=day_of_year, hour_of_day=hour_of_day, geometry=geometry)
         SZA = calculate_SZA_from_DOY_and_hour(
