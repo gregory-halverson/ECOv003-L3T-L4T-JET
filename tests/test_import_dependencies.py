@@ -11,7 +11,7 @@ dependencies = [
     "FLiESANN",
     "gedi_canopy_height",
     "geopandas",
-    "geos5fp",
+    "GEOS5FP",
     "h5py",
     "koppengeiger",
     "matplotlib",
