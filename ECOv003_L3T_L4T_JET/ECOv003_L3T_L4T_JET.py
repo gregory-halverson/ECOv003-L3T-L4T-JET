@@ -29,11 +29,13 @@ from ECOv002_granules import L2TLSTE, L2TSTARS, L3TJET, L3TSM, L3TSEB, L3TMET, L
 from ECOv002_granules import ET_COLORMAP, SM_COLORMAP, WATER_COLORMAP, CLOUD_COLORMAP, RH_COLORMAP, GPP_COLORMAP
 
 from FLiESLUT import process_FLiES_LUT_raster
+from FLiESANN import FLiESANN
 
 from breathing_earth_system_simulator import BESS
 from MOD16_JPL import MOD16
 from STIC import STIC
 from PTJPLSM import PTJPLSM
+from PTJPL import PTJPL
 from .verma_net_radiation import process_verma_net_radiation
 
 from .exit_codes import *
@@ -1062,10 +1064,9 @@ def L3T_L4T_JET(
         # )
 
         doy_solar = time_solar.timetuple().tm_yday
-        kg = load_koppen_geiger(albedo.geometry)
+        KG_climate = load_koppen_geiger(albedo.geometry)
 
-        FLiES_results = FLiESANN.process_FLiES_ANN(
-            doy=doy_solar,
+        FLiES_results = FLiESANN(
             albedo=albedo,
             COT=COT,
             AOT=AOT,
@@ -1073,7 +1074,9 @@ def L3T_L4T_JET(
             ozone_cm=ozone_cm,
             elevation_km=elevation_km,
             SZA=SZA,
-            KG_climate=kg
+            KG_climate=KG_climate,
+            geometry=geometry,
+            time_UTC=time_UTC,
         )
 
         Ra = FLiES_results["Ra"]
@@ -1100,7 +1103,7 @@ def L3T_L4T_JET(
             time_UTC=time_UTC,
             cloud_mask=cloud,
             COT=COT,
-            koppen_geiger=kg,
+            koppen_geiger=KG_climate,
             albedo=albedo,
             SZA=SZA,
             GEOS5FP_connection=GEOS5FP_connection
@@ -1359,36 +1362,15 @@ def L3T_L4T_JET(
 
         logger.info(f"running Breathing Earth System Simulator for {cl.place(tile)} at {cl.time(time_UTC)} UTC")
 
-        # BESS_results = BESS(
-        #     geometry=geometry,
-        #     target=tile,
-        #     time_UTC=time_UTC,
-        #     ST_K=ST_K,
-        #     Ta_K=Ta_K,
-        #     RH=RH,
-        #     elevation_km=elevation_km,
-        #     NDVI=NDVI,
-        #     albedo=albedo,
-        #     Rg=SWin_FLiES_ANN,
-        #     SM=SM,
-        #     VISdiff=VISdiff,
-        #     VISdir=VISdir,
-        #     NIRdiff=NIRdiff,
-        #     NIRdir=NIRdir,
-        #     UV=UV,
-        #     water=water,
-        #     output_variables=["Rn", "LE", "GPP"]
-        # )
-
         BESS_results = BESS(
-            hour_of_day=hour_of_day,
-            day_of_year=day_of_year,
-            elevation_km=elevation_km,
             ST_C=ST_C,
             NDVI=NDVI,
             albedo=albedo,
+            elevation_km=elevation_km,
             geometry=geometry,
-            datetime_UTC=time_UTC,
+            time_UTC=time_UTC,
+            hour_of_day=hour_of_day,
+            day_of_year=day_of_year,
             GEOS5FP_connection=GEOS5FP_connection,
             Ta_C=Ta_C,
             RH=RH,
@@ -1397,34 +1379,27 @@ def L3T_L4T_JET(
             VISdir=VISdir,
             NIRdiff=NIRdiff,
             NIRdir=NIRdir,
-            UV=UV
+            UV=UV,
+            vapor_gccm=vapor_gccm,
+            ozone_cm=ozone_cm,
+            KG_climate=KG_climate,
+            SZA=SZA
         )
 
         Rn_BESS = BESS_results["Rn"]
+        check_distribution(Rn_BESS, "Rn_BESS", date_UTC=date_UTC, target=tile)
         LE_BESS = BESS_results["LE"]
+        check_distribution(LE_BESS, "LE_BESS", date_UTC=date_UTC, target=tile)
         GPP = BESS_results["GPP"]  # [umol m-2 s-1]
-        GPP = GPP.mask(~water)
+        check_distribution(GPP, "GPP", date_UTC=date_UTC, target=tile)
+        GPP = rt.where(water, np.nan, GPP)
 
         if np.all(np.isnan(GPP)):
             raise BlankOutput(f"blank GPP output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
-        NWP_filenames = sorted([posixpath.basename(filename) for filename in BESS_model.GEOS5FP_connection.filenames])
+        NWP_filenames = sorted([posixpath.basename(filename) for filename in GEOS5FP_connection.filenames])
         AncillaryNWP = ",".join(NWP_filenames)
         metadata["ProductMetadata"]["AncillaryNWP"] = AncillaryNWP
-
-        ## FIXME need Verma net radiation model
-
-        # Rn_verma = PTJPLSM_model.Rn(
-        #     date_UTC=date_UTC,
-        #     target=tile,
-        #     SWin=SWin,
-        #     albedo=albedo,
-        #     ST_C=ST_C,
-        #     emissivity=emissivity,
-        #     Ea_kPa=Ea_kPa,
-        #     Ta_C=Ta_C,
-        #     cloud_mask=cloud
-        # )
 
         Rn_verma = process_verma_net_radiation(
             SWin=SWin,
@@ -1444,14 +1419,6 @@ def L3T_L4T_JET(
 
         if np.all(np.isnan(Rn)) or np.all(Rn == 0):
             raise BlankOutput(f"blank net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
-
-        # STIC_model = STIC(
-        #     working_directory=working_directory,
-        #     static_directory=static_directory,
-        #     GEOS5FP_connection=GEOS5FP_connection,
-        #     save_intermediate=save_intermediate,
-        #     show_distribution=show_distribution
-        # )
 
         STIC_results = STIC(
             geometry=geometry,
@@ -1479,7 +1446,7 @@ def L3T_L4T_JET(
         # G = calculate_G_SEBAL(Rn, ST_C, NDVI, albedo)
         # G = G_STIC
 
-        PTJPLSM_results = PTJPLSM_model.PTJPL(
+        PTJPLSM_results = PTJPL(
             geometry=geometry,
             target=tile,
             time_UTC=time_UTC,
@@ -1905,7 +1872,7 @@ def L3T_L4T_JET(
         logger.exception(exception)
         exit_code = BLANK_OUTPUT
 
-    except (FailedGEOS5FPDownload, LPDAACServerUnreachable, ConnectionError) as exception:
+    except (FailedGEOS5FPDownload, ConnectionError) as exception:
         logger.exception(exception)
         exit_code = ANCILLARY_SERVER_UNREACHABLE
 

@@ -17,7 +17,7 @@ dependencies = [
     "matplotlib",
     "MCD12C1_2019_v006",
     "MOD16_JPL",
-    "modisci",
+    "MODISCI",
     "msgpack",
     "msgpack_numpy",
     "netCDF4",
