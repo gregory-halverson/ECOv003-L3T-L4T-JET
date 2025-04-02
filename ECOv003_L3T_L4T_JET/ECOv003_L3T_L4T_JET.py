@@ -33,7 +33,7 @@ from FLiESANN import FLiESANN
 
 from BESS_JPL import BESS_JPL
 from MOD16_JPL import MOD16
-from STIC import STIC
+from STIC_JPL import STIC_JPL
 from PTJPLSM import PTJPLSM
 from PTJPL import PTJPL
 from .verma_net_radiation import process_verma_net_radiation
@@ -1362,18 +1362,17 @@ def L3T_L4T_JET(
         if np.all(np.isnan(Rn)) or np.all(Rn == 0):
             raise BlankOutput(f"blank net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
-        STIC_results = STIC(
+        STIC_results = STIC_JPL(
             geometry=geometry,
             time_UTC=time_UTC,
-            Rn=Rn,
+            Rn_Wm2=Rn,
             RH=RH,
-            Rg=SWin,
+            Rg_Wm2=SWin,
             Ta_C=Ta_C_smooth,
             ST_C=ST_C,
             albedo=albedo,
             emissivity=emissivity,
             NDVI=NDVI,
-            water=water,
             max_iterations=3
         )
 

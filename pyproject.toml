@@ -56,7 +56,7 @@ dependencies = [
     "six",
     "soil-capacity-wilting",
     "solar-apparent-time>=1.3.1",
-    "STIC>=1.0.4",
+    "STIC-JPL>=1.1.0",
     "sun-angles",
     "tensorflow",
     "untangle",
