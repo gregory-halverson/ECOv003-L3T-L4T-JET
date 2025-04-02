@@ -1367,7 +1367,7 @@ def L3T_L4T_JET(
             time_UTC=time_UTC,
             Rn_Wm2=Rn,
             RH=RH,
-            Rg_Wm2=SWin,
+            # Rg_Wm2=SWin,
             Ta_C=Ta_C_smooth,
             ST_C=ST_C,
             albedo=albedo,
