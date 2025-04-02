@@ -1071,7 +1071,6 @@ def L3T_L4T_JET(
             elevation_km=elevation_km,
             SZA=SZA,
             KG_climate=KG_climate,
-            geometry=geometry,
             time_UTC=time_UTC,
         )
 
