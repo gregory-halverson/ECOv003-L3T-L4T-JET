@@ -4,7 +4,7 @@ import pytest
 dependencies = [
     "affine",
     "astropy",
-    "breathing_earth_system_simulator",
+    "BESS_JPL",
     "colored_logging",
     "ECOv002_CMR",  
     "ECOv002_granules",

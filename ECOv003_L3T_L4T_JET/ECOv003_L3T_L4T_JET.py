@@ -31,7 +31,7 @@ from ECOv002_granules import ET_COLORMAP, SM_COLORMAP, WATER_COLORMAP, CLOUD_COL
 from FLiESLUT import process_FLiES_LUT_raster
 from FLiESANN import FLiESANN
 
-from breathing_earth_system_simulator import BESS
+from BESS_JPL import BESS_JPL
 from MOD16_JPL import MOD16
 from STIC import STIC
 from PTJPLSM import PTJPLSM
@@ -1362,7 +1362,7 @@ def L3T_L4T_JET(
 
         logger.info(f"running Breathing Earth System Simulator for {cl.place(tile)} at {cl.time(time_UTC)} UTC")
 
-        BESS_results = BESS(
+        BESS_results = BESS_JPL(
             ST_C=ST_C,
             NDVI=NDVI,
             albedo=albedo,
