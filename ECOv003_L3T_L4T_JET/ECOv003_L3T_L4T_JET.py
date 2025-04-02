@@ -41,11 +41,16 @@ from .verma_net_radiation import process_verma_net_radiation
 from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
 
+from MCD12C1_2019_v006 import load_MCD12C1_IGBP
+
 from .downscaling.linear_downscale import linear_downscale, bias_correct
 from .check_distribution import check_distribution
 from .timer import Timer
 
 from .PGEVersion import PGEVersion
+
+class LPDAACServerUnreachable(Exception):
+    pass
 
 with open(join(abspath(dirname(__file__)), "version.txt")) as f:
     version = f.read()
@@ -1055,6 +1060,10 @@ def L3T_L4T_JET(
 
         FLiES_results = FLiESANN(
             albedo=albedo,
+            geometry=geometry,
+            time_UTC=time_UTC,
+            day_of_year=doy_solar,
+            hour_of_day=hour_of_day,
             COT=COT,
             AOT=AOT,
             vapor_gccm=vapor_gccm,
