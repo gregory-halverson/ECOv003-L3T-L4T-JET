@@ -1055,19 +1055,6 @@ def L3T_L4T_JET(
 
         logger.info(f"running Forest Light Environmental Simulator for {cl.place(tile)} at {cl.time(time_UTC)} UTC")
 
-        # Ra, SWin_FLiES_ANN_raw, UV, VIS, NIR, VISdiff, NIRdiff, VISdir, NIRdir = FLiES_ANN_model.FLiES(
-        #     geometry=geometry,
-        #     target=tile,
-        #     time_UTC=time_UTC,
-        #     albedo=albedo,
-        #     COT=COT,
-        #     AOT=AOT,
-        #     SZA=SZA,
-        #     vapor_gccm=vapor_gccm,
-        #     ozone_cm=ozone_cm,
-        #     elevation_km=elevation_km
-        # )
-
         doy_solar = time_solar.timetuple().tm_yday
         KG_climate = load_koppen_geiger(albedo.geometry)
 
@@ -1098,15 +1085,6 @@ def L3T_L4T_JET(
         VISdir = FLiES_results["VISdir"]
         NIRdir = FLiES_results["NIRdir"]
 
-        # SWin_FLiES_LUT = FLiES_LUT_model.FLiES_LUT(
-        #     geometry=geometry,
-        #     target=tile,
-        #     time_UTC=time_UTC,
-        #     cloud_mask=cloud,
-        #     COT=COT,
-        #     albedo=albedo,
-        #     AOT=AOT
-        # )
         SWin_FLiES_LUT= process_FLiES_LUT_raster(
             geometry=geometry,
             time_UTC=time_UTC,
@@ -1118,8 +1096,6 @@ def L3T_L4T_JET(
             GEOS5FP_connection=GEOS5FP_connection
         )
 
-        # Rg = Rg.mask(~np.isnan(ST_K))
-        # check_distribution(Rg, "Rg", date_UTC=date_UTC, target=tile)
         coarse_geometry = geometry.rescale(GEOS_IN_SENTINEL_COARSE_CELL_SIZE)
 
         SWin_coarse = GEOS5FP_connection.SWin(
@@ -1262,49 +1238,6 @@ def L3T_L4T_JET(
                 f"down-sampling dew-point temperature error from {int(Td_C_error_coarse.cell_size)}m to {int(geometry.cell_size)}m with {downsampling} method")
             Td_C_error = Td_C_error_coarse.to_geometry(geometry, resampling=downsampling)
             check_distribution(Td_C_error, "Td_C_error", date_UTC, tile)
-
-            # SM_model = sklearn.linear_model.LinearRegression()
-            # SM_model.fit(coarse_samples[["ST_C", "NDVI", "albedo"]], coarse_samples["SM"])
-            # SM_intercept = SM_model.intercept_
-            # ST_C_SM_coef, NDVI_SM_coef, albedo_SM_coef = SM_model.coef_
-            # logger.info(
-            #     f"soil moisture regression: SM = {SM_intercept:0.2f} + {ST_C_SM_coef:0.2f} * ST_C + {NDVI_SM_coef:0.2f} * NDVI + {albedo_SM_coef:0.2f} * albedo")
-            # SM_prediction = rt.clip(ST_C * ST_C_SM_coef + NDVI * NDVI_SM_coef + albedo * albedo_SM_coef + SM_intercept, 0,
-            #                         1)
-            # check_distribution(SM_prediction, "SM_prediction", date_UTC, tile)
-            # logger.info(
-            #     f"up-sampling predicted soil moisture from {int(SM_prediction.cell_size)}m to {int(coarse_geometry.cell_size)}m with {upsampling} method")
-            # SM_prediction_coarse = SM_prediction.to_geometry(coarse_geometry, resampling=upsampling)
-            # check_distribution(SM_prediction_coarse, "SM_prediction_coarse", date_UTC, tile)
-            # SM_bias_coarse = SM_prediction_coarse - SM_coarse
-            # check_distribution(SM_bias_coarse, "SM_bias_coarse", date_UTC, tile)
-            # logger.info(
-            #     f"down-sampling soil moisture bias from {int(SM_bias_coarse.cell_size)}m to {int(geometry.cell_size)}m with {downsampling} method")
-            # SM_bias_smooth = SM_bias_coarse.to_geometry(geometry, resampling=downsampling)
-            # check_distribution(SM_bias_smooth, "SM_bias_smooth", date_UTC, tile)
-            # logger.info("bias-correcting soil moisture")
-            # SM = rt.clip(SM_prediction - SM_bias_smooth, 0, 1)
-            # check_distribution(SM, "SM", date_UTC, tile)
-            # SM_smooth = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-            # check_distribution(SM_smooth, "SM_smooth", date_UTC, tile)
-            # logger.info("gap-filling soil moisture")
-            # SM = rt.clip(rt.where(np.isnan(SM), SM_smooth, SM), 0, 1)
-            # SM = rt.where(water, np.nan, SM)
-            # check_distribution(SM, "SM", date_UTC, tile)
-            # logger.info(
-            #     f"up-sampling final soil moisture from {int(SM.cell_size)}m to {int(coarse_geometry.cell_size)}m with {upsampling} method")
-            # SM_final_coarse = SM.to_geometry(coarse_geometry, resampling=upsampling)
-            # check_distribution(SM_final_coarse, "SM_final_coarse", date_UTC, tile)
-            # SM_error_coarse = SM_final_coarse - SM_coarse
-            # check_distribution(SM_error_coarse, "SM_error_coarse", date_UTC, tile)
-            # logger.info(
-            #     f"down-sampling soil moisture error from {int(SM_error_coarse.cell_size)}m to {int(geometry.cell_size)}m with {downsampling} method")
-            # SM_error = rt.where(water, np.nan, SM_error_coarse.to_geometry(geometry, resampling=downsampling))
-            # check_distribution(SM_error, "SM_error", date_UTC, tile)
-
-            # if np.all(np.isnan(SM)):
-            #     raise BlankOutput(
-            #         f"blank soil moisture output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
             Ta_K = Ta_C + 273.15
             RH = rt.clip(np.exp((17.625 * Td_C) / (243.04 + Td_C)) / np.exp((17.625 * Ta_C) / (243.04 + Ta_C)), 0, 1)
