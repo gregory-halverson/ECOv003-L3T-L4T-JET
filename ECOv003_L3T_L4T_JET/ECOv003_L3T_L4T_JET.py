@@ -1341,7 +1341,7 @@ def L3T_L4T_JET(
         AncillaryNWP = ",".join(NWP_filenames)
         metadata["ProductMetadata"]["AncillaryNWP"] = AncillaryNWP
 
-        Rn_verma = process_verma_net_radiation(
+        verma_results = process_verma_net_radiation(
             SWin=SWin,
             albedo=albedo,
             ST_C=ST_C,
@@ -1349,6 +1349,8 @@ def L3T_L4T_JET(
             Ta_C=Ta_C,
             RH=RH
         )
+
+        Rn_verma = verma_results["Rn"]
 
         if Rn_model_name == "verma":
             Rn = Rn_verma
@@ -1362,7 +1364,6 @@ def L3T_L4T_JET(
 
         STIC_results = STIC(
             geometry=geometry,
-            target=tile,
             time_UTC=time_UTC,
             Rn=Rn,
             RH=RH,
