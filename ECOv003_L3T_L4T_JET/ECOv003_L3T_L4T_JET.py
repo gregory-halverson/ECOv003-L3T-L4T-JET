@@ -32,11 +32,10 @@ from FLiESLUT import process_FLiES_LUT_raster
 from FLiESANN import FLiESANN
 
 from BESS_JPL import BESS_JPL
-from MOD16_JPL import MOD16
+from PMJPL import PMJPL
 from STIC_JPL import STIC_JPL
 from PTJPLSM import PTJPLSM
-from PTJPL import PTJPL
-from .verma_net_radiation import process_verma_net_radiation
+from verma_net_radiation import process_verma_net_radiation
 
 from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
@@ -1386,24 +1385,23 @@ def L3T_L4T_JET(
         # G = calculate_G_SEBAL(Rn, ST_C, NDVI, albedo)
         # G = G_STIC
 
-        PTJPLSM_results = PTJPL(
+        PTJPLSM_results = PTJPLSM(
             geometry=geometry,
-            target=tile,
             time_UTC=time_UTC,
             ST_C=ST_C,
             emissivity=emissivity,
             NDVI=NDVI,
             albedo=albedo,
-            SWin=SWin,
+            # SWin=SWin,
             Rn=Rn,
             # G=G,
             Ta_C=Ta_C,
             RH=RH,
-            SM=SM,
-            Ea_kPa=Ea_kPa,
-            water=water,
-            output_variables=["LE", "canopy_proportion", "LE_canopy", "soil_proportion", "interception_proportion",
-                              "ET", "ESI", "PET", "SM", "Rn", "Rn_daily"]
+            soil_moisture=SM,
+            # Ea_kPa=Ea_kPa,
+            # water=water,
+            # output_variables=["LE", "canopy_proportion", "LE_canopy", "soil_proportion", "interception_proportion",
+            #                   "ET", "ESI", "PET", "SM", "Rn", "Rn_daily"]
         )
 
         if Rn is None:
@@ -1446,21 +1444,8 @@ def L3T_L4T_JET(
             raise BlankOutput(
                 f"blank soil moisture output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
-        # MOD16_model = MOD16(
-        #     working_directory=working_directory,
-        #     static_directory=static_directory,
-        #     GEOS5FP_connection=GEOS5FP_connection,
-        #     # MCD12_connnection=MCD12_connnection,
-        #     save_intermediate=save_intermediate,
-        #     show_distribution=show_distribution
-        # )
-
-        # Ta_K = Ta_C + 273.15
-        # Ea_Pa = Ea_kPa * 1000
-
-        MOD16_results = MOD16(
+        PMJPL_results = PMJPL(
             geometry=geometry,
-            target=tile,
             time_UTC=time_UTC,
             # ST_K=ST_K,
             emissivity=emissivity,
@@ -1476,18 +1461,17 @@ def L3T_L4T_JET(
             water=water
         )
 
-        LE_MOD16 = MOD16_results["LE"]
+        LE_PMJPL = PMJPL_results["LE"]
 
         LE_BESS = LE_BESS.mask(~water)
 
         ETinst = rt.Raster(
-            np.nanmedian([np.array(LE_PTJPLSM), np.array(LE_BESS), np.array(LE_MOD16), np.array(LE_STIC)], axis=0),
+            np.nanmedian([np.array(LE_PTJPLSM), np.array(LE_BESS), np.array(LE_PMJPL), np.array(LE_STIC)], axis=0),
             geometry=geometry)
 
+        ## FIXME need to revise evaporative fraction to take soil heat flux into account
         EF = rt.where((ETinst == 0) | (Rn == 0), 0, ETinst / Rn)
 
-        # hour_of_day = calculate_hour_of_day(time_UTC=time_UTC, geometry=geometry)
-        # day_of_year = calculate_day_of_year(time_UTC=time_UTC, geometry=geometry)
         SHA = SHA_deg_from_doy_lat(day_of_year, geometry.lat)
         sunrise_hour = sunrise_from_sha(SHA)
         daylight_hours = daylight_from_sha(SHA)
@@ -1508,7 +1492,7 @@ def L3T_L4T_JET(
         ET_daily_kg = np.clip(LE_daily * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
 
         ETinstUncertainty = rt.Raster(
-            np.nanstd([np.array(LE_PTJPLSM), np.array(LE_BESS), np.array(LE_MOD16), np.array(LE_STIC)], axis=0),
+            np.nanstd([np.array(LE_PTJPLSM), np.array(LE_BESS), np.array(LE_PMJPL), np.array(LE_STIC)], axis=0),
             geometry=geometry).mask(~water)
 
         if exists(L3T_JET_zip_filename):
@@ -1532,7 +1516,7 @@ def L3T_L4T_JET(
         LE_STIC.nodata = np.nan
         LE_PTJPLSM.nodata = np.nan
         LE_BESS.nodata = np.nan
-        LE_MOD16.nodata = np.nan
+        LE_PMJPL.nodata = np.nan
         ET_daily_kg.nodata = np.nan
         ETinstUncertainty.nodata = np.nan
         PTJPLSMcanopy.nodata = np.nan
@@ -1543,7 +1527,7 @@ def L3T_L4T_JET(
         L3T_JET_granule.add_layer("STICinst", LE_STIC.astype(np.float32), cmap=ET_COLORMAP)
         L3T_JET_granule.add_layer("PTJPLSMinst", LE_PTJPLSM.astype(np.float32), cmap=ET_COLORMAP)
         L3T_JET_granule.add_layer("BESSinst", LE_BESS.astype(np.float32), cmap=ET_COLORMAP)
-        L3T_JET_granule.add_layer("MOD16inst", LE_MOD16.astype(np.float32), cmap=ET_COLORMAP)
+        L3T_JET_granule.add_layer("MOD16inst", LE_PMJPL.astype(np.float32), cmap=ET_COLORMAP)
         L3T_JET_granule.add_layer("ETdaily", ET_daily_kg.astype(np.float32), cmap=ET_COLORMAP)
         L3T_JET_granule.add_layer("ETinstUncertainty", ETinstUncertainty.astype(np.float32), cmap="jet")
         L3T_JET_granule.add_layer("PTJPLSMcanopy", PTJPLSMcanopy.astype(np.float32), cmap=ET_COLORMAP)

@@ -31,7 +31,6 @@ dependencies = [
     "koppengeiger>=1.0.4",
     "matplotlib",
     "MCD12C1-2019-v006",
-    "MOD16-JPL>=1.1.0",
     "MODISCI>=1.3.0",
     "msgpack",
     "msgpack_numpy",
@@ -44,8 +43,9 @@ dependencies = [
     "pykdtree",
     "pyproj",
     "pyresample",
+    "PM-JPL>=1.2.2",
     "PTJPL>=1.0.8",
-    "PTJPLSM",
+    "PTJPLSM>=1.1.0",
     "rasterio",
     "rasters>=1.4.6",
     "scikit-image",
@@ -54,12 +54,13 @@ dependencies = [
     "sentinel-tiles>=1.0.2",
     "shapely",
     "six",
-    "soil-capacity-wilting",
+    "soil-capacity-wilting>=1.1.0",
     "solar-apparent-time>=1.3.1",
     "STIC-JPL>=1.1.0",
     "sun-angles",
     "tensorflow",
     "untangle",
+    "verma-net-radiation",
     "xmltodict"
 ]
 
