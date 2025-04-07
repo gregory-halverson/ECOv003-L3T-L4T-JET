@@ -21,6 +21,8 @@ import colored_logging as cl
 import rasters as rt
 from rasters import Raster, RasterGrid, RasterGeometry
 
+from check_distribution import check_distribution
+
 from koppengeiger import load_koppen_geiger
 import FLiESANN
 from GEOS5FP import GEOS5FP, FailedGEOS5FPDownload
@@ -43,7 +45,7 @@ from .runconfig import read_runconfig, ECOSTRESSRunConfig
 from MCD12C1_2019_v006 import load_MCD12C1_IGBP
 
 from .downscaling.linear_downscale import linear_downscale, bias_correct
-from .check_distribution import check_distribution
+
 from .timer import Timer
 
 from .PGEVersion import PGEVersion
