@@ -20,6 +20,7 @@ import colored_logging as cl
 
 import rasters as rt
 from rasters import Raster, RasterGrid, RasterGeometry
+from rasters import linear_downscale, bias_correct
 
 from check_distribution import check_distribution
 
@@ -39,16 +40,13 @@ from STIC_JPL import STIC_JPL
 from PTJPLSM import PTJPLSM
 from verma_net_radiation import process_verma_net_radiation
 
+from .version import __version__
 from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
 
 from MCD12C1_2019_v006 import load_MCD12C1_IGBP
 
-from .downscaling.linear_downscale import linear_downscale, bias_correct
-
 from .timer import Timer
-
-from .PGEVersion import PGEVersion
 
 class LPDAACServerUnreachable(Exception):
     pass
@@ -623,31 +621,31 @@ class L3TL4TJETConfig(ECOSTRESSRunConfig):
 
             # print(JSON_highlight(runconfig))
 
-            if "StaticAncillaryFileGroup" not in runconfig:
+            if "StaticAuxiliaryFileGroup" not in runconfig:
                 raise MissingRunConfigValue(
-                    f"missing StaticAncillaryFileGroup in L3T_L4T_JET run-config: {filename}")
+                    f"missing StaticAuxiliaryFileGroup in L3T_L4T_JET run-config: {filename}")
 
-            if "L3T_L4T_JET_WORKING" not in runconfig["StaticAncillaryFileGroup"]:
+            if "L3T_L4T_JET_WORKING" not in runconfig["StaticAuxiliaryFileGroup"]:
                 raise MissingRunConfigValue(
-                    f"missing StaticAncillaryFileGroup/L3T_L4T_JET_WORKING in L3T_L4T_JET run-config: {filename}")
+                    f"missing StaticAuxiliaryFileGroup/L3T_L4T_JET_WORKING in L3T_L4T_JET run-config: {filename}")
 
-            working_directory = abspath(runconfig["StaticAncillaryFileGroup"]["L3T_L4T_JET_WORKING"])
+            working_directory = abspath(runconfig["StaticAuxiliaryFileGroup"]["L3T_L4T_JET_WORKING"])
             logger.info(f"working directory: {cl.dir(working_directory)}")
 
-            if "L3T_L4T_JET_SOURCES" not in runconfig["StaticAncillaryFileGroup"]:
+            if "L3T_L4T_JET_SOURCES" not in runconfig["StaticAuxiliaryFileGroup"]:
                 raise MissingRunConfigValue(
-                    f"missing StaticAncillaryFileGroup/L3T_L4T_JET_WORKING in L3T_L4T_JET run-config: {filename}")
+                    f"missing StaticAuxiliaryFileGroup/L3T_L4T_JET_WORKING in L3T_L4T_JET run-config: {filename}")
 
-            sources_directory = abspath(runconfig["StaticAncillaryFileGroup"]["L3T_L4T_JET_SOURCES"])
+            sources_directory = abspath(runconfig["StaticAuxiliaryFileGroup"]["L3T_L4T_JET_SOURCES"])
             logger.info(f"sources directory: {cl.dir(sources_directory)}")
 
             GEOS5FP_directory = join(sources_directory, DEFAULT_GEOS5FP_DIRECTORY)
 
-            if "L3T_L4T_STATIC" not in runconfig["StaticAncillaryFileGroup"]:
+            if "L3T_L4T_STATIC" not in runconfig["StaticAuxiliaryFileGroup"]:
                 raise MissingRunConfigValue(
-                    f"missing StaticAncillaryFileGroup/L3T_L4T_STATIC in L3T_L4T_JET run-config: {filename}")
+                    f"missing StaticAuxiliaryFileGroup/L3T_L4T_STATIC in L3T_L4T_JET run-config: {filename}")
 
-            static_directory = abspath(runconfig["StaticAncillaryFileGroup"]["L3T_L4T_STATIC"])
+            static_directory = abspath(runconfig["StaticAuxiliaryFileGroup"]["L3T_L4T_STATIC"])
             logger.info(f"static directory: {cl.dir(static_directory)}")
 
             if "ProductPathGroup" not in runconfig:
@@ -753,7 +751,7 @@ class L3TL4TJETConfig(ECOSTRESSRunConfig):
             L4T_WUE_browse_filename = f"{L4T_WUE_directory}.png"
 
             PGE_name = "L3T_L4T_JET"
-            PGE_version = PGEVersion
+            PGE_version = __version__
 
             self.working_directory = working_directory
             self.sources_directory = sources_directory
@@ -987,12 +985,12 @@ def L3T_L4T_JET(
         L2T_STARS_granule = L2TSTARS(L2T_STARS_filename)
 
         metadata = L2T_STARS_granule.metadata_dict
-        metadata["StandardMetadata"]["PGEVersion"] = PGEVersion
+        metadata["StandardMetadata"]["PGEVersion"] = __version__
         metadata["StandardMetadata"]["PGEName"] = "L3T_L4T_JET"
         metadata["StandardMetadata"]["ProcessingLevelID"] = "L3T"
         metadata["StandardMetadata"]["SISName"] = "Level 3 Product Specification Document"
         metadata["StandardMetadata"]["SISVersion"] = "Preliminary"
-        metadata["StandardMetadata"]["AncillaryInputPointer"] = "AncillaryNWP"
+        metadata["StandardMetadata"]["AuxiliaryInputPointer"] = "AuxiliaryNWP"
 
         geometry = L2T_LSTE_granule.geometry
         time_UTC = L2T_LSTE_granule.time_UTC
@@ -1012,7 +1010,7 @@ def L3T_L4T_JET(
         check_distribution(elevation_km, "elevation_km", date_UTC=date_UTC, target=tile)
 
         emissivity = L2T_LSTE_granule.emissivity
-        water = L2T_LSTE_granule.water
+        water_mask = L2T_LSTE_granule.water
         cloud = L2T_LSTE_granule.cloud
         NDVI = L2T_STARS_granule.NDVI
         albedo = L2T_STARS_granule.albedo
@@ -1277,7 +1275,7 @@ def L3T_L4T_JET(
             check_distribution(SM_smooth, "SM_smooth", date_UTC, tile)
             logger.info("gap-filling soil moisture")
             SM = rt.clip(rt.where(np.isnan(SM), SM_smooth, SM), 0, 1)
-            SM = rt.where(water, np.nan, SM)
+            SM = rt.where(water_mask, np.nan, SM)
             check_distribution(SM, "SM", date_UTC, tile)
             logger.info(
                 f"up-sampling final soil moisture from {int(SM.cell_size)}m to {int(coarse_geometry.cell_size)}m with {upsampling} method")
@@ -1287,7 +1285,7 @@ def L3T_L4T_JET(
             check_distribution(SM_error_coarse, "SM_error_coarse", date_UTC, tile)
             logger.info(
                 f"down-sampling soil moisture error from {int(SM_error_coarse.cell_size)}m to {int(geometry.cell_size)}m with {downsampling} method")
-            SM_error = rt.where(water, np.nan, SM_error_coarse.to_geometry(geometry, resampling=downsampling))
+            SM_error = rt.where(water_mask, np.nan, SM_error_coarse.to_geometry(geometry, resampling=downsampling))
             check_distribution(SM_error, "SM_error", date_UTC, tile)
 
             if np.all(np.isnan(SM)):
@@ -1329,18 +1327,31 @@ def L3T_L4T_JET(
 
         Rn_BESS = BESS_results["Rn"]
         check_distribution(Rn_BESS, "Rn_BESS", date_UTC=date_UTC, target=tile)
+        
+        # total latent heat flux in watts per square meter from BESS
         LE_BESS = BESS_results["LE"]
+
+        # water-mask BESS latent heat flux
+        if water_mask is not None:
+            LE_BESS = rt.where(water_mask, np.nan, LE_BESS)
+
         check_distribution(LE_BESS, "LE_BESS", date_UTC=date_UTC, target=tile)
+        
+        # gross primary productivity from BESS
         GPP = BESS_results["GPP"]  # [umol m-2 s-1]
+        
+        # water-mask GPP
+        if water_mask is not None:
+            GPP = rt.where(water_mask, np.nan, GPP)
+
         check_distribution(GPP, "GPP", date_UTC=date_UTC, target=tile)
-        GPP = rt.where(water, np.nan, GPP)
 
         if np.all(np.isnan(GPP)):
             raise BlankOutput(f"blank GPP output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
         NWP_filenames = sorted([posixpath.basename(filename) for filename in GEOS5FP_connection.filenames])
-        AncillaryNWP = ",".join(NWP_filenames)
-        metadata["ProductMetadata"]["AncillaryNWP"] = AncillaryNWP
+        AuxiliaryNWP = ",".join(NWP_filenames)
+        metadata["ProductMetadata"]["AuxiliaryNWP"] = AuxiliaryNWP
 
         verma_results = process_verma_net_radiation(
             SWin=SWin,
@@ -1406,19 +1417,20 @@ def L3T_L4T_JET(
             #                   "ET", "ESI", "PET", "SM", "Rn", "Rn_daily"]
         )
 
-        if Rn is None:
-            Rn = rt.clip(PTJPLSM_results["Rn"], 0, None)
+        # if Rn is None:
+        #     Rn = rt.clip(PTJPLSM_results["Rn"], 0, None)
 
-        if np.all(np.isnan(Rn)):
-            raise BlankOutput(
-                f"blank instantaneous net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
+        # if np.all(np.isnan(Rn)):
+        #     raise BlankOutput(
+        #         f"blank instantaneous net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
-        Rn_daily = rt.clip(PTJPLSM_results["Rn_daily"], 0, None)
+        # Rn_daily = rt.clip(PTJPLSM_results["Rn_daily"], 0, None)
 
-        if np.all(np.isnan(Rn_daily)):
-            raise BlankOutput(
-                f"blank daily net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
+        # if np.all(np.isnan(Rn_daily)):
+        #     raise BlankOutput(
+        #         f"blank daily net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
+        # total latent heat flux from PT-JPL-SM
         LE_PTJPLSM = rt.clip(PTJPLSM_results["LE"], 0, None)
 
         if np.all(np.isnan(LE_PTJPLSM)):
@@ -1429,43 +1441,65 @@ def L3T_L4T_JET(
             raise BlankOutput(
                 f"blank daily ET output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
-        LEt_PTJPLSM = rt.clip(PTJPLSM_results["LE_canopy"], 0, None)
+        # canopy transpiration in watts per square meter from PT-JPL-SM
+        LE_canopy_PTJPLSM = rt.clip(PTJPLSM_results["LE_canopy"], 0, None)
 
-        PTJPLSMcanopy = rt.clip(PTJPLSM_results["canopy_proportion"], 0, 1)
-        PTJPLSMsoil = rt.clip(PTJPLSM_results["soil_proportion"], 0, 1)
-        PTJPLSMinterception = rt.clip(PTJPLSM_results["interception_proportion"], 0, 1)
-        ESI_PTJPLSM = rt.clip(PTJPLSM_results["ESI"], 0, 1)
+        # normalize canopy transpiration as a fraction of total latent heat flux
+        PTJPLSMcanopy = rt.clip(LE_canopy_PTJPLSM / LE_PTJPLSM, 0, 1)
+
+        # water-mask canopy transpiration
+        if water_mask is not None:
+            PTJPLSMcanopy = rt.where(water_mask, np.nan, PTJPLSMcanopy)
+        
+        # soil evaporation in watts per square meter from PT-JPL-SM
+        LE_soil_PTJPLSM = rt.clip(PTJPLSM_results["LE_soil"], 0, None)
+
+        # normalize soil evaporation as a fraction of total latent heat flux
+        PTJPLSMsoil = rt.clip(LE_soil_PTJPLSM / LE_PTJPLSM, 0, 1)
+
+        # water-mask soil evaporation
+        if water_mask is not None:
+            PTJPLSMsoil = rt.where(water_mask, np.nan, PTJPLSMsoil)
+        
+        # interception evaporation in watts per square meter from PT-JPL-SM
+        LE_interception_PTJPLSM = rt.clip(PTJPLSM_results["LE_interception"], 0, None)
+
+        # normalize interception evaporation as a fraction of total latent heat flux
+        PTJPLSMinterception = rt.clip(LE_interception_PTJPLSM / LE_PTJPLSM, 0, 1)
+
+        # water-mask interception evaporation
+        if water_mask is not None:
+            PTJPLSMinterception = rt.where(water_mask, np.nan, PTJPLSMinterception)
+        
+        # potential evapotranspiration in watts per square meter from PT-JPL-SM
+        PET_PTJPLSM = rt.clip(PTJPLSM_results["PET"], 0, None)
+
+        # normalize total latent heat flux as a fraction of potential evapotranspiration
+        ESI_PTJPLSM = rt.clip(LE_PTJPLSM / PET_PTJPLSM, 0, 1)
+
+        # water-mask ESI
+        if water_mask is not None:
+            ESI_PTJPLSM = rt.where(water_mask, np.nan, ESI_PTJPLSM)
 
         if np.all(np.isnan(ESI_PTJPLSM)):
             raise BlankOutput(f"blank ESI output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
-        PET_PTJPLSM = rt.clip(PTJPLSM_results["PET"], 0, None)
-        SM = rt.clip(PTJPLSM_results["SM"], 0, 1)
-
-        if np.all(np.isnan(SM)):
-            raise BlankOutput(
-                f"blank soil moisture output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
-
         PMJPL_results = PMJPL(
             geometry=geometry,
             time_UTC=time_UTC,
-            # ST_K=ST_K,
+            ST_C=ST_C,
             emissivity=emissivity,
             NDVI=NDVI,
             albedo=albedo,
             Ta_C=Ta_C,
-            Ea_Pa=Ea_Pa,
+            RH=RH,
             elevation_km=elevation_km,
-            SWin=SWin,
-            Rn=Rn,
-            Rn_daily=Rn_daily,
-            # G=G,
-            water=water
+            Rn=Rn
         )
 
         LE_PMJPL = PMJPL_results["LE"]
 
-        LE_BESS = LE_BESS.mask(~water)
+        
 
         ETinst = rt.Raster(
             np.nanmedian([np.array(LE_PTJPLSM), np.array(LE_BESS), np.array(LE_PMJPL), np.array(LE_STIC)], axis=0),
@@ -1495,7 +1529,7 @@ def L3T_L4T_JET(
 
         ETinstUncertainty = rt.Raster(
             np.nanstd([np.array(LE_PTJPLSM), np.array(LE_BESS), np.array(LE_PMJPL), np.array(LE_STIC)], axis=0),
-            geometry=geometry).mask(~water)
+            geometry=geometry).mask(~water_mask)
 
         if exists(L3T_JET_zip_filename):
             logger.info(f"found L3T PT-JPL file: {L3T_JET_zip_filename}")
@@ -1510,10 +1544,10 @@ def L3T_L4T_JET(
             process_count=product_counter
         )
 
-        PTJPLSMcanopy = PTJPLSMcanopy.mask(~water)
-        STICcanopy = STICcanopy.mask(~water)
-        PTJPLSMsoil = PTJPLSMsoil.mask(~water)
-        PTJPLSMinterception = PTJPLSMinterception.mask(~water)
+        # PTJPLSMcanopy = PTJPLSMcanopy.mask(~water)
+        # STICcanopy = STICcanopy.mask(~water)
+        # PTJPLSMsoil = PTJPLSMsoil.mask(~water)
+        # PTJPLSMinterception = PTJPLSMinterception.mask(~water)
 
         LE_STIC.nodata = np.nan
         LE_PTJPLSM.nodata = np.nan
@@ -1536,7 +1570,7 @@ def L3T_L4T_JET(
         L3T_JET_granule.add_layer("STICcanopy", STICcanopy.astype(np.float32), cmap=ET_COLORMAP)
         L3T_JET_granule.add_layer("PTJPLSMsoil", PTJPLSMsoil.astype(np.float32), cmap=ET_COLORMAP)
         L3T_JET_granule.add_layer("PTJPLSMinterception", PTJPLSMinterception.astype(np.float32), cmap=ET_COLORMAP)
-        L3T_JET_granule.add_layer("water", water.astype(np.uint8), cmap=WATER_COLORMAP)
+        L3T_JET_granule.add_layer("water", water_mask.astype(np.uint8), cmap=WATER_COLORMAP)
         L3T_JET_granule.add_layer("cloud", cloud.astype(np.uint8), cmap=CLOUD_COLORMAP)
 
         percent_good_quality = 100 * (1 - np.count_nonzero(np.isnan(LE_PTJPLSM)) / LE_PTJPLSM.size)
@@ -1575,7 +1609,7 @@ def L3T_L4T_JET(
 
         L3T_MET_granule.add_layer("Ta", Ta_C.astype(np.float32), cmap="jet")
         L3T_MET_granule.add_layer("RH", RH.astype(np.float32), cmap=RH_COLORMAP)
-        L3T_MET_granule.add_layer("water", water.astype(np.uint8), cmap=WATER_COLORMAP)
+        L3T_MET_granule.add_layer("water", water_mask.astype(np.uint8), cmap=WATER_COLORMAP)
         L3T_MET_granule.add_layer("cloud", cloud.astype(np.uint8), cmap=CLOUD_COLORMAP)
 
         percent_good_quality = 100 * (1 - np.count_nonzero(np.isnan(Ta_C)) / Ta_C.size)
@@ -1622,7 +1656,7 @@ def L3T_L4T_JET(
 
         L3T_SEB_granule.add_layer("Rn", Rn.astype(np.float32), cmap="jet")
         L3T_SEB_granule.add_layer("Rg", SWin_FLiES_ANN.astype(np.float32), cmap="jet")
-        L3T_SEB_granule.add_layer("water", water.astype(np.uint8), cmap=WATER_COLORMAP)
+        L3T_SEB_granule.add_layer("water", water_mask.astype(np.uint8), cmap=WATER_COLORMAP)
         L3T_SEB_granule.add_layer("cloud", cloud.astype(np.uint8), cmap=CLOUD_COLORMAP)
 
         # temporary diagnostics
@@ -1630,7 +1664,7 @@ def L3T_L4T_JET(
             # L3T_SEB_granule.add_layer("Rn_BESS", Rn_BESS.astype(np.float32), cmap="jet")
             L3T_SEB_granule.add_layer("Rn", Rn_verma.astype(np.float32), cmap="jet")
 
-        L3T_SEB_granule.add_layer("water", water.astype(np.uint8), cmap=WATER_COLORMAP)
+        L3T_SEB_granule.add_layer("water", water_mask.astype(np.uint8), cmap=WATER_COLORMAP)
         # L3T_SEB_granule.add_layer("Rn_BESS", Rn_BESS.astype(np.float32), cmap="jet")
 
         percent_good_quality = 100 * (1 - np.count_nonzero(np.isnan(Rn)) / Rn.size)
@@ -1668,7 +1702,7 @@ def L3T_L4T_JET(
         )
 
         L3T_SM_granule.add_layer("SM", SM.astype(np.float32), cmap=SM_COLORMAP)
-        L3T_SM_granule.add_layer("water", water.astype(np.uint8), cmap=WATER_COLORMAP)
+        L3T_SM_granule.add_layer("water", water_mask.astype(np.uint8), cmap=WATER_COLORMAP)
         L3T_SM_granule.add_layer("cloud", cloud.astype(np.uint8), cmap=CLOUD_COLORMAP)
 
         percent_good_quality = 100 * (1 - np.count_nonzero(np.isnan(SM)) / SM.size)
@@ -1709,7 +1743,7 @@ def L3T_L4T_JET(
 
         L4T_ESI_granule.add_layer("ESI", ESI_PTJPLSM.astype(np.float32), cmap=ET_COLORMAP)
         L4T_ESI_granule.add_layer("PET", PET_PTJPLSM.astype(np.float32), cmap=ET_COLORMAP)
-        L4T_ESI_granule.add_layer("water", water.astype(np.uint8), cmap=WATER_COLORMAP)
+        L4T_ESI_granule.add_layer("water", water_mask.astype(np.uint8), cmap=WATER_COLORMAP)
         L4T_ESI_granule.add_layer("cloud", cloud.astype(np.uint8), cmap=CLOUD_COLORMAP)
 
         percent_good_quality = 100 * (1 - np.count_nonzero(np.isnan(ESI_PTJPLSM)) / ESI_PTJPLSM.size)
@@ -1755,18 +1789,18 @@ def L3T_L4T_JET(
         # GPP in grams per square meter per second
         GPP_inst_g_m2_s = GPP / 1000000 * 12.011
         # transpiration in kilograms per square meter per second
-        ETt_inst_kg_m2_s = LEt_PTJPLSM / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM
+        ETt_inst_kg_m2_s = LE_canopy_PTJPLSM / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM
         # divide grams of carbon by kilograms of water
         # watts per square meter per second factor out on both sides
         # WUE = rt.where((GPP_inst_g_m2_s == 0) | (ETt_inst_kg_m2_s < 1), 0, GPP / LEt_PTJPLSM)
         WUE = GPP_inst_g_m2_s / ETt_inst_kg_m2_s
         WUE = rt.where(np.isinf(WUE), np.nan, WUE)
         WUE = rt.clip(WUE, 0, 10)
-        WUE = WUE.mask(~water)
+        WUE = WUE.mask(~water_mask)
 
         L4T_WUE_granule.add_layer("WUE", WUE.astype(np.float32), cmap=GPP_COLORMAP)
         L4T_WUE_granule.add_layer("GPP", GPP.astype(np.float32), cmap=GPP_COLORMAP)
-        L4T_WUE_granule.add_layer("water", water.astype(np.uint8), cmap=WATER_COLORMAP)
+        L4T_WUE_granule.add_layer("water", water_mask.astype(np.uint8), cmap=WATER_COLORMAP)
         L4T_WUE_granule.add_layer("cloud", cloud.astype(np.uint8), cmap=CLOUD_COLORMAP)
 
         percent_good_quality = 100 * (1 - np.count_nonzero(np.isnan(WUE)) / WUE.size)
@@ -1800,7 +1834,7 @@ def L3T_L4T_JET(
 
     except (FailedGEOS5FPDownload, ConnectionError) as exception:
         logger.exception(exception)
-        exit_code = ANCILLARY_SERVER_UNREACHABLE
+        exit_code = Auxiliary_SERVER_UNREACHABLE
 
     except ECOSTRESSExitCodeException as exception:
         logger.exception(exception)
@@ -1811,7 +1845,7 @@ def L3T_L4T_JET(
 
 def main(argv=sys.argv):
     if len(argv) == 1 or "--version" in argv:
-        print(f"L3T_L4T_JET PGE ({ECOSTRESS.PGEVersion})")
+        print(f"L3T_L4T_JET PGE ({__version__})")
         print(f"usage: L3T_L4T_JET RunConfig.xml")
 
         if "--version" in argv:

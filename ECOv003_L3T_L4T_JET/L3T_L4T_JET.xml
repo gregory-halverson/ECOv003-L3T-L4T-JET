@@ -22,7 +22,7 @@
         <scalar name="L2T_LSTE">L2T_LSTE_filename</scalar>
         <scalar name="L2T_STARS">L2T_STARS_filename</scalar>
     </group>
-    <group name="StaticAncillaryFileGroup">
+    <group name="StaticAuxiliaryFileGroup">
         <scalar name="L3T_L4T_STATIC">static_directory</scalar>
         <scalar name="L3T_L4T_SRTM">SRTM_directory</scalar>
         <scalar name="L3T_L4T_JET_SOURCES">sources_directory</scalar>

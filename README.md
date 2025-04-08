@@ -49,7 +49,7 @@ Metadata for the ECOSTRESS Collection 3 tiled products is provided in JSON forma
 ```
 {
   "StandardMetadata": {
-    "AncillaryInputPointer": "AncillaryNWP",
+    "AuxiliaryInputPointer": "AuxiliaryNWP",
     "AutomaticQualityFlag": "PASS",
     "AutomaticQualityFlagExplanation": "Image matching performed to correct orbit ephemeris/attitude",
     "BuildID": "0800",
