@@ -30,7 +30,7 @@ dependencies = [
     "PM-JPL>=1.2.2",
     "PTJPLSM",
     "python-dateutil",
-    "rasters",
+    "rasters>=1.5.0",
     "scikit-learn",
     "STIC-JPL",
     "sun-angles",

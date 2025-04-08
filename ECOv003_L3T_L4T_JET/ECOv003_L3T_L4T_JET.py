@@ -20,6 +20,7 @@ import colored_logging as cl
 
 import rasters as rt
 from rasters import Raster, RasterGrid, RasterGeometry
+from rasters import linear_downscale, bias_correct
 
 from check_distribution import check_distribution
 
@@ -44,7 +45,7 @@ from .runconfig import read_runconfig, ECOSTRESSRunConfig
 
 from MCD12C1_2019_v006 import load_MCD12C1_IGBP
 
-from .downscaling.linear_downscale import linear_downscale, bias_correct
+
 
 from .timer import Timer
 
