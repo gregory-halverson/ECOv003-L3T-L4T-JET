@@ -47,6 +47,8 @@ from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
 from .timer import Timer
 
+from .NDVI_to_FVC import NDVI_to_FVC
+
 from .write_L3T_JET import write_L3T_JET
 from .write_L3T_MET import write_L3T_MET
 from .write_L3T_SEB import write_L3T_SEB
@@ -66,14 +68,6 @@ logger = logging.getLogger(__name__)
 
 class BlankOutputError(Exception):
     pass
-
-def NDVI_to_FVC(NDVI: Raster) -> Raster:
-    NDVIv = 0.52  # +- 0.03
-    NDVIs = 0.04  # +- 0.03
-    FVC = rt.clip((NDVI - NDVIs) / (NDVIv - NDVIs), 0, 1)
-
-    return FVC
-
 
 def downscale_air_temperature(
         time_UTC: datetime,
