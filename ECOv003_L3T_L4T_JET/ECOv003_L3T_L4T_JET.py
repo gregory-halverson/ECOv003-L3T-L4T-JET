@@ -1363,6 +1363,21 @@ def L3T_L4T_JET(
         if np.all(np.isnan(Rn)) or np.all(Rn == 0):
             raise BlankOutput(f"blank net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
+        SHA = SHA_deg_from_doy_lat(day_of_year, geometry.lat)
+        sunrise_hour = sunrise_from_sha(SHA)
+        daylight_hours = daylight_from_sha(SHA)
+        Rn_daily = daily_Rn_integration_verma(
+            Rn=Rn, 
+            hour_of_day=hour_of_day, 
+            sunrise_hour=sunrise_hour, 
+            daylight_hours=daylight_hours
+        )
+
+        if np.all(np.isnan(Rn_daily)):
+            raise BlankOutput(
+                f"blank daily net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
+
+
         STIC_results = STIC_JPL(
             geometry=geometry,
             time_UTC=time_UTC,
@@ -1406,18 +1421,18 @@ def L3T_L4T_JET(
             #                   "ET", "ESI", "PET", "SM", "Rn", "Rn_daily"]
         )
 
-        if Rn is None:
-            Rn = rt.clip(PTJPLSM_results["Rn"], 0, None)
+        # if Rn is None:
+        #     Rn = rt.clip(PTJPLSM_results["Rn"], 0, None)
 
-        if np.all(np.isnan(Rn)):
-            raise BlankOutput(
-                f"blank instantaneous net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
+        # if np.all(np.isnan(Rn)):
+        #     raise BlankOutput(
+        #         f"blank instantaneous net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
-        Rn_daily = rt.clip(PTJPLSM_results["Rn_daily"], 0, None)
+        # Rn_daily = rt.clip(PTJPLSM_results["Rn_daily"], 0, None)
 
-        if np.all(np.isnan(Rn_daily)):
-            raise BlankOutput(
-                f"blank daily net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
+        # if np.all(np.isnan(Rn_daily)):
+        #     raise BlankOutput(
+        #         f"blank daily net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
         LE_PTJPLSM = rt.clip(PTJPLSM_results["LE"], 0, None)
 
