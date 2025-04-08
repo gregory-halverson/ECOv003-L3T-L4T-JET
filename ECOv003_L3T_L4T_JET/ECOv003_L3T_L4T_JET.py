@@ -16,6 +16,7 @@ import sklearn
 import sklearn.linear_model
 from dateutil import parser
 
+
 import colored_logging as cl
 
 import rasters as rt
@@ -30,7 +31,7 @@ from GEOS5FP import GEOS5FP, FailedGEOS5FPDownload
 from sun_angles import calculate_SZA_from_DOY_and_hour
 from ECOv002_granules import L2TLSTE, L2TSTARS, L3TJET, L3TSM, L3TSEB, L3TMET, L4TESI, L4TWUE
 from ECOv002_granules import ET_COLORMAP, SM_COLORMAP, WATER_COLORMAP, CLOUD_COLORMAP, RH_COLORMAP, GPP_COLORMAP
-
+from MCD12C1_2019_v006 import load_MCD12C1_IGBP
 from FLiESLUT import process_FLiES_LUT_raster
 from FLiESANN import FLiESANN
 
@@ -41,12 +42,17 @@ from PTJPLSM import PTJPLSM
 from verma_net_radiation import process_verma_net_radiation
 
 from .version import __version__
+from .constants import *
 from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
-
-from MCD12C1_2019_v006 import load_MCD12C1_IGBP
-
 from .timer import Timer
+
+from .write_L3T_JET import write_L3T_JET
+from .write_L3T_MET import write_L3T_MET
+from .write_L3T_SEB import write_L3T_SEB
+from .write_L3T_SM import write_L3T_SM
+from .write_L4T_ESI import write_L4T_ESI
+from .write_L4T_WUE import write_L4T_WUE
 
 class LPDAACServerUnreachable(Exception):
     pass
@@ -55,57 +61,6 @@ with open(join(abspath(dirname(__file__)), "version.txt")) as f:
     version = f.read()
 
 __version__ = version
-
-# constant latent heat of vaporization for water: the number of joules of energy it takes to evaporate one kilogram
-LATENT_VAPORIZATION_JOULES_PER_KILOGRAM = 2450000.0
-
-L3T_L4T_JET_TEMPLATE = join(abspath(dirname(__file__)), "L3T_L4T_JET.xml")
-DEFAULT_BUILD = "0700"
-DEFAULT_OUTPUT_DIRECTORY = "L3T_L4T_JET_output"
-DEFAULT_PTJPL_SOURCES_DIRECTORY = "L3T_L4T_JET_sources"
-DEFAULT_STATIC_DIRECTORY = "L3T_L4T_static"
-DEFAULT_SRTM_DIRECTORY = "SRTM_directory"
-DEFAULT_GEDI_DIRECTORY = "GEDI_download"
-DEFAULT_MODISCI_DIRECTORY = "MODISCI_download"
-DEFAULT_MCD12C1_DIRECTORY = "MCD12C1_download"
-DEFAULT_SOIL_GRIDS_DIRECTORY = "SoilGrids_download"
-DEFAULT_GEOS5FP_DIRECTORY = "GEOS5FP_download"
-
-L3T_SEB_SHORT_NAME = "ECO_L3T_SEB"
-L3T_SEB_LONG_NAME = "ECOSTRESS Tiled Surface Energy Balance Instantaneous L3 Global 70 m"
-
-L3T_SM_SHORT_NAME = "ECO_L3T_SM"
-L3T_SM_LONG_NAME = "ECOSTRESS Tiled Downscaled Soil Moisture Instantaneous L3 Global 70 m"
-
-L3T_MET_SHORT_NAME = "ECO_L3T_MET"
-L3T_MET_LONG_NAME = "ECOSTRESS Tiled Downscaled Meteorology Instantaneous L3 Global 70 m"
-
-L3T_JET_SHORT_NAME = "ECO_L3T_JET"
-L3T_JET_LONG_NAME = "ECOSTRESS Tiled Evapotranspiration Ensemble Instantaneous and Daytime L3 Global 70 m"
-
-L4T_ESI_SHORT_NAME = "ECO_L4T_ESI"
-L4T_ESI_LONG_NAME = "ECOSTRESS Tiled Evaporative Stress Index Instantaneous L4 Global 70 m"
-
-L4T_WUE_SHORT_NAME = "ECO_L4T_WUE"
-L4T_WUE_LONG_NAME = "ECOSTRESS Tiled Water Use Efficiency Instantaneous L4 Global 70 m"
-
-GEOS_IN_SENTINEL_COARSE_CELL_SIZE = 13720
-
-STRIP_CONSOLE = False
-SAVE_INTERMEDIATE = False
-SHOW_DISTRIBUTION = True
-INCLUDE_SEB_DIAGNOSTICS = False
-INCLUDE_JET_DIAGNOSTICS = False
-BIAS_CORRECT_FLIES_ANN = True
-SHARPEN_METEOROLOGY = True
-SHARPEN_SOIL_MOISTURE = True
-
-# SWIN_MODEL_NAME = "FLiES-ANN"
-SWIN_MODEL_NAME = "GEOS5FP"
-RN_MODEL_NAME = "verma"
-FLOOR_TOPT = True
-
-SZA_DEGREE_CUTOFF = 90
 
 logger = logging.getLogger(__name__)
 
@@ -1011,11 +966,11 @@ def L3T_L4T_JET(
 
         emissivity = L2T_LSTE_granule.emissivity
         water_mask = L2T_LSTE_granule.water
-        cloud = L2T_LSTE_granule.cloud
+        cloud_mask = L2T_LSTE_granule.cloud
         NDVI = L2T_STARS_granule.NDVI
         albedo = L2T_STARS_granule.albedo
 
-        percent_cloud = 100 * np.count_nonzero(cloud) / cloud.size
+        percent_cloud = 100 * np.count_nonzero(cloud_mask) / cloud_mask.size
         metadata["ProductMetadata"]["QAPercentCloudCover"] = percent_cloud
 
         GEOS5FP_connection = GEOS5FP(
@@ -1085,7 +1040,7 @@ def L3T_L4T_JET(
         SWin_FLiES_LUT= process_FLiES_LUT_raster(
             geometry=geometry,
             time_UTC=time_UTC,
-            cloud_mask=cloud,
+            cloud_mask=cloud_mask,
             COT=COT,
             koppen_geiger=KG_climate,
             albedo=albedo,
@@ -1338,15 +1293,15 @@ def L3T_L4T_JET(
         check_distribution(LE_BESS, "LE_BESS", date_UTC=date_UTC, target=tile)
         
         # gross primary productivity from BESS
-        GPP = BESS_results["GPP"]  # [umol m-2 s-1]
+        GPP_inst_umol_m2_s = BESS_results["GPP"]  # [umol m-2 s-1]
         
         # water-mask GPP
         if water_mask is not None:
-            GPP = rt.where(water_mask, np.nan, GPP)
+            GPP_inst_umol_m2_s = rt.where(water_mask, np.nan, GPP_inst_umol_m2_s)
 
-        check_distribution(GPP, "GPP", date_UTC=date_UTC, target=tile)
+        check_distribution(GPP_inst_umol_m2_s, "GPP", date_UTC=date_UTC, target=tile)
 
-        if np.all(np.isnan(GPP)):
+        if np.all(np.isnan(GPP_inst_umol_m2_s)):
             raise BlankOutput(f"blank GPP output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
         NWP_filenames = sorted([posixpath.basename(filename) for filename in GEOS5FP_connection.filenames])
@@ -1442,10 +1397,10 @@ def L3T_L4T_JET(
                 f"blank daily ET output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
         # canopy transpiration in watts per square meter from PT-JPL-SM
-        LE_canopy_PTJPLSM = rt.clip(PTJPLSM_results["LE_canopy"], 0, None)
+        LE_canopy_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["LE_canopy"], 0, None)
 
         # normalize canopy transpiration as a fraction of total latent heat flux
-        PTJPLSMcanopy = rt.clip(LE_canopy_PTJPLSM / LE_PTJPLSM, 0, 1)
+        PTJPLSMcanopy = rt.clip(LE_canopy_PTJPLSM_Wm2 / LE_PTJPLSM, 0, 1)
 
         # water-mask canopy transpiration
         if water_mask is not None:
@@ -1499,8 +1454,6 @@ def L3T_L4T_JET(
 
         LE_PMJPL = PMJPL_results["LE"]
 
-        
-
         ETinst = rt.Raster(
             np.nanmedian([np.array(LE_PTJPLSM), np.array(LE_BESS), np.array(LE_PMJPL), np.array(LE_STIC)], axis=0),
             geometry=geometry)
@@ -1531,300 +1484,135 @@ def L3T_L4T_JET(
             np.nanstd([np.array(LE_PTJPLSM), np.array(LE_BESS), np.array(LE_PMJPL), np.array(LE_STIC)], axis=0),
             geometry=geometry).mask(~water_mask)
 
-        if exists(L3T_JET_zip_filename):
-            logger.info(f"found L3T PT-JPL file: {L3T_JET_zip_filename}")
-
-        L3T_JET_granule = L3TJET(
-            product_location=L3T_JET_directory,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            time_UTC=time_UTC,
-            build=build,
-            process_count=product_counter
-        )
-
-        # PTJPLSMcanopy = PTJPLSMcanopy.mask(~water)
-        # STICcanopy = STICcanopy.mask(~water)
-        # PTJPLSMsoil = PTJPLSMsoil.mask(~water)
-        # PTJPLSMinterception = PTJPLSMinterception.mask(~water)
-
-        LE_STIC.nodata = np.nan
-        LE_PTJPLSM.nodata = np.nan
-        LE_BESS.nodata = np.nan
-        LE_PMJPL.nodata = np.nan
-        ET_daily_kg.nodata = np.nan
-        ETinstUncertainty.nodata = np.nan
-        PTJPLSMcanopy.nodata = np.nan
-        STICcanopy.nodata = np.nan
-        PTJPLSMsoil.nodata = np.nan
-        PTJPLSMinterception.nodata = np.nan
-
-        L3T_JET_granule.add_layer("STICinst", LE_STIC.astype(np.float32), cmap=ET_COLORMAP)
-        L3T_JET_granule.add_layer("PTJPLSMinst", LE_PTJPLSM.astype(np.float32), cmap=ET_COLORMAP)
-        L3T_JET_granule.add_layer("BESSinst", LE_BESS.astype(np.float32), cmap=ET_COLORMAP)
-        L3T_JET_granule.add_layer("MOD16inst", LE_PMJPL.astype(np.float32), cmap=ET_COLORMAP)
-        L3T_JET_granule.add_layer("ETdaily", ET_daily_kg.astype(np.float32), cmap=ET_COLORMAP)
-        L3T_JET_granule.add_layer("ETinstUncertainty", ETinstUncertainty.astype(np.float32), cmap="jet")
-        L3T_JET_granule.add_layer("PTJPLSMcanopy", PTJPLSMcanopy.astype(np.float32), cmap=ET_COLORMAP)
-        L3T_JET_granule.add_layer("STICcanopy", STICcanopy.astype(np.float32), cmap=ET_COLORMAP)
-        L3T_JET_granule.add_layer("PTJPLSMsoil", PTJPLSMsoil.astype(np.float32), cmap=ET_COLORMAP)
-        L3T_JET_granule.add_layer("PTJPLSMinterception", PTJPLSMinterception.astype(np.float32), cmap=ET_COLORMAP)
-        L3T_JET_granule.add_layer("water", water_mask.astype(np.uint8), cmap=WATER_COLORMAP)
-        L3T_JET_granule.add_layer("cloud", cloud.astype(np.uint8), cmap=CLOUD_COLORMAP)
-
-        percent_good_quality = 100 * (1 - np.count_nonzero(np.isnan(LE_PTJPLSM)) / LE_PTJPLSM.size)
-        metadata["ProductMetadata"]["QAPercentGoodQuality"] = percent_good_quality
-
-        metadata["StandardMetadata"]["LocalGranuleID"] = basename(L3T_JET_zip_filename)
-        metadata["StandardMetadata"]["SISName"] = "Level 3/4 JET Product Specification Document"
-
-        short_name = L3T_JET_SHORT_NAME
-        logger.info(f"L3T JET short name: {cl.name(short_name)}")
-        metadata["StandardMetadata"]["ShortName"] = short_name
-
-        long_name = L3T_JET_LONG_NAME
-        logger.info(f"L3T JET long name: {cl.name(long_name)}")
-        metadata["StandardMetadata"]["LongName"] = long_name
-
-        metadata["StandardMetadata"]["ProcessingLevelDescription"] = "Level 3 Tiled Evapotranspiration Ensemble"
-
-        L3T_JET_granule.write_metadata(metadata)
-        logger.info(f"writing L3T JET product zip: {cl.file(L3T_JET_zip_filename)}")
-        L3T_JET_granule.write_zip(L3T_JET_zip_filename)
-        logger.info(f"writing L3T JET browse image: {cl.file(L3T_JET_browse_filename)}")
-        L3T_JET_granule.write_browse_image(PNG_filename=L3T_JET_browse_filename, cmap=ET_COLORMAP)
-        logger.info(f"removing L3T JET tile granule directory: {cl.dir(L3T_JET_directory)}")
-        shutil.rmtree(L3T_JET_directory)
-
-        L3T_MET_granule = L3TMET(
-            product_location=L3T_MET_directory,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            time_UTC=time_UTC,
-            build=build,
-            process_count=product_counter
-        )
-
-        L3T_MET_granule.add_layer("Ta", Ta_C.astype(np.float32), cmap="jet")
-        L3T_MET_granule.add_layer("RH", RH.astype(np.float32), cmap=RH_COLORMAP)
-        L3T_MET_granule.add_layer("water", water_mask.astype(np.uint8), cmap=WATER_COLORMAP)
-        L3T_MET_granule.add_layer("cloud", cloud.astype(np.uint8), cmap=CLOUD_COLORMAP)
-
-        percent_good_quality = 100 * (1 - np.count_nonzero(np.isnan(Ta_C)) / Ta_C.size)
-        metadata["ProductMetadata"]["QAPercentGoodQuality"] = percent_good_quality
-
-        metadata["StandardMetadata"]["LocalGranuleID"] = basename(L3T_MET_zip_filename)
-        metadata["StandardMetadata"]["SISName"] = "Level 3/4 JET Product Specification Document"
-
-        short_name = L3T_MET_SHORT_NAME
-        logger.info(f"L3T MET short name: {cl.name(short_name)}")
-        metadata["StandardMetadata"]["ShortName"] = short_name
-
-        long_name = L3T_MET_LONG_NAME
-        logger.info(f"L3T MET long name: {cl.name(long_name)}")
-        metadata["StandardMetadata"]["LongName"] = long_name
-
-        metadata["StandardMetadata"]["ProcessingLevelDescription"] = "Level 3 Tiled Meteorology"
-
-        L3T_MET_granule.write_metadata(metadata)
-        logger.info(f"writing L3T MET PT-JPL-MET product zip: {cl.file(L3T_MET_zip_filename)}")
-        L3T_MET_granule.write_zip(L3T_MET_zip_filename)
-        logger.info(f"writing L3T MET PT-JPL-MET browse image: {cl.file(L3T_MET_browse_filename)}")
-        L3T_MET_granule.write_browse_image(PNG_filename=L3T_MET_browse_filename, cmap="jet")
-        logger.info(f"removing L3T MET PT-JPL-MET tile granule directory: {cl.dir(L3T_MET_directory)}")
-        shutil.rmtree(L3T_MET_directory)
-
-        L3T_SEB_granule = L3TSEB(
-            product_location=L3T_SEB_directory,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            time_UTC=time_UTC,
-            build=build,
-            process_count=product_counter
-        )
-
-        L3T_SEB_granule.add_layer("Rg", SWin.astype(np.float32), cmap="jet")
-
-        # temporary diagnostics
-        if include_SEB_diagnostics:
-            L3T_SEB_granule.add_layer("Rg_FLiES_ANN", SWin_FLiES_ANN.astype(np.float32), cmap="jet")
-            L3T_SEB_granule.add_layer("Rg_FLiES_LUT", SWin_FLiES_LUT.astype(np.float32), cmap="jet")
-            L3T_SEB_granule.add_layer("Rg_GEOS5FP", SWin_GEOS5FP.astype(np.float32), cmap="jet")
-
-        L3T_SEB_granule.add_layer("Rn", Rn.astype(np.float32), cmap="jet")
-        L3T_SEB_granule.add_layer("Rg", SWin_FLiES_ANN.astype(np.float32), cmap="jet")
-        L3T_SEB_granule.add_layer("water", water_mask.astype(np.uint8), cmap=WATER_COLORMAP)
-        L3T_SEB_granule.add_layer("cloud", cloud.astype(np.uint8), cmap=CLOUD_COLORMAP)
-
-        # temporary diagnostics
-        if include_SEB_diagnostics:
-            # L3T_SEB_granule.add_layer("Rn_BESS", Rn_BESS.astype(np.float32), cmap="jet")
-            L3T_SEB_granule.add_layer("Rn", Rn_verma.astype(np.float32), cmap="jet")
-
-        L3T_SEB_granule.add_layer("water", water_mask.astype(np.uint8), cmap=WATER_COLORMAP)
-        # L3T_SEB_granule.add_layer("Rn_BESS", Rn_BESS.astype(np.float32), cmap="jet")
-
-        percent_good_quality = 100 * (1 - np.count_nonzero(np.isnan(Rn)) / Rn.size)
-        metadata["ProductMetadata"]["QAPercentGoodQuality"] = percent_good_quality
-
-        metadata["StandardMetadata"]["LocalGranuleID"] = basename(L3T_SEB_zip_filename)
-        metadata["StandardMetadata"]["SISName"] = "Level 3/4 JET Product Specification Document"
-
-        short_name = L3T_SEB_SHORT_NAME
-        logger.info(f"L3T SEB short name: {cl.name(short_name)}")
-        metadata["StandardMetadata"]["ShortName"] = short_name
-
-        long_name = L3T_SEB_LONG_NAME
-        logger.info(f"L3T SEB long name: {cl.name(long_name)}")
-        metadata["StandardMetadata"]["LongName"] = long_name
-
-        metadata["StandardMetadata"]["ProcessingLevelDescription"] = "Level 3 Tiled Surface Energy Balance"
-
-        L3T_SEB_granule.write_metadata(metadata)
-        logger.info(f"writing L3T SEB product zip: {cl.file(L3T_SEB_zip_filename)}")
-        L3T_SEB_granule.write_zip(L3T_SEB_zip_filename)
-        logger.info(f"writing L3T SEB browse image: {cl.file(L3T_SEB_browse_filename)}")
-        L3T_SEB_granule.write_browse_image(PNG_filename=L3T_SEB_browse_filename, cmap="jet")
-        logger.info(f"removing L3T SEB tile granule directory: {cl.dir(L3T_SEB_directory)}")
-        shutil.rmtree(L3T_SEB_directory)
-
-        L3T_SM_granule = L3TSM(
-            product_location=L3T_SM_directory,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            time_UTC=time_UTC,
-            build=build,
-            process_count=product_counter
-        )
-
-        L3T_SM_granule.add_layer("SM", SM.astype(np.float32), cmap=SM_COLORMAP)
-        L3T_SM_granule.add_layer("water", water_mask.astype(np.uint8), cmap=WATER_COLORMAP)
-        L3T_SM_granule.add_layer("cloud", cloud.astype(np.uint8), cmap=CLOUD_COLORMAP)
-
-        percent_good_quality = 100 * (1 - np.count_nonzero(np.isnan(SM)) / SM.size)
-        metadata["ProductMetadata"]["QAPercentGoodQuality"] = percent_good_quality
-
-        metadata["StandardMetadata"]["LocalGranuleID"] = basename(L3T_SM_zip_filename)
-        metadata["StandardMetadata"]["SISName"] = "Level 3/4 PT-JPL Product Specification Document"
-
-        short_name = L3T_SM_SHORT_NAME
-        logger.info(f"L3T SM short name: {cl.name(short_name)}")
-        metadata["StandardMetadata"]["ShortName"] = short_name
-
-        long_name = L3T_SM_LONG_NAME
-        logger.info(f"L3T SM long name: {cl.name(long_name)}")
-        metadata["StandardMetadata"]["LongName"] = long_name
-
-        metadata["StandardMetadata"]["ProcessingLevelDescription"] = "Level 3 Tiled Soil Moisture"
-        L3T_SM_granule.write_metadata(metadata)
-        logger.info(f"writing L3T SM product zip: {cl.file(L3T_SM_zip_filename)}")
-        L3T_SM_granule.write_zip(L3T_SM_zip_filename)
-        logger.info(f"writing L3T SM browse image: {cl.file(L3T_SM_browse_filename)}")
-        L3T_SM_granule.write_browse_image(PNG_filename=L3T_SM_browse_filename, cmap=SM_COLORMAP)
-        logger.info(f"removing L3T SM tile granule directory: {cl.dir(L3T_SM_directory)}")
-        shutil.rmtree(L3T_SM_directory)
-
-        if exists(L4T_ESI_zip_filename):
-            logger.info(f"found L4T ESI file: {L4T_ESI_zip_filename}")
-
-        L4T_ESI_granule = L4TESI(
-            product_location=L4T_ESI_directory,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            time_UTC=time_UTC,
-            build=build,
-            process_count=product_counter
-        )
-
-        L4T_ESI_granule.add_layer("ESI", ESI_PTJPLSM.astype(np.float32), cmap=ET_COLORMAP)
-        L4T_ESI_granule.add_layer("PET", PET_PTJPLSM.astype(np.float32), cmap=ET_COLORMAP)
-        L4T_ESI_granule.add_layer("water", water_mask.astype(np.uint8), cmap=WATER_COLORMAP)
-        L4T_ESI_granule.add_layer("cloud", cloud.astype(np.uint8), cmap=CLOUD_COLORMAP)
-
-        percent_good_quality = 100 * (1 - np.count_nonzero(np.isnan(ESI_PTJPLSM)) / ESI_PTJPLSM.size)
-        metadata["ProductMetadata"]["QAPercentGoodQuality"] = percent_good_quality
-        metadata["StandardMetadata"]["LocalGranuleID"] = basename(L4T_ESI_zip_filename)
-
-        short_name = L4T_ESI_SHORT_NAME
-        logger.info(f"L4T ESI short name: {cl.name(short_name)}")
-        metadata["StandardMetadata"]["ShortName"] = short_name
-
-        long_name = L4T_ESI_LONG_NAME
-        logger.info(f"L4T ESI long name: {cl.name(long_name)}")
-        metadata["StandardMetadata"]["LongName"] = long_name
-
-        metadata["StandardMetadata"]["SISName"] = "Level 3/4 JET Product Specification Document"
-        metadata["StandardMetadata"]["ProcessingLevelID"] = "L4T"
-        metadata["StandardMetadata"]["ProcessingLevelDescription"] = "Level 4 Tiled Evaporative Stress Index"
-
-        L4T_ESI_granule.write_metadata(metadata)
-        logger.info(f"writing L4T ESI product zip: {cl.file(L4T_ESI_zip_filename)}")
-        L4T_ESI_granule.write_zip(L4T_ESI_zip_filename)
-        logger.info(f"writing L4T ESI browse image: {cl.file(L4T_ESI_browse_filename)}")
-        L4T_ESI_granule.write_browse_image(PNG_filename=L4T_ESI_browse_filename, cmap=ET_COLORMAP)
-        logger.info(f"removing L4T ESI tile granule directory: {cl.dir(L4T_ESI_directory)}")
-        shutil.rmtree(L4T_ESI_directory)
-
-        if exists(L4T_WUE_zip_filename):
-            logger.info(f"found L4T WUE file: {L4T_WUE_zip_filename}")
-
-        L4T_WUE_granule = L4TWUE(
-            product_location=L4T_WUE_directory,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            time_UTC=time_UTC,
-            build=build,
-            process_count=product_counter
-        )
-
         # GPP from BESS is micro-mole per square meter per second [umol m-2 s-1]
         # transpiration from PT-JPL-SM is watts per square meter per second
         # we need to convert micro-moles to grams and watts to kilograms
         # GPP in grams per square meter per second
-        GPP_inst_g_m2_s = GPP / 1000000 * 12.011
+        GPP_inst_g_m2_s = GPP_inst_umol_m2_s / 1000000 * 12.011
         # transpiration in kilograms per square meter per second
-        ETt_inst_kg_m2_s = LE_canopy_PTJPLSM / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM
+        ETt_inst_kg_m2_s = LE_canopy_PTJPLSM_Wm2 / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM
         # divide grams of carbon by kilograms of water
         # watts per square meter per second factor out on both sides
         # WUE = rt.where((GPP_inst_g_m2_s == 0) | (ETt_inst_kg_m2_s < 1), 0, GPP / LEt_PTJPLSM)
         WUE = GPP_inst_g_m2_s / ETt_inst_kg_m2_s
         WUE = rt.where(np.isinf(WUE), np.nan, WUE)
         WUE = rt.clip(WUE, 0, 10)
-        WUE = WUE.mask(~water_mask)
 
-        L4T_WUE_granule.add_layer("WUE", WUE.astype(np.float32), cmap=GPP_COLORMAP)
-        L4T_WUE_granule.add_layer("GPP", GPP.astype(np.float32), cmap=GPP_COLORMAP)
-        L4T_WUE_granule.add_layer("water", water_mask.astype(np.uint8), cmap=WATER_COLORMAP)
-        L4T_WUE_granule.add_layer("cloud", cloud.astype(np.uint8), cmap=CLOUD_COLORMAP)
+        # write the L3T JET product
+        write_L3T_JET(
+            L3T_JET_zip_filename=L3T_JET_zip_filename,
+            L3T_JET_browse_filename=L3T_JET_browse_filename,
+            L3T_JET_directory=L3T_JET_directory,
+            orbit=orbit,
+            scene=scene,
+            tile=tile,
+            time_UTC=time_UTC,
+            build=build,
+            process_count=product_counter,
+            LE_STIC=LE_STIC,
+            LE_PTJPLSM=LE_PTJPLSM,
+            LE_BESS=LE_BESS,
+            LE_PMJPL=LE_PMJPL,
+            ET_daily_kg=ET_daily_kg,
+            ETinstUncertainty=ETinstUncertainty,
+            PTJPLSMcanopy=PTJPLSMcanopy,
+            STICcanopy=STICcanopy,
+            PTJPLSMsoil=PTJPLSMsoil,
+            PTJPLSMinterception=PTJPLSMinterception,
+            water_mask=water_mask,
+            cloud_mask=cloud_mask,
+            metadata=metadata
+        )
 
-        percent_good_quality = 100 * (1 - np.count_nonzero(np.isnan(WUE)) / WUE.size)
-        metadata["ProductMetadata"]["QAPercentGoodQuality"] = percent_good_quality
-        metadata["StandardMetadata"]["LocalGranuleID"] = basename(L4T_WUE_zip_filename)
+        # write the L3T MET product
+        write_L3T_MET(
+            L3T_MET_zip_filename=L3T_MET_zip_filename,
+            L3T_MET_browse_filename=L3T_MET_browse_filename,
+            L3T_MET_directory=L3T_MET_directory,
+            orbit=orbit,
+            scene=scene,
+            tile=tile,
+            time_UTC=time_UTC,
+            build=build,
+            process_count=product_counter,
+            Ta_C=Ta_C,
+            RH=RH,
+            water_mask=water_mask,
+            cloud_mask=cloud_mask,
+            metadata=metadata
+        )
 
-        short_name = L4T_WUE_SHORT_NAME
-        logger.info(f"L4T WUE short name: {cl.name(short_name)}")
-        metadata["StandardMetadata"]["ShortName"] = short_name
+        # write the L3T SEB product
+        write_L3T_SEB(
+            L3T_SEB_zip_filename=L3T_SEB_zip_filename,
+            L3T_SEB_browse_filename=L3T_SEB_browse_filename,
+            L3T_SEB_directory=L3T_SEB_directory,
+            orbit=orbit,
+            scene=scene,
+            tile=tile,
+            time_UTC=time_UTC,
+            build=build,
+            process_count=product_counter,
+            Rn_BESS=Rn_BESS,
+            Rn_verma=Rn_verma,
+            Rn_daily=Rn_daily,
+            ETinstUncertainty=ETinstUncertainty,
+            water_mask=water_mask,
+            cloud_mask=cloud_mask,
+            metadata=metadata
+        )
 
-        long_name = L4T_WUE_LONG_NAME
-        logger.info(f"L4T WUE long name: {cl.name(long_name)}")
-        metadata["StandardMetadata"]["LongName"] = long_name
+        # write the L3T SM product
+        write_L3T_SM(
+            L3T_SM_zip_filename=L3T_SM_zip_filename,
+            L3T_SM_browse_filename=L3T_SM_browse_filename,
+            L3T_SM_directory=L3T_SM_directory,
+            orbit=orbit,
+            scene=scene,
+            tile=tile,
+            time_UTC=time_UTC,
+            build=build,
+            process_count=product_counter,
+            SM=SM,
+            water_mask=water_mask,
+            cloud_mask=cloud_mask,
+            metadata=metadata
+        )
 
-        metadata["StandardMetadata"]["SISName"] = "Level 3/4 JET Product Specification Document"
-        metadata["StandardMetadata"]["ProcessingLevelDescription"] = "Level 4 Tiled Water Use Efficiency"
+        # write the L4T ESI product
+        write_L4T_ESI(
+            L4T_ESI_zip_filename=L4T_ESI_zip_filename,
+            L4T_ESI_browse_filename=L4T_ESI_browse_filename,
+            L4T_ESI_directory=L4T_ESI_directory,
+            orbit=orbit,
+            scene=scene,
+            tile=tile,
+            time_UTC=time_UTC,
+            build=build,
+            process_count=product_counter,
+            ESI=ESI_PTJPLSM,
+            PET=PET_PTJPLSM,
+            water_mask=water_mask,
+            cloud_mask=cloud_mask,
+            metadata=metadata
+        )
 
-        L4T_WUE_granule.write_metadata(metadata)
-        logger.info(f"writing L4T WUE product zip: {cl.file(L4T_WUE_zip_filename)}")
-        L4T_WUE_granule.write_zip(L4T_WUE_zip_filename)
-        logger.info(f"writing L4T WUE browse image: {cl.file(L4T_WUE_browse_filename)}")
-        L4T_WUE_granule.write_browse_image(PNG_filename=L4T_WUE_browse_filename, cmap=GPP_COLORMAP)
-        logger.info(f"removing L4T WUE tile granule directory: {cl.dir(L4T_WUE_directory)}")
-        shutil.rmtree(L4T_WUE_directory)
+        write_L4T_WUE(
+            L4T_WUE_zip_filename=L4T_WUE_zip_filename,
+            L4T_WUE_browse_filename=L4T_WUE_browse_filename,
+            L4T_WUE_directory=L4T_WUE_directory,
+            orbit=orbit,
+            scene=scene,
+            tile=tile,
+            time_UTC=time_UTC,
+            build=build,
+            process_count=product_counter,
+            WUE=WUE,
+            GPP=GPP_inst_g_m2_s,
+            water_mask=water_mask,
+            cloud_mask=cloud_mask,
+            metadata=metadata
+        )
 
         logger.info(f"finished L3T L4T JET run in {cl.time(timer)} seconds")
 
