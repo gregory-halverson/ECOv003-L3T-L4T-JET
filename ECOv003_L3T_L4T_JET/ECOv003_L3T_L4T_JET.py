@@ -40,16 +40,13 @@ from STIC_JPL import STIC_JPL
 from PTJPLSM import PTJPLSM
 from verma_net_radiation import process_verma_net_radiation
 
+from .version import __version__
 from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
 
 from MCD12C1_2019_v006 import load_MCD12C1_IGBP
 
-
-
 from .timer import Timer
-
-from .PGEVersion import PGEVersion
 
 class LPDAACServerUnreachable(Exception):
     pass
@@ -754,7 +751,7 @@ class L3TL4TJETConfig(ECOSTRESSRunConfig):
             L4T_WUE_browse_filename = f"{L4T_WUE_directory}.png"
 
             PGE_name = "L3T_L4T_JET"
-            PGE_version = PGEVersion
+            PGE_version = __version__
 
             self.working_directory = working_directory
             self.sources_directory = sources_directory
@@ -988,7 +985,7 @@ def L3T_L4T_JET(
         L2T_STARS_granule = L2TSTARS(L2T_STARS_filename)
 
         metadata = L2T_STARS_granule.metadata_dict
-        metadata["StandardMetadata"]["PGEVersion"] = PGEVersion
+        metadata["StandardMetadata"]["PGEVersion"] = __version__
         metadata["StandardMetadata"]["PGEName"] = "L3T_L4T_JET"
         metadata["StandardMetadata"]["ProcessingLevelID"] = "L3T"
         metadata["StandardMetadata"]["SISName"] = "Level 3 Product Specification Document"
@@ -1848,7 +1845,7 @@ def L3T_L4T_JET(
 
 def main(argv=sys.argv):
     if len(argv) == 1 or "--version" in argv:
-        print(f"L3T_L4T_JET PGE ({ECOSTRESS.PGEVersion})")
+        print(f"L3T_L4T_JET PGE ({__version__})")
         print(f"usage: L3T_L4T_JET RunConfig.xml")
 
         if "--version" in argv:
