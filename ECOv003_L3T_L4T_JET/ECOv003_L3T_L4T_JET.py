@@ -9,7 +9,7 @@ from os import makedirs
 from os.path import join, abspath, dirname, expanduser, exists, basename
 from shutil import which
 from uuid import uuid4
-
+from pytictoc import TicToc
 import numpy as np
 import pandas as pd
 import sklearn
@@ -45,8 +45,6 @@ from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
 
 from MCD12C1_2019_v006 import load_MCD12C1_IGBP
-
-from .timer import Timer
 
 class LPDAACServerUnreachable(Exception):
     pass
@@ -852,7 +850,8 @@ def L3T_L4T_JET(
         granule_ID = runconfig.granule_ID
         log_filename = join(working_directory, "log", f"{granule_ID}.log")
         cl.configure(filename=log_filename, strip_console=strip_console)
-        timer = Timer()
+        timer = TicToc()
+        timer.tic()
         logger.info(f"started L3T L4T JET run at {cl.time(datetime.utcnow())} UTC")
         logger.info(f"L3T_L4T_JET PGE ({cl.val(runconfig.PGE_version)})")
         logger.info(f"L3T_L4T_JET run-config: {cl.file(runconfig_filename)}")
@@ -1826,7 +1825,7 @@ def L3T_L4T_JET(
         logger.info(f"removing L4T WUE tile granule directory: {cl.dir(L4T_WUE_directory)}")
         shutil.rmtree(L4T_WUE_directory)
 
-        logger.info(f"finished L3T L4T JET run in {cl.time(timer)} seconds")
+        logger.info(f"finished L3T L4T JET run in {cl.time(timer.tocvalue())} seconds")
 
     except (BlankOutput, BlankOutputError) as exception:
         logger.exception(exception)
