@@ -16,7 +16,6 @@ import sklearn
 import sklearn.linear_model
 from dateutil import parser
 
-
 import colored_logging as cl
 
 import rasters as rt
@@ -24,6 +23,8 @@ from rasters import Raster, RasterGrid, RasterGeometry
 from rasters import linear_downscale, bias_correct
 
 from check_distribution import check_distribution
+
+from solar_apparent_time import UTC_offset_hours_for_area
 
 from koppengeiger import load_koppen_geiger
 import FLiESANN
@@ -39,13 +40,16 @@ from BESS_JPL import BESS_JPL
 from PMJPL import PMJPL
 from STIC_JPL import STIC_JPL
 from PTJPLSM import PTJPLSM
-from verma_net_radiation import process_verma_net_radiation
+from verma_net_radiation import process_verma_net_radiation, daily_Rn_integration_verma, SHA_deg_from_doy_lat, sunrise_from_SHA, daylight_from_SHA
 
 from .version import __version__
 from .constants import *
 from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
 from .timer import Timer
+
+from .generate_L3T_L4T_JET_runconfig import generate_L3T_L4T_JET_runconfig
+from .L3TL4TJETConfig import L3TL4TJETConfig
 
 from .NDVI_to_FVC import NDVI_to_FVC
 
@@ -73,488 +77,6 @@ logger = logging.getLogger(__name__)
 
 class BlankOutputError(Exception):
     pass
-
-def calculate_UTC_offset_hours(geometry: RasterGeometry) -> Raster:
-    return Raster(np.radians(geometry.lon) / np.pi * 12, geometry=geometry)
-
-
-def calculate_day_of_year(time_UTC: datetime, geometry: RasterGeometry) -> Raster:
-    doy_UTC = time_UTC.timetuple().tm_yday
-    hour_UTC = time_UTC.hour + time_UTC.minute / 60 + time_UTC.second / 3600
-    UTC_offset_hours = calculate_UTC_offset_hours(geometry=geometry)
-    hour_of_day = hour_UTC + UTC_offset_hours
-    doy = doy_UTC
-    doy = rt.where(hour_of_day < 0, doy - 1, doy)
-    doy = rt.where(hour_of_day > 24, doy + 1, doy)
-
-    return doy
-
-
-def calculate_hour_of_day(time_UTC: datetime, geometry: RasterGeometry) -> Raster:
-    hour_UTC = time_UTC.hour + time_UTC.minute / 60 + time_UTC.second / 3600
-    UTC_offset_hours = calculate_UTC_offset_hours(geometry=geometry)
-    hour_of_day = hour_UTC + UTC_offset_hours
-    hour_of_day = rt.where(hour_of_day < 0, hour_of_day + 24, hour_of_day)
-    hour_of_day = rt.where(hour_of_day > 24, hour_of_day - 24, hour_of_day)
-
-    return hour_of_day
-
-
-def day_angle_rad_from_doy(doy: Raster) -> Raster:
-    """
-    This function calculates day angle in radians from day of year between 1 and 365.
-    """
-    return (2 * np.pi * (doy - 1)) / 365
-
-
-def solar_dec_deg_from_day_angle_rad(day_angle_rad: float) -> float:
-    """
-    This function calculates solar declination in degrees from day angle in radians.
-    """
-    return (0.006918 - 0.399912 * np.cos(day_angle_rad) + 0.070257 * np.sin(day_angle_rad) - 0.006758 * np.cos(
-        2 * day_angle_rad) + 0.000907 * np.sin(2 * day_angle_rad) - 0.002697 * np.cos(
-        3 * day_angle_rad) + 0.00148 * np.sin(
-        3 * day_angle_rad)) * (180 / np.pi)
-
-
-def SHA_deg_from_doy_lat(doy: Raster, latitude: np.ndarray) -> Raster:
-    """
-    This function calculates sunrise hour angle in degrees from latitude in degrees and day of year between 1 and 365.
-    """
-    # calculate day angle in radians
-    day_angle_rad = day_angle_rad_from_doy(doy)
-
-    # calculate solar declination in degrees
-    solar_dec_deg = solar_dec_deg_from_day_angle_rad(day_angle_rad)
-
-    # convert latitude to radians
-    latitude_rad = np.radians(latitude)
-
-    # convert solar declination to radians
-    solar_dec_rad = np.radians(solar_dec_deg)
-
-    # calculate cosine of sunrise angle at latitude and solar declination
-    # need to keep the cosine for polar correction
-    sunrise_cos = -np.tan(latitude_rad) * np.tan(solar_dec_rad)
-
-    # calculate sunrise angle in radians from cosine
-    with warnings.catch_warnings():
-        warnings.filterwarnings('ignore')
-        sunrise_rad = np.arccos(sunrise_cos)
-
-    # convert to degrees
-    sunrise_deg = np.degrees(sunrise_rad)
-
-    # apply polar correction
-    sunrise_deg = rt.where(sunrise_cos >= 1, 0, sunrise_deg)
-    sunrise_deg = rt.where(sunrise_cos <= -1, 180, sunrise_deg)
-
-    return sunrise_deg
-
-
-def sunrise_from_sha(sha_deg: Raster) -> Raster:
-    """
-    This function calculates sunrise hour from sunrise hour angle in degrees.
-    """
-    return 12.0 - (sha_deg / 15.0)
-
-
-def daylight_from_sha(sha_deg: Raster) -> Raster:
-    """
-    This function calculates daylight hours from sunrise hour angle in degrees.
-    """
-    return (2.0 / 15.0) * sha_deg
-
-
-def daily_Rn_integration_verma(
-        Rn: Raster,
-        hour_of_day: Raster,
-        sunrise_hour: Raster,
-        daylight_hours: Raster) -> Raster:
-    """
-    calculate daily net radiation using solar parameters
-    this is the average rate of energy transfer from sunrise to sunset
-    in watts per square meter
-    watts are joules per second
-    to get the total amount of energy transferred, factor seconds out of joules
-    the number of seconds for which this average is representative is (daylight_hours * 3600)
-    documented in verma et al, bisht et al, and lagouARDe et al
-    :param Rn:
-    :param hour_of_day:
-    :param sunrise_hour:
-    :param daylight_hours:
-    :return:
-    """
-    with warnings.catch_warnings():
-        warnings.filterwarnings('ignore')
-        return 1.6 * Rn / (np.pi * np.sin(np.pi * (hour_of_day - sunrise_hour) / (daylight_hours)))
-
-
-def generate_L3T_L4T_JET_runconfig(
-        L2T_LSTE_filename: str,
-        L2T_STARS_filename: str,
-        orbit: int = None,
-        scene: int = None,
-        tile: str = None,
-        working_directory: str = None,
-        sources_directory: str = None,
-        static_directory: str = None,
-        SRTM_directory: str = None,
-        executable_filename: str = None,
-        output_directory: str = None,
-        runconfig_filename: str = None,
-        log_filename: str = None,
-        build: str = None,
-        processing_node: str = None,
-        production_datetime: datetime = None,
-        job_ID: str = None,
-        instance_ID: str = None,
-        product_counter: int = None,
-        template_filename: str = None) -> str:
-    L2T_LSTE_granule = L2TLSTE(L2T_LSTE_filename)
-
-    if orbit is None:
-        orbit = L2T_LSTE_granule.orbit
-
-    if scene is None:
-        scene = L2T_LSTE_granule.scene
-
-    if tile is None:
-        tile = L2T_LSTE_granule.tile
-
-    if template_filename is None:
-        template_filename = L3T_L4T_JET_TEMPLATE
-
-    template_filename = abspath(expanduser(template_filename))
-
-    if build is None:
-        build = DEFAULT_BUILD
-
-    if product_counter is None:
-        product_counter = 1
-
-    time_UTC = L2T_LSTE_granule.time_UTC
-    timestamp = f"{time_UTC:%Y%m%dT%H%M%S}"
-    granule_ID = f"ECOv002_L3T_JET_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
-
-    if runconfig_filename is None:
-        runconfig_filename = join(working_directory, "runconfig", f"{granule_ID}.xml")
-
-    runconfig_filename = abspath(expanduser(runconfig_filename))
-
-    if working_directory is None:
-        working_directory = granule_ID
-
-    working_directory = abspath(expanduser(working_directory))
-
-    if executable_filename is None:
-        executable_filename = which("L3T_L4T_JET")
-
-    if executable_filename is None:
-        executable_filename = "L3T_L4T_JET"
-
-    if output_directory is None:
-        output_directory = join(working_directory, DEFAULT_OUTPUT_DIRECTORY)
-
-    output_directory = abspath(expanduser(output_directory))
-
-    if sources_directory is None:
-        sources_directory = join(working_directory, DEFAULT_PTJPL_SOURCES_DIRECTORY)
-
-    sources_directory = abspath(expanduser(sources_directory))
-
-    if static_directory is None:
-        static_directory = join(working_directory, DEFAULT_STATIC_DIRECTORY)
-
-    static_directory = abspath(expanduser(static_directory))
-
-    if SRTM_directory is None:
-        SRTM_directory = join(working_directory, DEFAULT_SRTM_DIRECTORY)
-
-    SRTM_directory = abspath(expanduser(SRTM_directory))
-
-    if log_filename is None:
-        log_filename = join(working_directory, "log", f"{granule_ID}.log")
-
-    log_filename = abspath(expanduser(log_filename))
-
-    if processing_node is None:
-        processing_node = socket.gethostname()
-
-    if production_datetime is None:
-        production_datetime = datetime.utcnow()
-
-    if isinstance(production_datetime, datetime):
-        production_datetime = str(production_datetime)
-
-    if job_ID is None:
-        job_ID = production_datetime
-
-    if instance_ID is None:
-        instance_ID = str(uuid4())
-
-    L2T_LSTE_filename = abspath(expanduser(str(L2T_LSTE_filename)))
-    L2T_STARS_filename = abspath(expanduser(str(L2T_STARS_filename)))
-    # working_directory = abspath(expanduser(str(working_directory)))
-    # sources_directory = abspath(expanduser(str(sources_directory)))
-    # static_directory = abspath(expanduser(str(static_directory)))
-    # SRTM_directory = abspath(expanduser(str(SRTM_directory)))
-
-    logger.info(f"generating run-config for orbit {cl.val(orbit)} scene {cl.val(scene)}")
-    logger.info(f"loading L3T_L4T_JET template: {cl.file(template_filename)}")
-
-    with open(template_filename, "r") as file:
-        template = file.read()
-
-    logger.info(f"orbit: {cl.val(orbit)}")
-    template = template.replace("orbit_number", f"{orbit:05d}")
-    logger.info(f"scene: {cl.val(scene)}")
-    template = template.replace("scene_ID", f"{scene:03d}")
-    logger.info(f"tile: {cl.val(tile)}")
-    template = template.replace("tile_ID", f"{tile}")
-    logger.info(f"L2T_LSTE file: {cl.file(L2T_LSTE_filename)}")
-    template = template.replace("L2T_LSTE_filename", L2T_LSTE_filename)
-    logger.info(f"L2T_STARS file: {cl.file(L2T_STARS_filename)}")
-    template = template.replace("L2T_STARS_filename", L2T_STARS_filename)
-    logger.info(f"working directory: {cl.dir(working_directory)}")
-    template = template.replace("working_directory", working_directory)
-    logger.info(f"sources directory: {cl.dir(sources_directory)}")
-    template = template.replace("sources_directory", sources_directory)
-    logger.info(f"static directory: {cl.dir(static_directory)}")
-    template = template.replace("static_directory", static_directory)
-    logger.info(f"executable: {cl.file(executable_filename)}")
-    template = template.replace("executable_filename", executable_filename)
-    logger.info(f"output directory: {cl.dir(output_directory)}")
-    template = template.replace("output_directory", output_directory)
-    logger.info(f"run-config: {cl.file(runconfig_filename)}")
-    template = template.replace("runconfig_filename", runconfig_filename)
-    logger.info(f"log: {cl.file(log_filename)}")
-    template = template.replace("log_filename", log_filename)
-    logger.info(f"build: {cl.val(build)}")
-    template = template.replace("build_ID", build)
-    logger.info(f"processing node: {cl.val(processing_node)}")
-    template = template.replace("processing_node", processing_node)
-    logger.info(f"production date/time: {cl.time(production_datetime)}")
-    template = template.replace("production_datetime", production_datetime)
-    logger.info(f"job ID: {cl.val(job_ID)}")
-    template = template.replace("job_ID", job_ID)
-    logger.info(f"instance ID: {cl.val(instance_ID)}")
-    template = template.replace("instance_ID", instance_ID)
-    logger.info(f"product counter: {cl.val(product_counter)}")
-    template = template.replace("product_counter", f"{product_counter:02d}")
-
-    makedirs(dirname(abspath(runconfig_filename)), exist_ok=True)
-    logger.info(f"writing run-config file: {cl.file(runconfig_filename)}")
-
-    with open(runconfig_filename, "w") as file:
-        file.write(template)
-
-    return runconfig_filename
-
-
-class L3TL4TJETConfig(ECOSTRESSRunConfig):
-    def __init__(self, filename: str):
-        try:
-            logger.info(f"loading L3T_L4T_JET run-config: {cl.file(filename)}")
-            runconfig = read_runconfig(filename)
-
-            # print(JSON_highlight(runconfig))
-
-            if "StaticAuxiliaryFileGroup" not in runconfig:
-                raise MissingRunConfigValue(
-                    f"missing StaticAuxiliaryFileGroup in L3T_L4T_JET run-config: {filename}")
-
-            if "L3T_L4T_JET_WORKING" not in runconfig["StaticAuxiliaryFileGroup"]:
-                raise MissingRunConfigValue(
-                    f"missing StaticAuxiliaryFileGroup/L3T_L4T_JET_WORKING in L3T_L4T_JET run-config: {filename}")
-
-            working_directory = abspath(runconfig["StaticAuxiliaryFileGroup"]["L3T_L4T_JET_WORKING"])
-            logger.info(f"working directory: {cl.dir(working_directory)}")
-
-            if "L3T_L4T_JET_SOURCES" not in runconfig["StaticAuxiliaryFileGroup"]:
-                raise MissingRunConfigValue(
-                    f"missing StaticAuxiliaryFileGroup/L3T_L4T_JET_WORKING in L3T_L4T_JET run-config: {filename}")
-
-            sources_directory = abspath(runconfig["StaticAuxiliaryFileGroup"]["L3T_L4T_JET_SOURCES"])
-            logger.info(f"sources directory: {cl.dir(sources_directory)}")
-
-            GEOS5FP_directory = join(sources_directory, DEFAULT_GEOS5FP_DIRECTORY)
-
-            if "L3T_L4T_STATIC" not in runconfig["StaticAuxiliaryFileGroup"]:
-                raise MissingRunConfigValue(
-                    f"missing StaticAuxiliaryFileGroup/L3T_L4T_STATIC in L3T_L4T_JET run-config: {filename}")
-
-            static_directory = abspath(runconfig["StaticAuxiliaryFileGroup"]["L3T_L4T_STATIC"])
-            logger.info(f"static directory: {cl.dir(static_directory)}")
-
-            if "ProductPathGroup" not in runconfig:
-                raise MissingRunConfigValue(
-                    f"missing ProductPathGroup in L3T_L4T_JET run-config: {filename}")
-
-            if "ProductPath" not in runconfig["ProductPathGroup"]:
-                raise MissingRunConfigValue(
-                    f"missing ProductPathGroup/ProductPath in L3T_L4T_JET run-config: {filename}")
-
-            output_directory = abspath(runconfig["ProductPathGroup"]["ProductPath"])
-            logger.info(f"output directory: {cl.dir(output_directory)}")
-
-            if "InputFileGroup" not in runconfig:
-                raise MissingRunConfigValue(
-                    f"missing InputFileGroup in L3T_L4T_JET run-config: {filename}")
-
-            if "L2T_LSTE" not in runconfig["InputFileGroup"]:
-                raise MissingRunConfigValue(
-                    f"missing InputFileGroup/L2T_LSTE in L3T_L4T_JET run-config: {filename}")
-
-            L2T_LSTE_filename = abspath(runconfig["InputFileGroup"]["L2T_LSTE"])
-            logger.info(f"L2T_LSTE file: {cl.file(L2T_LSTE_filename)}")
-
-            if "L2T_STARS" not in runconfig["InputFileGroup"]:
-                raise MissingRunConfigValue(
-                    f"missing InputFileGroup/L2T_STARS in L3T_L4T_JET run-config: {filename}")
-
-            L2T_STARS_filename = abspath(runconfig["InputFileGroup"]["L2T_STARS"])
-            logger.info(f"L2T_STARS file: {cl.file(L2T_STARS_filename)}")
-
-            orbit = int(runconfig["Geometry"]["OrbitNumber"])
-            logger.info(f"orbit: {cl.val(orbit)}")
-
-            if "SceneId" not in runconfig["Geometry"]:
-                raise MissingRunConfigValue(
-                    f"missing Geometry/SceneId in L2T_STARS run-config: {filename}")
-
-            scene = int(runconfig["Geometry"]["SceneId"])
-            logger.info(f"scene: {cl.val(scene)}")
-
-            if "TileId" not in runconfig["Geometry"]:
-                raise MissingRunConfigValue(
-                    f"missing Geometry/TileId in L2T_STARS run-config: {filename}")
-
-            tile = str(runconfig["Geometry"]["TileId"])
-            logger.info(f"tile: {cl.val(tile)}")
-
-            if "BuildID" not in runconfig["PrimaryExecutable"]:
-                raise MissingRunConfigValue(f"missing PrimaryExecutable/BuildID in L2G_L2T_LSTE run-config {filename}")
-
-            build = str(runconfig["PrimaryExecutable"]["BuildID"])
-
-            if "ProductCounter" not in runconfig["ProductPathGroup"]:
-                raise MissingRunConfigValue(
-                    f"missing ProductPathGroup/ProductCounter in L2G_L2T_LSTE run-config {filename}")
-
-            product_counter = int(runconfig["ProductPathGroup"]["ProductCounter"])
-
-            L2T_LSTE_granule = L2TLSTE(L2T_LSTE_filename)
-            time_UTC = L2T_LSTE_granule.time_UTC
-            timestamp = f"{time_UTC:%Y%m%dT%H%M%S}"
-            granule_ID = f"ECOv002_L3T_JET_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
-
-            GEDI_directory = abspath(expanduser(join(static_directory, DEFAULT_GEDI_DIRECTORY)))
-            MODISCI_directory = abspath(expanduser(join(static_directory, DEFAULT_MODISCI_DIRECTORY)))
-            MCD12_directory = abspath(expanduser(join(static_directory, DEFAULT_MCD12C1_DIRECTORY)))
-            soil_grids_directory = abspath(expanduser(join(static_directory, DEFAULT_SOIL_GRIDS_DIRECTORY)))
-
-            L3T_JET_granule_ID = f"ECOv002_L3T_JET_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
-            L3T_JET_directory = join(output_directory, L3T_JET_granule_ID)
-            L3T_JET_zip_filename = f"{L3T_JET_directory}.zip"
-            L3T_JET_browse_filename = f"{L3T_JET_directory}.png"
-
-            L3T_BESS_granule_ID = f"ECOv002_L3T_BESS_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
-            L3T_BESS_directory = join(output_directory, L3T_BESS_granule_ID)
-            L3T_BESS_zip_filename = f"{L3T_BESS_directory}.zip"
-            L3T_BESS_browse_filename = f"{L3T_BESS_directory}.png"
-
-            L3T_MET_granule_ID = f"ECOv002_L3T_MET_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
-            L3T_MET_directory = join(output_directory, L3T_MET_granule_ID)
-            L3T_MET_zip_filename = f"{L3T_MET_directory}.zip"
-            L3T_MET_browse_filename = f"{L3T_MET_directory}.png"
-
-            L3T_SEB_granule_ID = f"ECOv002_L3T_SEB_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
-            L3T_SEB_directory = join(output_directory, L3T_SEB_granule_ID)
-            L3T_SEB_zip_filename = f"{L3T_SEB_directory}.zip"
-            L3T_SEB_browse_filename = f"{L3T_SEB_directory}.png"
-
-            L3T_SM_granule_ID = f"ECOv002_L3T_SM_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
-            L3T_SM_directory = join(output_directory, L3T_SM_granule_ID)
-            L3T_SM_zip_filename = f"{L3T_SM_directory}.zip"
-            L3T_SM_browse_filename = f"{L3T_SM_directory}.png"
-
-            L4T_ESI_granule_ID = f"ECOv002_L4T_ESI_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
-            L4T_ESI_directory = join(output_directory, L4T_ESI_granule_ID)
-            L4T_ESI_zip_filename = f"{L4T_ESI_directory}.zip"
-            L4T_ESI_browse_filename = f"{L4T_ESI_directory}.png"
-
-            L4T_WUE_granule_ID = f"ECOv002_L4T_WUE_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
-            L4T_WUE_directory = join(output_directory, L4T_WUE_granule_ID)
-            L4T_WUE_zip_filename = f"{L4T_WUE_directory}.zip"
-            L4T_WUE_browse_filename = f"{L4T_WUE_directory}.png"
-
-            PGE_name = "L3T_L4T_JET"
-            PGE_version = __version__
-
-            self.working_directory = working_directory
-            self.sources_directory = sources_directory
-            self.GEOS5FP_directory = GEOS5FP_directory
-            self.static_directory = static_directory
-            self.GEDI_directory = GEDI_directory
-            self.MODISCI_directory = MODISCI_directory
-            self.MCD12_directory = MCD12_directory
-            self.soil_grids_directory = soil_grids_directory
-            self.output_directory = output_directory
-            self.L2T_LSTE_filename = L2T_LSTE_filename
-            self.L2T_STARS_filename = L2T_STARS_filename
-            self.orbit = orbit
-            self.scene = scene
-            self.tile = tile
-            self.build = build
-            self.product_counter = product_counter
-            self.granule_ID = granule_ID
-
-            self.L3T_JET_granule_ID = L3T_JET_granule_ID
-            self.L3T_JET_directory = L3T_JET_directory
-            self.L3T_JET_zip_filename = L3T_JET_zip_filename
-            self.L3T_JET_browse_filename = L3T_JET_browse_filename
-
-            self.L3T_BESS_granule_ID = L3T_BESS_granule_ID
-            self.L3T_BESS_directory = L3T_BESS_directory
-            self.L3T_BESS_zip_filename = L3T_BESS_zip_filename
-            self.L3T_BESS_browse_filename = L3T_BESS_browse_filename
-
-            self.L3T_MET_granule_ID = L3T_MET_granule_ID
-            self.L3T_MET_directory = L3T_MET_directory
-            self.L3T_MET_zip_filename = L3T_MET_zip_filename
-            self.L3T_MET_browse_filename = L3T_MET_browse_filename
-
-            self.L3T_SEB_granule_ID = L3T_SEB_granule_ID
-            self.L3T_SEB_directory = L3T_SEB_directory
-            self.L3T_SEB_zip_filename = L3T_SEB_zip_filename
-            self.L3T_SEB_browse_filename = L3T_SEB_browse_filename
-
-            self.L3T_SM_granule_ID = L3T_SM_granule_ID
-            self.L3T_SM_directory = L3T_SM_directory
-            self.L3T_SM_zip_filename = L3T_SM_zip_filename
-            self.L3T_SM_browse_filename = L3T_SM_browse_filename
-
-            self.L4T_WUE_granule_ID = L4T_WUE_granule_ID
-            self.L4T_WUE_directory = L4T_WUE_directory
-            self.L4T_WUE_zip_filename = L4T_WUE_zip_filename
-            self.L4T_WUE_browse_filename = L4T_WUE_browse_filename
-
-            self.L4T_ESI_granule_ID = L4T_ESI_granule_ID
-            self.L4T_ESI_directory = L4T_ESI_directory
-            self.L4T_ESI_zip_filename = L4T_ESI_zip_filename
-            self.L4T_ESI_browse_filename = L4T_ESI_browse_filename
-
-            self.PGE_name = PGE_name
-            self.PGE_version = PGE_version
-        except MissingRunConfigValue as e:
-            raise e
-        except ECOSTRESSExitCodeException as e:
-            raise e
-        except Exception as e:
-            logger.exception(e)
-            raise UnableToParseRunConfig(f"unable to parse run-config file: {filename}")
-
 
 def L3T_L4T_JET(
         runconfig_filename: str,
@@ -1131,11 +653,7 @@ def L3T_L4T_JET(
         LEt_STIC = STIC_results["LEt"]
         G_STIC = STIC_results["G"]
 
-        # STICcanopy = rt.clip((LEt_STIC / LE_STIC) * 100, 0, 100)
         STICcanopy = rt.clip(rt.where((LEt_STIC == 0) | (LE_STIC == 0), 0, LEt_STIC / LE_STIC), 0, 1)
-
-        # G = calculate_G_SEBAL(Rn, ST_C, NDVI, albedo)
-        # G = G_STIC
 
         PTJPLSM_results = PTJPLSM(
             geometry=geometry,
@@ -1144,30 +662,11 @@ def L3T_L4T_JET(
             emissivity=emissivity,
             NDVI=NDVI,
             albedo=albedo,
-            # SWin=SWin,
             Rn=Rn,
-            # G=G,
             Ta_C=Ta_C,
             RH=RH,
             soil_moisture=SM,
-            # Ea_kPa=Ea_kPa,
-            # water=water,
-            # output_variables=["LE", "canopy_proportion", "LE_canopy", "soil_proportion", "interception_proportion",
-            #                   "ET", "ESI", "PET", "SM", "Rn", "Rn_daily"]
         )
-
-        # if Rn is None:
-        #     Rn = rt.clip(PTJPLSM_results["Rn"], 0, None)
-
-        # if np.all(np.isnan(Rn)):
-        #     raise BlankOutput(
-        #         f"blank instantaneous net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
-
-        # Rn_daily = rt.clip(PTJPLSM_results["Rn_daily"], 0, None)
-
-        # if np.all(np.isnan(Rn_daily)):
-        #     raise BlankOutput(
-        #         f"blank daily net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
         # total latent heat flux from PT-JPL-SM
         LE_PTJPLSM = rt.clip(PTJPLSM_results["LE"], 0, None)
@@ -1246,13 +745,14 @@ def L3T_L4T_JET(
         EF = rt.where((ETinst == 0) | (Rn == 0), 0, ETinst / Rn)
 
         SHA = SHA_deg_from_doy_lat(day_of_year, geometry.lat)
-        sunrise_hour = sunrise_from_sha(SHA)
-        daylight_hours = daylight_from_sha(SHA)
+        sunrise_hour = sunrise_from_SHA(SHA)
+        daylight_hours = daylight_from_SHA(SHA)
+
         Rn_daily = daily_Rn_integration_verma(
-            Rn,
-            hour_of_day,
-            sunrise_hour,
-            daylight_hours
+            Rn=Rn,
+            hour_of_day=hour_of_day,
+            doy=day_of_year,
+            lat=geometry.lat,
         )
 
         # constrain negative values of daily integrated net radiation
