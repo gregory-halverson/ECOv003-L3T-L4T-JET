@@ -9,7 +9,7 @@ from os import makedirs
 from os.path import join, abspath, dirname, expanduser, exists, basename
 from shutil import which
 from uuid import uuid4
-
+from pytictoc import TicToc
 import numpy as np
 import pandas as pd
 import sklearn
@@ -113,7 +113,8 @@ def L3T_L4T_JET(
         granule_ID = runconfig.granule_ID
         log_filename = join(working_directory, "log", f"{granule_ID}.log")
         cl.configure(filename=log_filename, strip_console=strip_console)
-        timer = Timer()
+        timer = TicToc()
+        timer.tic()
         logger.info(f"started L3T L4T JET run at {cl.time(datetime.utcnow())} UTC")
         logger.info(f"L3T_L4T_JET PGE ({cl.val(runconfig.PGE_version)})")
         logger.info(f"L3T_L4T_JET run-config: {cl.file(runconfig_filename)}")
