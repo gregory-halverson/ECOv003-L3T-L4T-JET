@@ -57,12 +57,8 @@ from .downscale_soil_moisture import downscale_soil_moisture
 from .downscale_vapor_pressure_deficit import downscale_vapor_pressure_deficit
 from .downscale_relative_humidity import downscale_relative_humidity
 
-from ECOv002_granules import write_L3T_JET
-from ECOv002_granules import write_L3T_MET
-from ECOv002_granules import write_L3T_SEB
-from ECOv002_granules import write_L3T_SM
-from ECOv002_granules import write_L4T_ESI
-from ECOv002_granules import write_L4T_WUE
+from ECOv003_granules import write_L3T_JET, write_L3T_MET, write_L3T_SEB, write_L3T_SM, write_L4T_ESI, write_L4T_WUE
+
 
 class LPDAACServerUnreachable(Exception):
     pass
