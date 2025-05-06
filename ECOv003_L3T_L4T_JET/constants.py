@@ -3,7 +3,7 @@ from os.path import join, dirname, abspath
 # constant latent heat of vaporization for water: the number of joules of energy it takes to evaporate one kilogram
 LATENT_VAPORIZATION_JOULES_PER_KILOGRAM = 2450000.0
 
-L3T_L4T_JET_TEMPLATE = join(abspath(dirname(__file__)), "L3T_L4T_JET.xml")
+L3T_L4T_JET_TEMPLATE_FILENAME = join(abspath(dirname(__file__)), "L3T_L4T_JET.xml")
 DEFAULT_BUILD = "0700"
 DEFAULT_OUTPUT_DIRECTORY = "L3T_L4T_JET_output"
 DEFAULT_PTJPL_SOURCES_DIRECTORY = "L3T_L4T_JET_sources"

@@ -46,7 +46,6 @@ from .version import __version__
 from .constants import *
 from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
-from .timer import Timer
 
 from .generate_L3T_L4T_JET_runconfig import generate_L3T_L4T_JET_runconfig
 from .L3TL4TJETConfig import L3TL4TJETConfig

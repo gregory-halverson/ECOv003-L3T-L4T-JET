@@ -1,12 +1,16 @@
 from os import makedirs
 from os.path import join, dirname, abspath, expanduser
-
+from shutil import which
+import socket
+from uuid import uuid4
 from datetime import datetime
 
 from ECOv002_granules import L2TLSTE
 
 import logging
 import colored_logging as cl
+
+from .constants import *
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +47,7 @@ def generate_L3T_L4T_JET_runconfig(
         tile = L2T_LSTE_granule.tile
 
     if template_filename is None:
-        template_filename = L3T_L4T_JET_TEMPLATE
+        template_filename = L3T_L4T_JET_TEMPLATE_FILENAME
 
     template_filename = abspath(expanduser(template_filename))
 

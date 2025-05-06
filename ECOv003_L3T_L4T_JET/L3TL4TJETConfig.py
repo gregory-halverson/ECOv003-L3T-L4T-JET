@@ -1,13 +1,14 @@
 from os.path import abspath, expanduser, join
 
+import logging
+import colored_logging as cl
+
 from ECOv002_granules import L2TLSTE
 
+from .version import __version__
 from .constants import *
 from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
-
-import logging
-import colored_logging as cl
 
 logger = logging.getLogger(__name__)
 
