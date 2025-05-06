@@ -18,7 +18,7 @@ dependencies = [
     "BESS-JPL",
     "check-distribution",
     "colored-logging",
-    "ECOv002-granules",
+    "ECOv002-granules>=1.1.1",
     "ECOv003-granules",
     "FLiESANN",
     "FLiESLUT",
