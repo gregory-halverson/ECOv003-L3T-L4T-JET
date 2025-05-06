@@ -892,7 +892,7 @@ def L3T_L4T_JET(
             metadata=metadata
         )
 
-        logger.info(f"finished L3T L4T JET run in {cl.time(timer)} seconds")
+        logger.info(f"finished L3T L4T JET run in {cl.time(timer.tocvalue())} seconds")
 
     except (BlankOutput, BlankOutputError) as exception:
         logger.exception(exception)

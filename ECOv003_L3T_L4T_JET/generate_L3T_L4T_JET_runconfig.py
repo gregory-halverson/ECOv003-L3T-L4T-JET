@@ -34,7 +34,8 @@ def generate_L3T_L4T_JET_runconfig(
         job_ID: str = None,
         instance_ID: str = None,
         product_counter: int = None,
-        template_filename: str = None) -> str:
+        template_filename: str = None,
+        collection: str = "003") -> str:
     L2T_LSTE_granule = L2TLSTE(L2T_LSTE_filename)
 
     if orbit is None:
@@ -59,7 +60,7 @@ def generate_L3T_L4T_JET_runconfig(
 
     time_UTC = L2T_LSTE_granule.time_UTC
     timestamp = f"{time_UTC:%Y%m%dT%H%M%S}"
-    granule_ID = f"ECOv002_L3T_JET_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
+    granule_ID = f"ECOv{collection}_L3T_JET_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
 
     if runconfig_filename is None:
         runconfig_filename = join(working_directory, "runconfig", f"{granule_ID}.xml")
