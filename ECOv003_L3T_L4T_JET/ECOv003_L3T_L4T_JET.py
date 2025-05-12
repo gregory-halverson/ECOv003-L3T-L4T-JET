@@ -593,7 +593,7 @@ def L3T_L4T_JET(
         LE_BESS = BESS_results["LE"]
 
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
-        EF_BESS = rt.where((LE_BESS == 0) | (Rn == 0), 0, LE_BESS / Rn)
+        EF_BESS = rt.where((LE_BESS == 0) | (Rn_BESS == 0), 0, LE_BESS / Rn_BESS)
         
         Rn_daily_BESS = daily_Rn_integration_verma(
             Rn=Rn_BESS,
@@ -669,7 +669,6 @@ def L3T_L4T_JET(
 
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
         EF_STIC = rt.where((LE_STIC == 0) | (Rn == 0), 0, LE_STIC / Rn)
-        LE_daily_STIC = rt.clip(EF_STIC * Rn_daily, 0, None)
 
         PTJPLSM_results = PTJPLSM(
             geometry=geometry,
@@ -689,7 +688,6 @@ def L3T_L4T_JET(
 
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
         EF_PTJPLSM = rt.where((LE_PTJPLSM == 0) | (Rn == 0), 0, LE_PTJPLSM / Rn)
-        LE_daily_PTJPLSM = rt.clip(EF_PTJPLSM * Rn_daily, 0, None)
 
         if np.all(np.isnan(LE_PTJPLSM)):
             raise BlankOutput(
@@ -763,7 +761,6 @@ def L3T_L4T_JET(
 
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
         EF_PMJPL = rt.where((LE_PMJPL == 0) | (Rn == 0), 0, LE_PMJPL / Rn)
-        LE_daily_PMJPL = rt.clip(EF_PMJPL * Rn_daily, 0, None)
 
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
         EF = rt.where((ETinst == 0) | (Rn == 0), 0, ETinst / Rn)
@@ -789,8 +786,11 @@ def L3T_L4T_JET(
         ET_daily_kg = np.clip(LE_daily * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
 
         ET_daily_kg_BESS = np.clip(LE_daily_BESS * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
+        LE_daily_STIC = rt.clip(EF_STIC * Rn_daily, 0, None)
         ET_daily_kg_STIC = np.clip(LE_daily_STIC * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
+        LE_daily_PTJPLSM = rt.clip(EF_PTJPLSM * Rn_daily, 0, None)
         ET_daily_kg_PTJPLSM = np.clip(LE_daily_PTJPLSM * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
+        LE_daily_PMJPL = rt.clip(EF_PMJPL * Rn_daily, 0, None)
         ET_daily_kg_PMJPL = np.clip(LE_daily_PMJPL * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
 
         ETinstUncertainty = rt.Raster(
@@ -811,6 +811,8 @@ def L3T_L4T_JET(
         WUE = rt.where(np.isinf(WUE), np.nan, WUE)
         WUE = rt.clip(WUE, 0, 10)
 
+        ## FIXME need to include instantaneous PT-JPL along with daily PT-JPL
+
         # write the L3T JET product
         write_L3T_JET(
             L3T_JET_zip_filename=L3T_JET_zip_filename,
@@ -822,10 +824,10 @@ def L3T_L4T_JET(
             time_UTC=time_UTC,
             build=build,
             product_counter=product_counter,
-            LE_STIC=LE_STIC,
-            LE_PTJPLSM=LE_PTJPLSM,
-            LE_BESS=LE_BESS,
-            LE_PMJPL=LE_PMJPL,
+            LE_STIC=ET_daily_kg_STIC,
+            LE_PTJPLSM=ET_daily_kg_PTJPLSM,
+            LE_BESS=ET_daily_kg_BESS,
+            LE_PMJPL=ET_daily_kg_PMJPL,
             ET_daily_kg=ET_daily_kg,
             ETinstUncertainty=ETinstUncertainty,
             PTJPLSMcanopy=PTJPLSMcanopy,
