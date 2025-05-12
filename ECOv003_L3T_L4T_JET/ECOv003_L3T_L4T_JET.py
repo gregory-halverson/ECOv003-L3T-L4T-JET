@@ -24,7 +24,7 @@ from rasters import linear_downscale, bias_correct
 
 from check_distribution import check_distribution
 
-from solar_apparent_time import UTC_offset_hours_for_area
+from solar_apparent_time import UTC_offset_hours_for_area, solar_hour_of_day_for_area, solar_day_of_year_for_area
 
 from koppengeiger import load_koppen_geiger
 import FLiESANN
@@ -46,7 +46,6 @@ from .version import __version__
 from .constants import *
 from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
-from .timer import Timer
 
 from .generate_L3T_L4T_JET_runconfig import generate_L3T_L4T_JET_runconfig
 from .L3TL4TJETConfig import L3TL4TJETConfig
@@ -58,12 +57,8 @@ from .downscale_soil_moisture import downscale_soil_moisture
 from .downscale_vapor_pressure_deficit import downscale_vapor_pressure_deficit
 from .downscale_relative_humidity import downscale_relative_humidity
 
-from .write_L3T_JET import write_L3T_JET
-from .write_L3T_MET import write_L3T_MET
-from .write_L3T_SEB import write_L3T_SEB
-from .write_L3T_SM import write_L3T_SM
-from .write_L4T_ESI import write_L4T_ESI
-from .write_L4T_WUE import write_L4T_WUE
+from ECOv003_granules import write_L3T_JET, write_L3T_MET, write_L3T_SEB, write_L3T_SM, write_L4T_ESI, write_L4T_WUE
+
 
 class LPDAACServerUnreachable(Exception):
     pass
@@ -263,8 +258,8 @@ def L3T_L4T_JET(
             f"orbit {cl.val(orbit)} scene {cl.val(scene)} tile {cl.place(tile)} overpass time: {cl.time(time_UTC)} UTC ({cl.time(time_solar)} solar)")
         timestamp = f"{time_UTC:%Y%m%dT%H%M%S}"
 
-        hour_of_day = calculate_hour_of_day(time_UTC=time_UTC, geometry=geometry)
-        day_of_year = calculate_day_of_year(time_UTC=time_UTC, geometry=geometry)
+        hour_of_day = solar_hour_of_day_for_area(time_UTC=time_UTC, geometry=geometry)
+        day_of_year = solar_day_of_year_for_area(time_UTC=time_UTC, geometry=geometry)
 
         ST_K = L2T_LSTE_granule.ST_K
 
@@ -826,7 +821,7 @@ def L3T_L4T_JET(
             tile=tile,
             time_UTC=time_UTC,
             build=build,
-            process_count=product_counter,
+            product_counter=product_counter,
             LE_STIC=LE_STIC,
             LE_PTJPLSM=LE_PTJPLSM,
             LE_BESS=LE_BESS,
@@ -852,7 +847,7 @@ def L3T_L4T_JET(
             tile=tile,
             time_UTC=time_UTC,
             build=build,
-            process_count=product_counter,
+            product_counter=product_counter,
             Ta_C=Ta_C,
             RH=RH,
             water_mask=water_mask,
@@ -870,11 +865,9 @@ def L3T_L4T_JET(
             tile=tile,
             time_UTC=time_UTC,
             build=build,
-            process_count=product_counter,
-            Rn_BESS=Rn_BESS,
-            Rn_verma=Rn_verma,
-            Rn_daily=Rn_daily,
-            ETinstUncertainty=ETinstUncertainty,
+            product_counter=product_counter,
+            Rn=Rn,
+            Rg=SWin,
             water_mask=water_mask,
             cloud_mask=cloud_mask,
             metadata=metadata
@@ -890,7 +883,7 @@ def L3T_L4T_JET(
             tile=tile,
             time_UTC=time_UTC,
             build=build,
-            process_count=product_counter,
+            product_counter=product_counter,
             SM=SM,
             water_mask=water_mask,
             cloud_mask=cloud_mask,
@@ -907,7 +900,7 @@ def L3T_L4T_JET(
             tile=tile,
             time_UTC=time_UTC,
             build=build,
-            process_count=product_counter,
+            product_counter=product_counter,
             ESI=ESI_PTJPLSM,
             PET=PET_PTJPLSM,
             water_mask=water_mask,
@@ -924,7 +917,7 @@ def L3T_L4T_JET(
             tile=tile,
             time_UTC=time_UTC,
             build=build,
-            process_count=product_counter,
+            product_counter=product_counter,
             WUE=WUE,
             GPP=GPP_inst_g_m2_s,
             water_mask=water_mask,
@@ -932,7 +925,7 @@ def L3T_L4T_JET(
             metadata=metadata
         )
 
-        logger.info(f"finished L3T L4T JET run in {cl.time(timer)} seconds")
+        logger.info(f"finished L3T L4T JET run in {cl.time(timer.tocvalue())} seconds")
 
     except (BlankOutput, BlankOutputError) as exception:
         logger.exception(exception)

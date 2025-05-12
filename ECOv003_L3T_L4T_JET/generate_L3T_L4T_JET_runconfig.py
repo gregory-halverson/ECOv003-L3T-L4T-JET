@@ -1,12 +1,16 @@
 from os import makedirs
 from os.path import join, dirname, abspath, expanduser
-
+from shutil import which
+import socket
+from uuid import uuid4
 from datetime import datetime
 
 from ECOv002_granules import L2TLSTE
 
 import logging
 import colored_logging as cl
+
+from .constants import *
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +34,8 @@ def generate_L3T_L4T_JET_runconfig(
         job_ID: str = None,
         instance_ID: str = None,
         product_counter: int = None,
-        template_filename: str = None) -> str:
+        template_filename: str = None,
+        collection: str = "003") -> str:
     L2T_LSTE_granule = L2TLSTE(L2T_LSTE_filename)
 
     if orbit is None:
@@ -43,7 +48,7 @@ def generate_L3T_L4T_JET_runconfig(
         tile = L2T_LSTE_granule.tile
 
     if template_filename is None:
-        template_filename = L3T_L4T_JET_TEMPLATE
+        template_filename = L3T_L4T_JET_TEMPLATE_FILENAME
 
     template_filename = abspath(expanduser(template_filename))
 
@@ -55,7 +60,7 @@ def generate_L3T_L4T_JET_runconfig(
 
     time_UTC = L2T_LSTE_granule.time_UTC
     timestamp = f"{time_UTC:%Y%m%dT%H%M%S}"
-    granule_ID = f"ECOv002_L3T_JET_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
+    granule_ID = f"ECOv{collection}_L3T_JET_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
 
     if runconfig_filename is None:
         runconfig_filename = join(working_directory, "runconfig", f"{granule_ID}.xml")
