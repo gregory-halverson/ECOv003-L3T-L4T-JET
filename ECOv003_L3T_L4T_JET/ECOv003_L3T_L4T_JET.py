@@ -597,6 +597,18 @@ def L3T_L4T_JET(
         # total latent heat flux in watts per square meter from BESS
         LE_BESS = BESS_results["LE"]
 
+        ## FIXME need to revise evaporative fraction to take soil heat flux into account
+        EF_BESS = rt.where((LE_BESS == 0) | (Rn == 0), 0, LE_BESS / Rn)
+        
+        Rn_daily_BESS = daily_Rn_integration_verma(
+            Rn=Rn_BESS,
+            hour_of_day=hour_of_day,
+            doy=day_of_year,
+            lat=geometry.lat,
+        )
+
+        LE_daily_BESS = rt.clip(EF_BESS * Rn_daily_BESS, 0, None)
+
         # water-mask BESS latent heat flux
         if water_mask is not None:
             LE_BESS = rt.where(water_mask, np.nan, LE_BESS)
@@ -660,6 +672,10 @@ def L3T_L4T_JET(
 
         STICcanopy = rt.clip(rt.where((LEt_STIC == 0) | (LE_STIC == 0), 0, LEt_STIC / LE_STIC), 0, 1)
 
+        ## FIXME need to revise evaporative fraction to take soil heat flux into account
+        EF_STIC = rt.where((LE_STIC == 0) | (Rn == 0), 0, LE_STIC / Rn)
+        LE_daily_STIC = rt.clip(EF_STIC * Rn_daily, 0, None)
+
         PTJPLSM_results = PTJPLSM(
             geometry=geometry,
             time_UTC=time_UTC,
@@ -675,6 +691,10 @@ def L3T_L4T_JET(
 
         # total latent heat flux from PT-JPL-SM
         LE_PTJPLSM = rt.clip(PTJPLSM_results["LE"], 0, None)
+
+        ## FIXME need to revise evaporative fraction to take soil heat flux into account
+        EF_PTJPLSM = rt.where((LE_PTJPLSM == 0) | (Rn == 0), 0, LE_PTJPLSM / Rn)
+        LE_daily_PTJPLSM = rt.clip(EF_PTJPLSM * Rn_daily, 0, None)
 
         if np.all(np.isnan(LE_PTJPLSM)):
             raise BlankOutput(
@@ -747,6 +767,10 @@ def L3T_L4T_JET(
             geometry=geometry)
 
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
+        EF_PMJPL = rt.where((LE_PMJPL == 0) | (Rn == 0), 0, LE_PMJPL / Rn)
+        LE_daily_PMJPL = rt.clip(EF_PMJPL * Rn_daily, 0, None)
+
+        ## FIXME need to revise evaporative fraction to take soil heat flux into account
         EF = rt.where((ETinst == 0) | (Rn == 0), 0, ETinst / Rn)
 
         SHA = SHA_deg_from_doy_lat(day_of_year, geometry.lat)
@@ -768,6 +792,11 @@ def L3T_L4T_JET(
 
         # factor seconds out of watts to get joules and divide by latent heat of vaporization to get kilograms
         ET_daily_kg = np.clip(LE_daily * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
+
+        ET_daily_kg_BESS = np.clip(LE_daily_BESS * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
+        ET_daily_kg_STIC = np.clip(LE_daily_STIC * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
+        ET_daily_kg_PTJPLSM = np.clip(LE_daily_PTJPLSM * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
+        ET_daily_kg_PMJPL = np.clip(LE_daily_PMJPL * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
 
         ETinstUncertainty = rt.Raster(
             np.nanstd([np.array(LE_PTJPLSM), np.array(LE_BESS), np.array(LE_PMJPL), np.array(LE_STIC)], axis=0),
