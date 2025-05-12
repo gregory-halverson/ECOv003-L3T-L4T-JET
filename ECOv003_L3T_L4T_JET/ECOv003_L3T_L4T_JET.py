@@ -87,6 +87,7 @@ def L3T_L4T_JET(
         include_SEB_diagnostics: bool = INCLUDE_SEB_DIAGNOSTICS,
         include_JET_diagnostics: bool = INCLUDE_JET_DIAGNOSTICS,
         bias_correct_FLiES_ANN: bool = BIAS_CORRECT_FLIES_ANN,
+        zero_COT_correction: bool = ZERO_COT_CORRECTION,
         sharpen_meteorology: bool = SHARPEN_METEOROLOGY,
         sharpen_soil_moisture: bool = SHARPEN_SOIL_MOISTURE,
         strip_console: bool = STRIP_CONSOLE,
@@ -318,6 +319,9 @@ def L3T_L4T_JET(
 
         doy_solar = time_solar.timetuple().tm_yday
         KG_climate = load_koppen_geiger(albedo.geometry)
+
+        if zero_COT_correction:
+            COT = COT * 0.0
 
         FLiES_results = FLiESANN(
             albedo=albedo,

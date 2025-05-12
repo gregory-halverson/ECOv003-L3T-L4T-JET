@@ -19,6 +19,7 @@ dependencies = [
     "check-distribution",
     "colored-logging",
     "ECOv002-granules",
+    "ECOv003-granules",
     "FLiESANN",
     "FLiESLUT",
     "GEOS5FP",
