@@ -40,7 +40,8 @@ from BESS_JPL import BESS_JPL
 from PMJPL import PMJPL
 from STIC_JPL import STIC_JPL
 from PTJPLSM import PTJPLSM
-from verma_net_radiation import process_verma_net_radiation, daily_Rn_integration_verma, SHA_deg_from_doy_lat, sunrise_from_SHA, daylight_from_SHA
+from verma_net_radiation import process_verma_net_radiation, daily_Rn_integration_verma
+from sun_angles import SHA_deg_from_DOY_lat, sunrise_from_SHA, daylight_from_SHA
 
 from .version import __version__
 from .constants import *
@@ -343,6 +344,18 @@ def L3T_L4T_JET(
         VISdir = FLiES_results["VISdir"]
         NIRdir = FLiES_results["NIRdir"]
 
+        # albedo_visible = FLiES_results["VIS"]
+        # albedo_NIR = FLiES_results["NIR"]
+        albedo_NWP = GEOS5FP_connection.ALBEDO(time_UTC=time_UTC, geometry=geometry)
+        RVIS_NWP = GEOS5FP_connection.ALBVISDR(time_UTC=time_UTC, geometry=geometry)
+        albedo_visible = rt.clip(albedo * (RVIS_NWP / albedo_NWP), 0, 1)
+        check_distribution(albedo_visible, "RVIS")
+        RNIR_NWP = GEOS5FP_connection.ALBNIRDR(time_UTC=time_UTC, geometry=geometry)
+        albedo_NIR = rt.clip(albedo * (RNIR_NWP / albedo_NWP), 0, 1)
+        check_distribution(albedo_NIR, "RNIR")
+        PARDir = VISdir
+        check_distribution(PARDir, "PARDir")
+
         SWin_FLiES_LUT= process_FLiES_LUT_raster(
             geometry=geometry,
             time_UTC=time_UTC,
@@ -580,6 +593,8 @@ def L3T_L4T_JET(
             NIRdiff=NIRdiff,
             NIRdir=NIRdir,
             UV=UV,
+            albedo_visible=albedo_visible,
+            albedo_NIR=albedo_NIR,
             vapor_gccm=vapor_gccm,
             ozone_cm=ozone_cm,
             KG_climate=KG_climate,
@@ -587,13 +602,14 @@ def L3T_L4T_JET(
         )
 
         Rn_BESS = BESS_results["Rn"]
+        G_BESS = BESS_results["G"]
         check_distribution(Rn_BESS, "Rn_BESS", date_UTC=date_UTC, target=tile)
         
         # total latent heat flux in watts per square meter from BESS
         LE_BESS = BESS_results["LE"]
 
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
-        EF_BESS = rt.where((LE_BESS == 0) | (Rn_BESS == 0), 0, LE_BESS / Rn_BESS)
+        EF_BESS = rt.where((LE_BESS == 0) | ((Rn_BESS - G_BESS) == 0), 0, LE_BESS / (Rn_BESS - G_BESS))
         
         Rn_daily_BESS = daily_Rn_integration_verma(
             Rn=Rn_BESS,
@@ -668,7 +684,7 @@ def L3T_L4T_JET(
         STICcanopy = rt.clip(rt.where((LEt_STIC == 0) | (LE_STIC == 0), 0, LEt_STIC / LE_STIC), 0, 1)
 
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
-        EF_STIC = rt.where((LE_STIC == 0) | (Rn == 0), 0, LE_STIC / Rn)
+        EF_STIC = rt.where((LE_STIC == 0) | ((Rn - G_STIC) == 0), 0, LE_STIC / (Rn - G_STIC))
 
         PTJPLSM_results = PTJPLSM(
             geometry=geometry,
@@ -677,7 +693,7 @@ def L3T_L4T_JET(
             emissivity=emissivity,
             NDVI=NDVI,
             albedo=albedo,
-            Rn=Rn,
+            Rn_Wm2=Rn,
             Ta_C=Ta_C,
             RH=RH,
             soil_moisture=SM,
@@ -685,9 +701,10 @@ def L3T_L4T_JET(
 
         # total latent heat flux from PT-JPL-SM
         LE_PTJPLSM = rt.clip(PTJPLSM_results["LE"], 0, None)
+        G_PTJPLSM = PTJPLSM_results["G"]
 
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
-        EF_PTJPLSM = rt.where((LE_PTJPLSM == 0) | (Rn == 0), 0, LE_PTJPLSM / Rn)
+        EF_PTJPLSM = rt.where((LE_PTJPLSM == 0) | ((Rn - G_PTJPLSM) == 0), 0, LE_PTJPLSM / (Rn - G_PTJPLSM))
 
         if np.all(np.isnan(LE_PTJPLSM)):
             raise BlankOutput(
@@ -754,18 +771,19 @@ def L3T_L4T_JET(
         )
 
         LE_PMJPL = PMJPL_results["LE"]
+        G_PMJPL = PMJPL_results["G"]
 
         ETinst = rt.Raster(
             np.nanmedian([np.array(LE_PTJPLSM), np.array(LE_BESS), np.array(LE_PMJPL), np.array(LE_STIC)], axis=0),
             geometry=geometry)
 
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
-        EF_PMJPL = rt.where((LE_PMJPL == 0) | (Rn == 0), 0, LE_PMJPL / Rn)
+        EF_PMJPL = rt.where((LE_PMJPL == 0) | ((Rn - G_PMJPL) == 0), 0, LE_PMJPL / (Rn - G_PMJPL))
 
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
         EF = rt.where((ETinst == 0) | (Rn == 0), 0, ETinst / Rn)
 
-        SHA = SHA_deg_from_doy_lat(day_of_year, geometry.lat)
+        SHA = SHA_deg_from_DOY_lat(day_of_year, geometry.lat)
         sunrise_hour = sunrise_from_SHA(SHA)
         daylight_hours = daylight_from_SHA(SHA)
 
@@ -824,10 +842,11 @@ def L3T_L4T_JET(
             time_UTC=time_UTC,
             build=build,
             product_counter=product_counter,
-            LE_STIC=ET_daily_kg_STIC,
             LE_PTJPLSM=ET_daily_kg_PTJPLSM,
-            LE_BESS=ET_daily_kg_BESS,
-            LE_PMJPL=ET_daily_kg_PMJPL,
+            ET_PTJPLSM=ET_daily_kg_PTJPLSM,
+            ET_STICJPL=ET_daily_kg_STIC,
+            ET_BESSJPL=ET_daily_kg_BESS,
+            ET_PMJPL=ET_daily_kg_PMJPL,
             ET_daily_kg=ET_daily_kg,
             ETinstUncertainty=ETinstUncertainty,
             PTJPLSMcanopy=PTJPLSMcanopy,
