@@ -282,7 +282,7 @@ The PT-JPL-SM model, developed by Dr. Adam Purdy and Dr. Joshua Fisher was desig
 
 The Surface Temperature Initiated Closure (STIC) model, contributed by Dr. Kaniska Mallick, was designed as a ST-sensitive ET model, adopted by ECOSTRESS and SBG for improved estimates of ET reflecting mid-day heat stress. The STIC model estimates total latent heat flux directly. This instantaneous estimate of latent heat flux is included in the ensemble estimate.
 
-The MOD16 algorithm was designed as the ET product for the Moderate Resolution Imaging Spectroradiometer (MODIS) and then continued as a Visible Infrared Imaging Radiometer Suite (VIIRS) product. MOD16 uses a similar approach to PT-JPL and PT-JPL-SM to independently estimate vegetation and soil components of instantaneous ET, but using the Penman-Monteith formula instead of the Priestley-Taylor. The MOD16 latent heat flux partitions are summed to total latent heat flux for the ensemble estimate.
+The MOD16 algorithm was designed as the ET product for the Moderate Resolution Imaging Spectroradiometer (MODIS) and then continued as a Visible Infrared Imaging Radiometer Suite (VIIRS) product. MOD16 uses a similar approach to PT-JPL and PT-JPL-SM to independently estimate vegetation and soil components of instantaneous ET, but using the Penman-Monteith formula instead of the Priestley-Taylor. The MOD16 latent heat flux partitions are summed to total latent heat flux for the ensemble estimate. A derivation of the MOD16 algorithm is included in the JET product as PM-JPL.
 
 The BESS model is a coupled surface energy balance and photosynthesis model. The latent heat flux component of BESS is also included in the ensemble estimate.
 
@@ -290,8 +290,17 @@ The median of total latent heat flux in watts per square meter from the PT-JPL, 
 
 | **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** |**Size** |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | -- |
+| PTJPLSMinst | PT-JPL-SM Instantaneous | float32 | W/m^2 | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| PTJPLSMdaily | PT-JPL-SM Daily | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| STICJPLdaily | STIC-JPL Daily | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| BESSJPLdaily | BESS-JPL Daily | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| PMJPLdaily | PM-JPL (MOD16) Daily | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
 | ETdaily | Daily Evapotranspiration | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
 | ETdailyUncertainty | Daily Evapotranspiration Uncertainty | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| PTJPLSMcanopy | PT-JPL-SM Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| STICcanopy | PT-JPL-SM Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| PTJPLSMsoil | PT-JPL-SM Soil | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| PTJPLSMinterception | PT-JPL-SM Interception | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
 | cloud | Cloud mask | float32 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
 | water | Water mask | float32 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
 
