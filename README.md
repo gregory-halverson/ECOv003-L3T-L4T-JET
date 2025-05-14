@@ -350,9 +350,6 @@ We would like to thank Adam Purdy for contributing the PT-JPL-SM model.
 
 We would like to thank Kaniska Mallick for contributing the STIC model.
 
-We would like to thank Martha Anderson for contributing the DisALEXI-JPL algorithm.
-
-
 ## References
 
 - Brutsaert, W. (1982). *Evaporation into the Atmosphere: Theory, History, and Applications*. Springer Netherlands. https://doi.org/10.1007/978-94-017-1497-6
