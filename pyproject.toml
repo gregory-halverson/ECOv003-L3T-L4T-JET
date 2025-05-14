@@ -15,11 +15,11 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "BESS-JPL>=1.9.1",
+    "BESS-JPL>=1.9.2",
     "check-distribution",
     "colored-logging",
     "ECOv002-granules>=1.1.1",
-    "ECOv003-granules>=1.2.0",
+    "ECOv003-granules>=1.2.1",
     "FLiESANN",
     "FLiESLUT",
     "GEOS5FP",
