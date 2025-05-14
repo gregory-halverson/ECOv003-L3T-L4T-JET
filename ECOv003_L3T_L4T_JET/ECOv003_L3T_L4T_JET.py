@@ -30,8 +30,7 @@ from koppengeiger import load_koppen_geiger
 import FLiESANN
 from GEOS5FP import GEOS5FP, FailedGEOS5FPDownload
 from sun_angles import calculate_SZA_from_DOY_and_hour
-from ECOv002_granules import L2TLSTE, L2TSTARS, L3TJET, L3TSM, L3TSEB, L3TMET, L4TESI, L4TWUE
-from ECOv002_granules import ET_COLORMAP, SM_COLORMAP, WATER_COLORMAP, CLOUD_COLORMAP, RH_COLORMAP, GPP_COLORMAP
+
 from MCD12C1_2019_v006 import load_MCD12C1_IGBP
 from FLiESLUT import process_FLiES_LUT_raster
 from FLiESANN import FLiESANN
@@ -47,6 +46,9 @@ from ECOv003_granules import write_L3T_JET
 from ECOv003_granules import write_L3T_ETAUX
 from ECOv003_granules import write_L4T_ESI
 from ECOv003_granules import write_L4T_WUE
+
+from ECOv003_granules import L2TLSTE, L2TSTARS, L3TJET, L3TSM, L3TSEB, L3TMET, L4TESI, L4TWUE
+from ECOv003_granules import ET_COLORMAP, SM_COLORMAP, WATER_COLORMAP, CLOUD_COLORMAP, RH_COLORMAP, GPP_COLORMAP
 
 from .version import __version__
 from .constants import *
