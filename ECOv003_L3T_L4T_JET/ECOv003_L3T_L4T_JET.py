@@ -681,7 +681,7 @@ def L3T_L4T_JET(
         LEt_STIC = STIC_results["LEt"]
         G_STIC = STIC_results["G"]
 
-        STICcanopy = rt.clip(rt.where((LEt_STIC == 0) | (LE_STIC == 0), 0, LEt_STIC / LE_STIC), 0, 1)
+        STICJPLcanopy = rt.clip(rt.where((LEt_STIC == 0) | (LE_STIC == 0), 0, LEt_STIC / LE_STIC), 0, 1)
 
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
         EF_STIC = rt.where((LE_STIC == 0) | ((Rn - G_STIC) == 0), 0, LE_STIC / (Rn - G_STIC))
@@ -829,7 +829,7 @@ def L3T_L4T_JET(
         WUE = rt.where(np.isinf(WUE), np.nan, WUE)
         WUE = rt.clip(WUE, 0, 10)
 
-        ## FIXME need to include instantaneous PT-JPL along with daily PT-JPL
+        metadata["StandardMetadata"]["CollectionLabel"] = "ECOv003"
 
         # write the L3T JET product
         write_L3T_JET(
@@ -850,7 +850,7 @@ def L3T_L4T_JET(
             ET_daily_kg=ET_daily_kg,
             ETinstUncertainty=ETinstUncertainty,
             PTJPLSMcanopy=PTJPLSMcanopy,
-            STICcanopy=STICcanopy,
+            STICJPLcanopy=STICJPLcanopy,
             PTJPLSMsoil=PTJPLSMsoil,
             PTJPLSMinterception=PTJPLSMinterception,
             water_mask=water_mask,
