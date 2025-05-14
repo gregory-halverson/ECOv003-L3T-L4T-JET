@@ -995,8 +995,8 @@ def L3T_L4T_JET(
 
 def main(argv=sys.argv):
     if len(argv) == 1 or "--version" in argv:
-        print(f"L3T_L4T_JET PGE ({__version__})")
-        print(f"usage: L3T_L4T_JET RunConfig.xml")
+        print(f"L3T/L4T JET PGE ({__version__})")
+        print(f"usage: ECOv003-L3T-L4T-JET RunConfig.xml")
 
         if "--version" in argv:
             return SUCCESS_EXIT_CODE
@@ -1015,7 +1015,7 @@ def main(argv=sys.argv):
         show_distribution=show_distribution
     )
 
-    logger.info(f"L3T_L4T_JET exit code: {exit_code}")
+    logger.info(f"L3T/L4T JET exit code: {exit_code}")
 
     return exit_code
 
