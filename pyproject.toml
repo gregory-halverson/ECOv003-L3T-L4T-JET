@@ -61,3 +61,6 @@ ECOv002_L3T_L4T_JET = ["*.txt"]
 [tool.setuptools.packages.find]
 include = ["ECOv003_L3T_L4T_JET"]
 exclude = []
+
+[project.scripts]
+ECOv003-L3T-L4T-JET = "ECOv003_L3T_L4T_JET.ECOv003_L3T_L4T_JET:main"
