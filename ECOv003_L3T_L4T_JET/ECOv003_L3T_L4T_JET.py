@@ -43,6 +43,11 @@ from PTJPLSM import PTJPLSM
 from verma_net_radiation import process_verma_net_radiation, daily_Rn_integration_verma
 from sun_angles import SHA_deg_from_DOY_lat, sunrise_from_SHA, daylight_from_SHA
 
+from ECOv003_granules import write_L3T_JET
+from ECOv003_granules import write_L3T_ETAUX
+from ECOv003_granules import write_L4T_ESI
+from ECOv003_granules import write_L4T_WUE
+
 from .version import __version__
 from .constants import *
 from .exit_codes import *
@@ -57,9 +62,6 @@ from .downscale_air_temperature import downscale_air_temperature
 from .downscale_soil_moisture import downscale_soil_moisture
 from .downscale_vapor_pressure_deficit import downscale_vapor_pressure_deficit
 from .downscale_relative_humidity import downscale_relative_humidity
-
-from ECOv003_granules import write_L3T_JET, write_L3T_MET, write_L3T_SEB, write_L3T_SM, write_L4T_ESI, write_L4T_WUE
-
 
 class LPDAACServerUnreachable(Exception):
     pass
@@ -125,6 +127,13 @@ def L3T_L4T_JET(
         logger.info(f"L3T JET zip file: {cl.file(L3T_JET_zip_filename)}")
         L3T_JET_browse_filename = runconfig.L3T_JET_browse_filename
         logger.info(f"L3T JET preview: {cl.file(L3T_JET_browse_filename)}")
+
+        L3T_ETAUX_directory = runconfig.L3T_ETAUX_directory
+        logger.info(f"L3T ETAUX granule directory: {cl.dir(L3T_ETAUX_directory)}")
+        L3T_ETAUX_zip_filename = runconfig.L3T_ETAUX_zip_filename
+        logger.info(f"L3T ETAUX zip file: {cl.file(L3T_ETAUX_zip_filename)}")
+        L3T_ETAUX_browse_filename = runconfig.L3T_ETAUX_browse_filename
+        logger.info(f"L3T ETAUX preview: {cl.file(L3T_ETAUX_browse_filename)}")
 
         L3T_BESS_directory = runconfig.L3T_BESS_directory
         logger.info(f"L3T BESS granule directory: {cl.dir(L3T_BESS_directory)}")
@@ -859,10 +868,10 @@ def L3T_L4T_JET(
         )
 
         # write the L3T MET product
-        write_L3T_MET(
-            L3T_MET_zip_filename=L3T_MET_zip_filename,
-            L3T_MET_browse_filename=L3T_MET_browse_filename,
-            L3T_MET_directory=L3T_MET_directory,
+        write_L3T_ETAUX(
+            L3T_ETAUX_zip_filename=L3T_ETAUX_zip_filename,
+            L3T_ETAUX_browse_filename=L3T_ETAUX_browse_filename,
+            L3T_ETAUX_directory=L3T_ETAUX_directory,
             orbit=orbit,
             scene=scene,
             tile=tile,
@@ -871,45 +880,66 @@ def L3T_L4T_JET(
             product_counter=product_counter,
             Ta_C=Ta_C,
             RH=RH,
-            water_mask=water_mask,
-            cloud_mask=cloud_mask,
-            metadata=metadata
-        )
-
-        # write the L3T SEB product
-        write_L3T_SEB(
-            L3T_SEB_zip_filename=L3T_SEB_zip_filename,
-            L3T_SEB_browse_filename=L3T_SEB_browse_filename,
-            L3T_SEB_directory=L3T_SEB_directory,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            time_UTC=time_UTC,
-            build=build,
-            product_counter=product_counter,
             Rn=Rn,
             Rg=SWin,
-            water_mask=water_mask,
-            cloud_mask=cloud_mask,
-            metadata=metadata
-        )
-
-        # write the L3T SM product
-        write_L3T_SM(
-            L3T_SM_zip_filename=L3T_SM_zip_filename,
-            L3T_SM_browse_filename=L3T_SM_browse_filename,
-            L3T_SM_directory=L3T_SM_directory,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            time_UTC=time_UTC,
-            build=build,
-            product_counter=product_counter,
             SM=SM,
             water_mask=water_mask,
             cloud_mask=cloud_mask,
             metadata=metadata
         )
+
+        # # write the L3T MET product
+        # write_L3T_MET(
+        #     L3T_MET_zip_filename=L3T_MET_zip_filename,
+        #     L3T_MET_browse_filename=L3T_MET_browse_filename,
+        #     L3T_MET_directory=L3T_MET_directory,
+        #     orbit=orbit,
+        #     scene=scene,
+        #     tile=tile,
+        #     time_UTC=time_UTC,
+        #     build=build,
+        #     product_counter=product_counter,
+        #     Ta_C=Ta_C,
+        #     RH=RH,
+        #     water_mask=water_mask,
+        #     cloud_mask=cloud_mask,
+        #     metadata=metadata
+        # )
+
+        # # write the L3T SEB product
+        # write_L3T_SEB(
+        #     L3T_SEB_zip_filename=L3T_SEB_zip_filename,
+        #     L3T_SEB_browse_filename=L3T_SEB_browse_filename,
+        #     L3T_SEB_directory=L3T_SEB_directory,
+        #     orbit=orbit,
+        #     scene=scene,
+        #     tile=tile,
+        #     time_UTC=time_UTC,
+        #     build=build,
+        #     product_counter=product_counter,
+        #     Rn=Rn,
+        #     Rg=SWin,
+        #     water_mask=water_mask,
+        #     cloud_mask=cloud_mask,
+        #     metadata=metadata
+        # )
+
+        # # write the L3T SM product
+        # write_L3T_SM(
+        #     L3T_SM_zip_filename=L3T_SM_zip_filename,
+        #     L3T_SM_browse_filename=L3T_SM_browse_filename,
+        #     L3T_SM_directory=L3T_SM_directory,
+        #     orbit=orbit,
+        #     scene=scene,
+        #     tile=tile,
+        #     time_UTC=time_UTC,
+        #     build=build,
+        #     product_counter=product_counter,
+        #     SM=SM,
+        #     water_mask=water_mask,
+        #     cloud_mask=cloud_mask,
+        #     metadata=metadata
+        # )
 
         # write the L4T ESI product
         write_L4T_ESI(

@@ -119,6 +119,11 @@ class L3TL4TJETConfig(ECOSTRESSRunConfig):
             L3T_JET_zip_filename = f"{L3T_JET_directory}.zip"
             L3T_JET_browse_filename = f"{L3T_JET_directory}.png"
 
+            L3T_ETAUX_granule_ID = f"ECOv{collection}_L3T_ETAUX_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
+            L3T_ETAUX_directory = join(output_directory, L3T_ETAUX_granule_ID)
+            L3T_ETAUX_zip_filename = f"{L3T_ETAUX_directory}.zip"
+            L3T_ETAUX_browse_filename = f"{L3T_ETAUX_directory}.png"
+
             L3T_BESS_granule_ID = f"ECOv{collection}_L3T_BESS_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
             L3T_BESS_directory = join(output_directory, L3T_BESS_granule_ID)
             L3T_BESS_zip_filename = f"{L3T_BESS_directory}.zip"
@@ -174,6 +179,11 @@ class L3TL4TJETConfig(ECOSTRESSRunConfig):
             self.L3T_JET_directory = L3T_JET_directory
             self.L3T_JET_zip_filename = L3T_JET_zip_filename
             self.L3T_JET_browse_filename = L3T_JET_browse_filename
+
+            self.L3T_ETAUX_granule_ID = L3T_ETAUX_granule_ID
+            self.L3T_ETAUX_directory = L3T_ETAUX_directory
+            self.L3T_ETAUX_zip_filename = L3T_ETAUX_zip_filename
+            self.L3T_ETAUX_browse_filename = L3T_ETAUX_browse_filename
 
             self.L3T_BESS_granule_ID = L3T_BESS_granule_ID
             self.L3T_BESS_directory = L3T_BESS_directory
