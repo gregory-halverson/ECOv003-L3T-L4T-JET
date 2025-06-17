@@ -61,11 +61,6 @@ from .L3TL4TJETConfig import L3TL4TJETConfig  # Specific run configuration class
 
 from .NDVI_to_FVC import NDVI_to_FVC  # Module for converting NDVI to Fractional Vegetation Cover.
 
-from .downscale_air_temperature import downscale_air_temperature  # Modules for downscaling meteorological variables.
-from .downscale_soil_moisture import downscale_soil_moisture
-from .downscale_vapor_pressure_deficit import downscale_vapor_pressure_deficit
-from .downscale_relative_humidity import downscale_relative_humidity
-
 # Custom exception for when the LP DAAC server is unreachable.
 class LPDAACServerUnreachable(Exception):
     pass
