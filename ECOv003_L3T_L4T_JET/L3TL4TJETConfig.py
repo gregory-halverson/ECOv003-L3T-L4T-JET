@@ -5,9 +5,11 @@ import colored_logging as cl
 
 from ECOv003_granules import L2TLSTE
 
+from ECOv003_exit_codes import *
+
 from .version import __version__
 from .constants import *
-from .exit_codes import *
+
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
 
 logger = logging.getLogger(__name__)
