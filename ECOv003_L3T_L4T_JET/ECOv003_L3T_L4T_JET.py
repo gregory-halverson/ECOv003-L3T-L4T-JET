@@ -891,59 +891,6 @@ def L3T_L4T_JET(
             metadata=metadata
         )
 
-        # # write the L3T MET product
-        # write_L3T_MET(
-        #     L3T_MET_zip_filename=L3T_MET_zip_filename,
-        #     L3T_MET_browse_filename=L3T_MET_browse_filename,
-        #     L3T_MET_directory=L3T_MET_directory,
-        #     orbit=orbit,
-        #     scene=scene,
-        #     tile=tile,
-        #     time_UTC=time_UTC,
-        #     build=build,
-        #     product_counter=product_counter,
-        #     Ta_C=Ta_C,
-        #     RH=RH,
-        #     water_mask=water_mask,
-        #     cloud_mask=cloud_mask,
-        #     metadata=metadata
-        # )
-
-        # # write the L3T SEB product
-        # write_L3T_SEB(
-        #     L3T_SEB_zip_filename=L3T_SEB_zip_filename,
-        #     L3T_SEB_browse_filename=L3T_SEB_browse_filename,
-        #     L3T_SEB_directory=L3T_SEB_directory,
-        #     orbit=orbit,
-        #     scene=scene,
-        #     tile=tile,
-        #     time_UTC=time_UTC,
-        #     build=build,
-        #     product_counter=product_counter,
-        #     Rn=Rn,
-        #     Rg=SWin,
-        #     water_mask=water_mask,
-        #     cloud_mask=cloud_mask,
-        #     metadata=metadata
-        # )
-
-        # # write the L3T SM product
-        # write_L3T_SM(
-        #     L3T_SM_zip_filename=L3T_SM_zip_filename,
-        #     L3T_SM_browse_filename=L3T_SM_browse_filename,
-        #     L3T_SM_directory=L3T_SM_directory,
-        #     orbit=orbit,
-        #     scene=scene,
-        #     tile=tile,
-        #     time_UTC=time_UTC,
-        #     build=build,
-        #     product_counter=product_counter,
-        #     SM=SM,
-        #     water_mask=water_mask,
-        #     cloud_mask=cloud_mask,
-        #     metadata=metadata
-        # )
-
         # write the L4T ESI product
         write_L4T_ESI(
             L4T_ESI_zip_filename=L4T_ESI_zip_filename,
