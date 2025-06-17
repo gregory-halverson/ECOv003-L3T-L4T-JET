@@ -50,9 +50,10 @@ from ECOv003_granules import write_L4T_WUE
 from ECOv003_granules import L2TLSTE, L2TSTARS, L3TJET, L3TSM, L3TSEB, L3TMET, L4TESI, L4TWUE
 from ECOv003_granules import ET_COLORMAP, SM_COLORMAP, WATER_COLORMAP, CLOUD_COLORMAP, RH_COLORMAP, GPP_COLORMAP
 
+from ECOv003_exit_codes import *
+
 from .version import __version__
 from .constants import *
-from .exit_codes import *
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
 
 from .generate_L3T_L4T_JET_runconfig import generate_L3T_L4T_JET_runconfig
