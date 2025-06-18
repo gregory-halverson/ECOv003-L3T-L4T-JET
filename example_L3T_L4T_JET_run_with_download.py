@@ -23,7 +23,7 @@ from ECOv003_L3T_L4T_JET import generate_L3T_L4T_JET_runconfig, L3T_L4T_JET
 logging.getLogger().handlers = []
 
 # Set the working and static directories
-working_directory = os.path.join("~", "data", "ECOSTRESS_example")  # Directory for downloaded granules and outputs
+working_directory = os.path.join("~", "data", "ECOv003_example")  # Directory for downloaded granules and outputs
 static_directory = os.path.join("~", "data", "L3T_L4T_static")      # Directory for static input files
 
 # Download the L2T_LSTE granule for a specific orbit, scene, tile, and date
