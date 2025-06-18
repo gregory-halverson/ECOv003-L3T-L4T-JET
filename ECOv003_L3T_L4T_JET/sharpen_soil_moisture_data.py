@@ -13,7 +13,7 @@ from GEOS5FP import GEOS5FP
 
 import logging
 
-from .exceptions import BlankOutput
+from .exceptions import BlankOutputError
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def sharpen_soil_moisture_data(
         SM: Sharpened soil moisture.
 
     Raises:
-        BlankOutput: If the sharpened soil moisture output is blank.
+        BlankOutputError: If the sharpened soil moisture output is blank.
     """
     # Resample surface temperature, NDVI, and albedo to coarse geometry for training.
     ST_C_coarse = ST_C.to_geometry(coarse_geometry, resampling=upsampling)
@@ -126,6 +126,6 @@ def sharpen_soil_moisture_data(
 
     # Check for blank soil moisture output after sharpening.
     if np.all(np.isnan(SM)):
-        raise BlankOutput(
+        raise BlankOutputError(
             f"blank soil moisture output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
     return SM

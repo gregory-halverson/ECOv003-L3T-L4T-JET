@@ -13,7 +13,7 @@ from GEOS5FP import GEOS5FP
 
 import logging
 
-from .exceptions import BlankOutput
+from .exceptions import BlankOutputError
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +129,7 @@ def sharpen_meteorology_data(
 
     # Check for blank air temperature output after sharpening.
     if np.all(np.isnan(Ta_C)):
-        raise BlankOutput(
+        raise BlankOutputError(
             f"blank air temperature output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
     # --- Sharpen Dew-point Temperature (Td_C) ---

@@ -28,7 +28,7 @@ from solar_apparent_time import UTC_offset_hours_for_area, solar_hour_of_day_for
 
 from koppengeiger import load_koppen_geiger  # Custom module for loading Köppen-Geiger climate data.
 import FLiESANN  # Custom module for the FLiES-ANN (Forest Light Environmental Simulator - Artificial Neural Network) model.
-from GEOS55FP import GEOS5FP, FailedGEOS5FPDownload  # Custom module for interacting with GEOS-5 FP atmospheric data, including an exception for download failures.
+from GEOS5FP import GEOS5FP, FailedGEOS5FPDownload  # Custom module for interacting with GEOS-5 FP atmospheric data, including an exception for download failures.
 from sun_angles import calculate_SZA_from_DOY_and_hour  # Custom module for calculating Solar Zenith Angle (SZA).
 
 from MCD12C1_2019_v006 import load_MCD12C1_IGBP  # Custom module for loading MODIS Land Cover Type (IGBP classification) data.
@@ -850,4 +850,4 @@ def main(argv=sys.argv):
 
 
 if __name__ == "__main__":
-    sys.exit(main
+    sys.exit(main(argv=sys.argv))
