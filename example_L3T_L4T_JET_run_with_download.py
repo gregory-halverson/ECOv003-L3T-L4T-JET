@@ -15,6 +15,7 @@ Update the working and static directory paths as needed for your environment.
 
 import numpy as np
 import logging
+import os
 from ECOv002_CMR import download_ECOSTRESS_granule
 from ECOv003_L3T_L4T_JET import generate_L3T_L4T_JET_runconfig, L3T_L4T_JET
 
@@ -22,8 +23,8 @@ from ECOv003_L3T_L4T_JET import generate_L3T_L4T_JET_runconfig, L3T_L4T_JET
 logging.getLogger().handlers = []
 
 # Set the working and static directories
-working_directory = "~/data/ECOSTRESS_example"  # Directory for downloaded granules and outputs
-static_directory = "~/data/L3T_L4T_static"      # Directory for static input files
+working_directory = os.path.join("~", "data", "ECOSTRESS_example")  # Directory for downloaded granules and outputs
+static_directory = os.path.join("~", "data", "L3T_L4T_static")      # Directory for static input files
 
 # Download the L2T_LSTE granule for a specific orbit, scene, tile, and date
 L2T_LSTE_granule = download_ECOSTRESS_granule(
