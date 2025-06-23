@@ -1,83 +1,78 @@
-import logging
-import posixpath
-import shutil
-import socket
-import sys
-import warnings
-from datetime import datetime
-from os import makedirs
-from os.path import join, abspath, dirname, expanduser, exists, basename
-from shutil import which
-from uuid import uuid4
-from pytictoc import TicToc
-import numpy as np
-import pandas as pd
-import sklearn
-import sklearn.linear_model
-from dateutil import parser
+import logging  # Used for logging messages and tracking execution.
+import posixpath  # For manipulating POSIX-style paths (e.g., for file operations).
+import shutil  # For high-level file operations, like zipping directories.
+import socket  # For network-related operations, potentially for checking server reachability.
+import sys  # Provides access to system-specific parameters and functions, used for command-line arguments and exit.
+import warnings  # For issuing warnings.
+from datetime import datetime  # For working with dates and times.
+from os import makedirs  # For creating directories.
+from os.path import join, abspath, dirname, expanduser, exists, basename  # For path manipulation (joining, absolute paths, directory names, user home, existence check, base name).
+from shutil import which  # For finding the path to an executable.
+from uuid import uuid4  # For generating unique identifiers.
+from pytictoc import TicToc  # A simple timer for measuring code execution time.
+import numpy as np  # Fundamental package for numerical computation, especially with arrays.
+import pandas as pd  # For data manipulation and analysis, especially with tabular data (DataFrames).
+import sklearn  # Scikit-learn, a machine learning library.
+import sklearn.linear_model  # Specifically for linear regression models.
+from dateutil import parser  # For parsing dates and times from various formats.
 
-import colored_logging as cl
+import colored_logging as cl  # Custom module for colored console logging.
 
-import rasters as rt
-from rasters import Raster, RasterGrid, RasterGeometry
-from rasters import linear_downscale, bias_correct
+import rasters as rt  # Custom or external library for raster data processing.
+from rasters import Raster, RasterGrid, RasterGeometry  # Specific classes from the rasters library for handling raster data, grids, and geometries.
+from rasters import linear_downscale, bias_correct  # Functions for downscaling and bias correction of rasters.
 
-from check_distribution import check_distribution
+from check_distribution import check_distribution  # Custom module for checking and potentially visualizing data distributions.
 
-from solar_apparent_time import UTC_offset_hours_for_area, solar_hour_of_day_for_area, solar_day_of_year_for_area
+from solar_apparent_time import UTC_offset_hours_for_area, solar_hour_of_day_for_area, solar_day_of_year_for_area  # Custom modules for solar time calculations.
 
-from koppengeiger import load_koppen_geiger
-import FLiESANN
-from GEOS5FP import GEOS5FP, FailedGEOS5FPDownload
-from sun_angles import calculate_SZA_from_DOY_and_hour
+from koppengeiger import load_koppen_geiger  # Custom module for loading Köppen-Geiger climate data.
+import FLiESANN  # Custom module for the FLiES-ANN (Forest Light Environmental Simulator - Artificial Neural Network) model.
+from GEOS5FP import GEOS5FP, FailedGEOS5FPDownload  # Custom module for interacting with GEOS-5 FP atmospheric data, including an exception for download failures.
+from sun_angles import calculate_SZA_from_DOY_and_hour  # Custom module for calculating Solar Zenith Angle (SZA).
 
-from MCD12C1_2019_v006 import load_MCD12C1_IGBP
-from FLiESLUT import process_FLiES_LUT_raster
-from FLiESANN import FLiESANN
+from MCD12C1_2019_v006 import load_MCD12C1_IGBP  # Custom module for loading MODIS Land Cover Type (IGBP classification) data.
+from FLiESLUT import process_FLiES_LUT_raster  # Custom module for processing FLiES Look-Up Table (LUT) rasters.
+from FLiESANN import FLiESANN  # Re-importing FLiESANN, potentially the main class.
 
-from BESS_JPL import BESS_JPL
-from PMJPL import PMJPL
-from STIC_JPL import STIC_JPL
-from PTJPLSM import PTJPLSM
-from verma_net_radiation import process_verma_net_radiation, daily_Rn_integration_verma
-from sun_angles import SHA_deg_from_DOY_lat, sunrise_from_SHA, daylight_from_SHA
+from BESS_JPL import BESS_JPL  # Custom module for the BESS-JPL (Breathing Earth System Simulator - Jet Propulsion Laboratory) model.
+from PMJPL import PMJPL  # Custom module for the PMJPL (Penman-Monteith Jet Propulsion Laboratory) model.
+from STIC_JPL import STIC_JPL  # Custom module for the STIC-JPL (Surface Temperature Initiated Closure - Jet Propulsion Laboratory) model.
+from PTJPLSM import PTJPLSM  # Custom module for the PTJPLSM (Priestley-Taylor Jet Propulsion Laboratory - Soil Moisture) model.
+from verma_net_radiation import process_verma_net_radiation, daily_Rn_integration_verma  # Custom modules for net radiation calculation using Verma's model and daily integration.
+from sun_angles import SHA_deg_from_DOY_lat, sunrise_from_SHA, daylight_from_SHA  # Additional solar angle calculations.
 
-from ECOv003_granules import write_L3T_JET
+from ECOv003_granules import write_L3T_JET  # Functions for writing ECOSTRESS Level 3/4 products.
 from ECOv003_granules import write_L3T_ETAUX
 from ECOv003_granules import write_L4T_ESI
 from ECOv003_granules import write_L4T_WUE
 
-from ECOv003_granules import L2TLSTE, L2TSTARS, L3TJET, L3TSM, L3TSEB, L3TMET, L4TESI, L4TWUE
-from ECOv003_granules import ET_COLORMAP, SM_COLORMAP, WATER_COLORMAP, CLOUD_COLORMAP, RH_COLORMAP, GPP_COLORMAP
+from ECOv003_granules import L2TLSTE, L2TSTARS, L3TJET, L3TSM, L3TSEB, L3TMET, L4TESI, L4TWUE  # Product classes or constants from ECOv003_granules.
+from ECOv003_granules import ET_COLORMAP, SM_COLORMAP, WATER_COLORMAP, CLOUD_COLORMAP, RH_COLORMAP, GPP_COLORMAP  # Colormaps for visualization.
 
-from ECOv003_exit_codes import *
+from ECOv003_exit_codes import * # Import all custom exit codes.
 
-from .version import __version__
-from .constants import *
-from .runconfig import read_runconfig, ECOSTRESSRunConfig
+from .version import __version__  # Import the package version.
+from .constants import * # Import all constants used in the package.
+from .runconfig import read_runconfig, ECOSTRESSRunConfig  # Modules for reading and handling run configuration.
 
-from .generate_L3T_L4T_JET_runconfig import generate_L3T_L4T_JET_runconfig
-from .L3TL4TJETConfig import L3TL4TJETConfig
+from .generate_L3T_L4T_JET_runconfig import generate_L3T_L4T_JET_runconfig  # Module for generating run configuration files.
+from .L3TL4TJETConfig import L3TL4TJETConfig  # Specific run configuration class for L3T/L4T JET.
 
-from .NDVI_to_FVC import NDVI_to_FVC
+from .NDVI_to_FVC import NDVI_to_FVC  # Module for converting NDVI to Fractional Vegetation Cover.
 
-from .downscale_air_temperature import downscale_air_temperature
-from .downscale_soil_moisture import downscale_soil_moisture
-from .downscale_vapor_pressure_deficit import downscale_vapor_pressure_deficit
-from .downscale_relative_humidity import downscale_relative_humidity
+from .sharpen_meteorology_data import sharpen_meteorology_data  # Module for sharpening meteorological data.
+from .sharpen_soil_moisture_data import sharpen_soil_moisture_data  # Module for sharpening soil moisture data.
 
-class LPDAACServerUnreachable(Exception):
-    pass
+from .exceptions import *
 
+# Read the version from a version.txt file located in the same directory as this script.
 with open(join(abspath(dirname(__file__)), "version.txt")) as f:
     version = f.read()
 
-__version__ = version
+__version__ = version  # Set the package version.
 
-logger = logging.getLogger(__name__)
-
-class BlankOutputError(Exception):
-    pass
+logger = logging.getLogger(__name__)  # Get a logger instance for this module.
 
 def L3T_L4T_JET(
         runconfig_filename: str,
@@ -96,10 +91,32 @@ def L3T_L4T_JET(
         show_distribution: bool = SHOW_DISTRIBUTION,
         floor_Topt: bool = FLOOR_TOPT) -> int:
     """
-    ECOSTRESS Collection 2 L3T L4T JET PGE
-    :param runconfig_filename: filename for XML run-config
-    :param log_filename: filename for logger output
-    :return: exit code number
+    Processes ECOSTRESS L2T LSTE and L2T STARS granules to produce L3T and L4T JET products (ECOSTRESS Collection 3).
+
+    This function orchestrates the entire processing workflow, including reading run configuration,
+    loading input data, performing meteorological and soil moisture sharpening, running
+    evapotranspiration and gross primary productivity models (FLiES-ANN, BESS-JPL, STIC-JPL, PMJPL, PTJPLSM),
+    calculating daily integrated products, and writing the output granules.
+
+    Args:
+        runconfig_filename: Path to the XML run configuration file.
+        upsampling: Upsampling method for spatial resampling (e.g., 'average', 'linear'). Defaults to 'average'.
+        downsampling: Downsampling method for spatial resampling (e.g., 'linear', 'average'). Defaults to 'linear'.
+        SWin_model_name: Model to use for incoming shortwave radiation ('GEOS5FP', 'FLiES-ANN', 'FLiES-LUT'). Defaults to SWIN_MODEL_NAME.
+        Rn_model_name: Model to use for net radiation ('verma', 'BESS'). Defaults to RN_MODEL_NAME.
+        include_SEB_diagnostics: Whether to include Surface Energy Balance diagnostics in the output. Defaults to INCLUDE_SEB_DIAGNOSTICS.
+        include_JET_diagnostics: Whether to include JET diagnostics in the output. Defaults to INCLUDE_JET_DIAGNOSTICS.
+        bias_correct_FLiES_ANN: Whether to bias correct the FLiES-ANN shortwave radiation output. Defaults to BIAS_CORRECT_FLIES_ANN.
+        zero_COT_correction: Whether to set Cloud Optical Thickness to zero for correction. Defaults to ZERO_COT_CORRECTION.
+        sharpen_meteorology: Whether to sharpen meteorological variables using a regression model. Defaults to SHARPEN_METEOROLOGY.
+        sharpen_soil_moisture: Whether to sharpen soil moisture using a regression model. Defaults to SHARPEN_SOIL_MOISTURE.
+        strip_console: Whether to strip console output from the logger. Defaults to STRIP_CONSOLE.
+        save_intermediate: Whether to save intermediate processing steps. Defaults to SAVE_INTERMEDIATE.
+        show_distribution: Whether to show distribution plots of intermediate and final products. Defaults to SHOW_DISTRIBUTION.
+        floor_Topt: Whether to floor the optimal temperature (Topt) in the models. Defaults to FLOOR_TOPT.
+
+    Returns:
+        An integer representing the exit code of the process.
     """
     exit_code = SUCCESS_EXIT_CODE
 
@@ -294,7 +311,6 @@ def L3T_L4T_JET(
             download_directory=GEOS5FP_directory
         )
 
-        # SZA = FLiES_ANN_model.SZA(day_of_year=day_of_year, hour_of_day=hour_of_day, geometry=geometry)
         SZA = calculate_SZA_from_DOY_and_hour(
             lat=geometry.lat,
             lon=geometry.lon,
@@ -356,8 +372,6 @@ def L3T_L4T_JET(
         VISdir = FLiES_results["VISdir"]
         NIRdir = FLiES_results["NIRdir"]
 
-        # albedo_visible = FLiES_results["VIS"]
-        # albedo_NIR = FLiES_results["NIR"]
         albedo_NWP = GEOS5FP_connection.ALBEDO(time_UTC=time_UTC, geometry=geometry)
         RVIS_NWP = GEOS5FP_connection.ALBVISDR(time_UTC=time_UTC, geometry=geometry)
         albedo_visible = rt.clip(albedo * (RVIS_NWP / albedo_NWP), 0, 1)
@@ -423,163 +437,50 @@ def L3T_L4T_JET(
 
         ST_C = ST_K - 273.15
 
-        NDVI_coarse = NDVI.to_geometry(coarse_geometry, resampling=upsampling)
-        albedo_coarse = albedo.to_geometry(coarse_geometry, resampling=upsampling)
-
+        # Sharpen meteorological variables if enabled.
         if sharpen_meteorology:
-            ST_C_coarse = ST_C.to_geometry(coarse_geometry, resampling=upsampling)
-            Ta_C_coarse = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=coarse_geometry, resampling=downsampling)
-            Td_C_coarse = GEOS5FP_connection.Td_C(time_UTC=time_UTC, geometry=coarse_geometry, resampling=downsampling)
-            SM_coarse = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=coarse_geometry, resampling=downsampling)
-
-            coarse_samples = pd.DataFrame({
-                "Ta_C": np.array(Ta_C_coarse).ravel(),
-                "Td_C": np.array(Td_C_coarse).ravel(),
-                "SM": np.array(SM_coarse).ravel(),
-                "ST_C": np.array(ST_C_coarse).ravel(),
-                "NDVI": np.array(NDVI_coarse).ravel(),
-                "albedo": np.array(albedo_coarse).ravel()
-            })
-
-            coarse_samples = coarse_samples.dropna()
-
-            Ta_C_model = sklearn.linear_model.LinearRegression()
-            Ta_C_model.fit(coarse_samples[["ST_C", "NDVI", "albedo"]], coarse_samples["Ta_C"])
-            Ta_C_intercept = Ta_C_model.intercept_
-            ST_C_Ta_C_coef, NDVI_Ta_C_coef, albedo_Ta_C_coef = Ta_C_model.coef_
-            logger.info(
-                f"air temperature regression: Ta_C = {Ta_C_intercept:0.2f} + {ST_C_Ta_C_coef:0.2f} * ST_C + {NDVI_Ta_C_coef:0.2f} * NDVI + {albedo_Ta_C_coef:0.2f} * albedo")
-            Ta_C_prediction = ST_C * ST_C_Ta_C_coef + NDVI * NDVI_Ta_C_coef + albedo * albedo_Ta_C_coef + Ta_C_intercept
-            check_distribution(Ta_C_prediction, "Ta_C_prediction", date_UTC, tile)
-            logger.info(
-                f"up-sampling predicted air temperature from {int(Ta_C_prediction.cell_size)}m to {int(coarse_geometry.cell_size)}m with {upsampling} method")
-            Ta_C_prediction_coarse = Ta_C_prediction.to_geometry(coarse_geometry, resampling=upsampling)
-            check_distribution(Ta_C_prediction_coarse, "Ta_C_prediction_coarse", date_UTC, tile)
-            Ta_C_bias_coarse = Ta_C_prediction_coarse - Ta_C_coarse
-            check_distribution(Ta_C_bias_coarse, "Ta_C_bias_coarse", date_UTC, tile)
-            logger.info(
-                f"down-sampling air temperature bias from {int(Ta_C_bias_coarse.cell_size)}m to {int(geometry.cell_size)}m with {downsampling} method")
-            Ta_C_bias_smooth = Ta_C_bias_coarse.to_geometry(geometry, resampling=downsampling)
-            check_distribution(Ta_C_bias_smooth, "Ta_C_bias_smooth", date_UTC, tile)
-            logger.info("bias-correcting air temperature")
-            Ta_C = Ta_C_prediction - Ta_C_bias_smooth
-            check_distribution(Ta_C, "Ta_C", date_UTC, tile)
-            Ta_C_smooth = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-            check_distribution(Ta_C_smooth, "Ta_C_smooth", date_UTC, tile)
-            logger.info("gap-filling air temperature")
-            Ta_C = rt.where(np.isnan(Ta_C), Ta_C_smooth, Ta_C)
-            check_distribution(Ta_C, "Ta_C", date_UTC, tile)
-            logger.info(
-                f"up-sampling final air temperature from {int(Ta_C.cell_size)}m to {int(coarse_geometry.cell_size)}m with {upsampling} method")
-            Ta_C_final_coarse = Ta_C.to_geometry(coarse_geometry, resampling=upsampling)
-            check_distribution(Ta_C_final_coarse, "Ta_C_final_coarse", date_UTC, tile)
-            Ta_C_error_coarse = Ta_C_final_coarse - Ta_C_coarse
-            check_distribution(Ta_C_error_coarse, "Ta_C_error_coarse", date_UTC, tile)
-            logger.info(
-                f"down-sampling air temperature error from {int(Ta_C_error_coarse.cell_size)}m to {int(geometry.cell_size)}m with {downsampling} method")
-            Ta_C_error = Ta_C_error_coarse.to_geometry(geometry, resampling=downsampling)
-            check_distribution(Ta_C_error, "Ta_C_error", date_UTC, tile)
-
-            if np.all(np.isnan(Ta_C)):
-                raise BlankOutput(
-                    f"blank air temperature output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
-
-            Td_C_model = sklearn.linear_model.LinearRegression()
-            Td_C_model.fit(coarse_samples[["ST_C", "NDVI", "albedo"]], coarse_samples["Td_C"])
-            Td_C_intercept = Td_C_model.intercept_
-            ST_C_Td_C_coef, NDVI_Td_C_coef, albedo_Td_C_coef = Td_C_model.coef_
-
-            logger.info(
-                f"dew-point temperature regression: Td_C = {Td_C_intercept:0.2f} + {ST_C_Td_C_coef:0.2f} * ST_C + {NDVI_Td_C_coef:0.2f} * NDVI + {albedo_Td_C_coef:0.2f} * albedo")
-            Td_C_prediction = ST_C * ST_C_Td_C_coef + NDVI * NDVI_Td_C_coef + albedo * albedo_Td_C_coef + Td_C_intercept
-            check_distribution(Td_C_prediction, "Td_C_prediction", date_UTC, tile)
-            logger.info(
-                f"up-sampling predicted dew-point temperature from {int(Td_C_prediction.cell_size)}m to {int(coarse_geometry.cell_size)}m with {upsampling} method")
-            Td_C_prediction_coarse = Td_C_prediction.to_geometry(coarse_geometry, resampling=upsampling)
-            check_distribution(Td_C_prediction_coarse, "Td_C_prediction_coarse", date_UTC, tile)
-            Td_C_bias_coarse = Td_C_prediction_coarse - Td_C_coarse
-            check_distribution(Td_C_bias_coarse, "Td_C_bias_coarse", date_UTC, tile)
-            logger.info(
-                f"down-sampling dew-point temperature bias from {int(Td_C_bias_coarse.cell_size)}m to {int(geometry.cell_size)}m with {downsampling} method")
-            Td_C_bias_smooth = Td_C_bias_coarse.to_geometry(geometry, resampling=downsampling)
-            check_distribution(Td_C_bias_smooth, "Td_C_bias_smooth", date_UTC, tile)
-            logger.info("bias-correcting dew-point temperature")
-            Td_C = Td_C_prediction - Td_C_bias_smooth
-            check_distribution(Td_C, "Td_C", date_UTC, tile)
-            Td_C_smooth = GEOS5FP_connection.Td_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-            check_distribution(Td_C_smooth, "Td_C_smooth", date_UTC, tile)
-            logger.info("gap-filling dew-point temperature")
-            Td_C = rt.where(np.isnan(Td_C), Td_C_smooth, Td_C)
-            check_distribution(Td_C, "Td_C", date_UTC, tile)
-            logger.info(
-                f"up-sampling final dew-point temperature from {int(Td_C.cell_size)}m to {int(coarse_geometry.cell_size)}m with {upsampling} method")
-            Td_C_final_coarse = Td_C.to_geometry(coarse_geometry, resampling=upsampling)
-            check_distribution(Td_C_final_coarse, "Td_C_final_coarse", date_UTC, tile)
-            Td_C_error_coarse = Td_C_final_coarse - Td_C_coarse
-            check_distribution(Td_C_error_coarse, "Td_C_error_coarse", date_UTC, tile)
-            logger.info(
-                f"down-sampling dew-point temperature error from {int(Td_C_error_coarse.cell_size)}m to {int(geometry.cell_size)}m with {downsampling} method")
-            Td_C_error = Td_C_error_coarse.to_geometry(geometry, resampling=downsampling)
-            check_distribution(Td_C_error, "Td_C_error", date_UTC, tile)
-
-            Ta_K = Ta_C + 273.15
-            RH = rt.clip(np.exp((17.625 * Td_C) / (243.04 + Td_C)) / np.exp((17.625 * Ta_C) / (243.04 + Ta_C)), 0, 1)
-
-            if np.all(np.isnan(RH)):
-                raise BlankOutput(
-                    f"blank humidity output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
+            Ta_C, RH, Ta_C_smooth = sharpen_meteorology_data(
+                ST_C=ST_C,
+                NDVI=NDVI,
+                albedo=albedo,
+                geometry=geometry,
+                coarse_geometry=coarse_geometry,
+                time_UTC=time_UTC,
+                date_UTC=date_UTC,
+                tile=tile,
+                orbit=orbit,
+                scene=scene,
+                upsampling=upsampling,
+                downsampling=downsampling,
+                GEOS5FP_connection=GEOS5FP_connection
+            )
         else:
             Ta_C = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
             Ta_C_smooth = Ta_C
             RH = GEOS5FP_connection.RH(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-            # SM = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
 
+        # Sharpen soil moisture if enabled.
         if sharpen_soil_moisture:
-            SM_model = sklearn.linear_model.LinearRegression()
-            SM_model.fit(coarse_samples[["ST_C", "NDVI", "albedo"]], coarse_samples["SM"])
-            SM_intercept = SM_model.intercept_
-            ST_C_SM_coef, NDVI_SM_coef, albedo_SM_coef = SM_model.coef_
-            logger.info(
-                f"soil moisture regression: SM = {SM_intercept:0.2f} + {ST_C_SM_coef:0.2f} * ST_C + {NDVI_SM_coef:0.2f} * NDVI + {albedo_SM_coef:0.2f} * albedo")
-            SM_prediction = rt.clip(ST_C * ST_C_SM_coef + NDVI * NDVI_SM_coef + albedo * albedo_SM_coef + SM_intercept, 0,
-                                    1)
-            check_distribution(SM_prediction, "SM_prediction", date_UTC, tile)
-            logger.info(
-                f"up-sampling predicted soil moisture from {int(SM_prediction.cell_size)}m to {int(coarse_geometry.cell_size)}m with {upsampling} method")
-            SM_prediction_coarse = SM_prediction.to_geometry(coarse_geometry, resampling=upsampling)
-            check_distribution(SM_prediction_coarse, "SM_prediction_coarse", date_UTC, tile)
-            SM_bias_coarse = SM_prediction_coarse - SM_coarse
-            check_distribution(SM_bias_coarse, "SM_bias_coarse", date_UTC, tile)
-            logger.info(
-                f"down-sampling soil moisture bias from {int(SM_bias_coarse.cell_size)}m to {int(geometry.cell_size)}m with {downsampling} method")
-            SM_bias_smooth = SM_bias_coarse.to_geometry(geometry, resampling=downsampling)
-            check_distribution(SM_bias_smooth, "SM_bias_smooth", date_UTC, tile)
-            logger.info("bias-correcting soil moisture")
-            SM = rt.clip(SM_prediction - SM_bias_smooth, 0, 1)
-            check_distribution(SM, "SM", date_UTC, tile)
-            SM_smooth = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-            check_distribution(SM_smooth, "SM_smooth", date_UTC, tile)
-            logger.info("gap-filling soil moisture")
-            SM = rt.clip(rt.where(np.isnan(SM), SM_smooth, SM), 0, 1)
-            SM = rt.where(water_mask, np.nan, SM)
-            check_distribution(SM, "SM", date_UTC, tile)
-            logger.info(
-                f"up-sampling final soil moisture from {int(SM.cell_size)}m to {int(coarse_geometry.cell_size)}m with {upsampling} method")
-            SM_final_coarse = SM.to_geometry(coarse_geometry, resampling=upsampling)
-            check_distribution(SM_final_coarse, "SM_final_coarse", date_UTC, tile)
-            SM_error_coarse = SM_final_coarse - SM_coarse
-            check_distribution(SM_error_coarse, "SM_error_coarse", date_UTC, tile)
-            logger.info(
-                f"down-sampling soil moisture error from {int(SM_error_coarse.cell_size)}m to {int(geometry.cell_size)}m with {downsampling} method")
-            SM_error = rt.where(water_mask, np.nan, SM_error_coarse.to_geometry(geometry, resampling=downsampling))
-            check_distribution(SM_error, "SM_error", date_UTC, tile)
-
-            if np.all(np.isnan(SM)):
-                raise BlankOutput(
-                    f"blank soil moisture output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
+            SM = sharpen_soil_moisture_data(
+                ST_C=ST_C,
+                NDVI=NDVI,
+                albedo=albedo,
+                water_mask=water_mask,
+                geometry=geometry,
+                coarse_geometry=coarse_geometry,
+                time_UTC=time_UTC,
+                date_UTC=date_UTC,
+                tile=tile,
+                orbit=orbit,
+                scene=scene,
+                upsampling=upsampling,
+                downsampling=downsampling,
+                GEOS5FP_connection=GEOS5FP_connection
+            )
         else:
             SM = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
 
+        # Calculate Saturated Vapor Pressure (SVP_Pa) and Actual Vapor Pressure (Ea_Pa, Ea_kPa).
         SVP_Pa = 0.6108 * np.exp((17.27 * Ta_C) / (Ta_C + 237.3)) * 1000  # [Pa]
         Ea_Pa = RH * SVP_Pa
         Ea_kPa = Ea_Pa / 1000
@@ -617,7 +518,6 @@ def L3T_L4T_JET(
         G_BESS = BESS_results["G"]
         check_distribution(Rn_BESS, "Rn_BESS", date_UTC=date_UTC, target=tile)
         
-        # total latent heat flux in watts per square meter from BESS
         LE_BESS = BESS_results["LE"]
 
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
@@ -632,16 +532,13 @@ def L3T_L4T_JET(
 
         LE_daily_BESS = rt.clip(EF_BESS * Rn_daily_BESS, 0, None)
 
-        # water-mask BESS latent heat flux
         if water_mask is not None:
             LE_BESS = rt.where(water_mask, np.nan, LE_BESS)
 
         check_distribution(LE_BESS, "LE_BESS", date_UTC=date_UTC, target=tile)
         
-        # gross primary productivity from BESS
-        GPP_inst_umol_m2_s = BESS_results["GPP"]  # [umol m-2 s-1]
+        GPP_inst_umol_m2_s = BESS_results["GPP"]
         
-        # water-mask GPP
         if water_mask is not None:
             GPP_inst_umol_m2_s = rt.where(water_mask, np.nan, GPP_inst_umol_m2_s)
 
@@ -680,7 +577,6 @@ def L3T_L4T_JET(
             time_UTC=time_UTC,
             Rn_Wm2=Rn,
             RH=RH,
-            # Rg_Wm2=SWin,
             Ta_C=Ta_C_smooth,
             ST_C=ST_C,
             albedo=albedo,
@@ -711,7 +607,6 @@ def L3T_L4T_JET(
             soil_moisture=SM,
         )
 
-        # total latent heat flux from PT-JPL-SM
         LE_PTJPLSM = rt.clip(PTJPLSM_results["LE"], 0, None)
         G_PTJPLSM = PTJPLSM_results["G"]
 
@@ -726,43 +621,31 @@ def L3T_L4T_JET(
             raise BlankOutput(
                 f"blank daily ET output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
-        # canopy transpiration in watts per square meter from PT-JPL-SM
         LE_canopy_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["LE_canopy"], 0, None)
 
-        # normalize canopy transpiration as a fraction of total latent heat flux
         PTJPLSMcanopy = rt.clip(LE_canopy_PTJPLSM_Wm2 / LE_PTJPLSM, 0, 1)
 
-        # water-mask canopy transpiration
         if water_mask is not None:
             PTJPLSMcanopy = rt.where(water_mask, np.nan, PTJPLSMcanopy)
         
-        # soil evaporation in watts per square meter from PT-JPL-SM
         LE_soil_PTJPLSM = rt.clip(PTJPLSM_results["LE_soil"], 0, None)
 
-        # normalize soil evaporation as a fraction of total latent heat flux
         PTJPLSMsoil = rt.clip(LE_soil_PTJPLSM / LE_PTJPLSM, 0, 1)
 
-        # water-mask soil evaporation
         if water_mask is not None:
             PTJPLSMsoil = rt.where(water_mask, np.nan, PTJPLSMsoil)
         
-        # interception evaporation in watts per square meter from PT-JPL-SM
         LE_interception_PTJPLSM = rt.clip(PTJPLSM_results["LE_interception"], 0, None)
 
-        # normalize interception evaporation as a fraction of total latent heat flux
         PTJPLSMinterception = rt.clip(LE_interception_PTJPLSM / LE_PTJPLSM, 0, 1)
 
-        # water-mask interception evaporation
         if water_mask is not None:
             PTJPLSMinterception = rt.where(water_mask, np.nan, PTJPLSMinterception)
         
-        # potential evapotranspiration in watts per square meter from PT-JPL-SM
         PET_PTJPLSM = rt.clip(PTJPLSM_results["PET"], 0, None)
 
-        # normalize total latent heat flux as a fraction of potential evapotranspiration
         ESI_PTJPLSM = rt.clip(LE_PTJPLSM / PET_PTJPLSM, 0, 1)
 
-        # water-mask ESI
         if water_mask is not None:
             ESI_PTJPLSM = rt.where(water_mask, np.nan, ESI_PTJPLSM)
 
@@ -806,13 +689,11 @@ def L3T_L4T_JET(
             lat=geometry.lat,
         )
 
-        # constrain negative values of daily integrated net radiation
         Rn_daily = rt.clip(Rn_daily, 0, None)
         LE_daily = rt.clip(EF * Rn_daily, 0, None)
 
         daylight_seconds = daylight_hours * 3600.0
 
-        # factor seconds out of watts to get joules and divide by latent heat of vaporization to get kilograms
         ET_daily_kg = np.clip(LE_daily * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
 
         ET_daily_kg_BESS = np.clip(LE_daily_BESS * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
@@ -827,23 +708,14 @@ def L3T_L4T_JET(
             np.nanstd([np.array(LE_PTJPLSM), np.array(LE_BESS), np.array(LE_PMJPL), np.array(LE_STIC)], axis=0),
             geometry=geometry).mask(~water_mask)
 
-        # GPP from BESS is micro-mole per square meter per second [umol m-2 s-1]
-        # transpiration from PT-JPL-SM is watts per square meter per second
-        # we need to convert micro-moles to grams and watts to kilograms
-        # GPP in grams per square meter per second
         GPP_inst_g_m2_s = GPP_inst_umol_m2_s / 1000000 * 12.011
-        # transpiration in kilograms per square meter per second
         ETt_inst_kg_m2_s = LE_canopy_PTJPLSM_Wm2 / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM
-        # divide grams of carbon by kilograms of water
-        # watts per square meter per second factor out on both sides
-        # WUE = rt.where((GPP_inst_g_m2_s == 0) | (ETt_inst_kg_m2_s < 1), 0, GPP / LEt_PTJPLSM)
         WUE = GPP_inst_g_m2_s / ETt_inst_kg_m2_s
         WUE = rt.where(np.isinf(WUE), np.nan, WUE)
         WUE = rt.clip(WUE, 0, 10)
 
         metadata["StandardMetadata"]["CollectionLabel"] = "ECOv003"
 
-        # write the L3T JET product
         write_L3T_JET(
             L3T_JET_zip_filename=L3T_JET_zip_filename,
             L3T_JET_browse_filename=L3T_JET_browse_filename,
@@ -870,7 +742,6 @@ def L3T_L4T_JET(
             metadata=metadata
         )
 
-        # write the L3T MET product
         write_L3T_ETAUX(
             L3T_ETAUX_zip_filename=L3T_ETAUX_zip_filename,
             L3T_ETAUX_browse_filename=L3T_ETAUX_browse_filename,
@@ -891,60 +762,6 @@ def L3T_L4T_JET(
             metadata=metadata
         )
 
-        # # write the L3T MET product
-        # write_L3T_MET(
-        #     L3T_MET_zip_filename=L3T_MET_zip_filename,
-        #     L3T_MET_browse_filename=L3T_MET_browse_filename,
-        #     L3T_MET_directory=L3T_MET_directory,
-        #     orbit=orbit,
-        #     scene=scene,
-        #     tile=tile,
-        #     time_UTC=time_UTC,
-        #     build=build,
-        #     product_counter=product_counter,
-        #     Ta_C=Ta_C,
-        #     RH=RH,
-        #     water_mask=water_mask,
-        #     cloud_mask=cloud_mask,
-        #     metadata=metadata
-        # )
-
-        # # write the L3T SEB product
-        # write_L3T_SEB(
-        #     L3T_SEB_zip_filename=L3T_SEB_zip_filename,
-        #     L3T_SEB_browse_filename=L3T_SEB_browse_filename,
-        #     L3T_SEB_directory=L3T_SEB_directory,
-        #     orbit=orbit,
-        #     scene=scene,
-        #     tile=tile,
-        #     time_UTC=time_UTC,
-        #     build=build,
-        #     product_counter=product_counter,
-        #     Rn=Rn,
-        #     Rg=SWin,
-        #     water_mask=water_mask,
-        #     cloud_mask=cloud_mask,
-        #     metadata=metadata
-        # )
-
-        # # write the L3T SM product
-        # write_L3T_SM(
-        #     L3T_SM_zip_filename=L3T_SM_zip_filename,
-        #     L3T_SM_browse_filename=L3T_SM_browse_filename,
-        #     L3T_SM_directory=L3T_SM_directory,
-        #     orbit=orbit,
-        #     scene=scene,
-        #     tile=tile,
-        #     time_UTC=time_UTC,
-        #     build=build,
-        #     product_counter=product_counter,
-        #     SM=SM,
-        #     water_mask=water_mask,
-        #     cloud_mask=cloud_mask,
-        #     metadata=metadata
-        # )
-
-        # write the L4T ESI product
         write_L4T_ESI(
             L4T_ESI_zip_filename=L4T_ESI_zip_filename,
             L4T_ESI_browse_filename=L4T_ESI_browse_filename,
@@ -985,7 +802,7 @@ def L3T_L4T_JET(
         logger.exception(exception)
         exit_code = BLANK_OUTPUT
 
-    except (FailedGEOS5FPDownload, ConnectionError) as exception:
+    except (FailedGEOS5FPDownload, ConnectionError, LPDAACServerUnreachable) as exception:
         logger.exception(exception)
         exit_code = Auxiliary_SERVER_UNREACHABLE
 
@@ -997,6 +814,15 @@ def L3T_L4T_JET(
 
 
 def main(argv=sys.argv):
+    """
+    Main function to parse command line arguments and run the L3T_L4T_JET process.
+
+    Args:
+        argv: Command line arguments. Defaults to sys.argv.
+
+    Returns:
+        An integer representing the exit code.
+    """
     if len(argv) == 1 or "--version" in argv:
         print(f"L3T/L4T JET PGE ({__version__})")
         print(f"usage: ECOv003-L3T-L4T-JET RunConfig.xml")
