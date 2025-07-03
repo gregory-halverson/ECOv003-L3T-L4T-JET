@@ -35,7 +35,7 @@ class L3TL4TJETConfig(ECOSTRESSRunConfig):
 
             if "L3T_L4T_JET_SOURCES" not in runconfig["StaticAncillaryFileGroup"]:
                 raise MissingRunConfigValue(
-                    f"missing StaticAncillaryFileGroup/L3T_L4T_JET_WORKING in L3T_L4T_JET run-config: {filename}")
+                    f"missing StaticAncillaryFileGroup/L3T_L4T_JET_SOURCES in L3T_L4T_JET run-config: {filename}")
 
             sources_directory = abspath(runconfig["StaticAncillaryFileGroup"]["L3T_L4T_JET_SOURCES"])
             logger.info(f"sources directory: {cl.dir(sources_directory)}")
