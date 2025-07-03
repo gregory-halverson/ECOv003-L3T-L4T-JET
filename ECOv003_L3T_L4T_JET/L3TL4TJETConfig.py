@@ -20,33 +20,33 @@ class L3TL4TJETConfig(ECOSTRESSRunConfig):
             logger.info(f"loading L3T_L4T_JET run-config: {cl.file(filename)}")
             runconfig = read_runconfig(filename)
 
-            # print(JSON_highlight(runconfig))
+            # reverting to StaticAncillaryFileGroup for now instead of StaticAuxiliaryFileGroup
 
-            if "StaticAuxiliaryFileGroup" not in runconfig:
+            if "StaticAncillaryFileGroup" not in runconfig:
                 raise MissingRunConfigValue(
-                    f"missing StaticAuxiliaryFileGroup in L3T_L4T_JET run-config: {filename}")
+                    f"missing StaticAncillaryFileGroup in L3T_L4T_JET run-config: {filename}")
 
-            if "L3T_L4T_JET_WORKING" not in runconfig["StaticAuxiliaryFileGroup"]:
+            if "L3T_L4T_JET_WORKING" not in runconfig["StaticAncillaryFileGroup"]:
                 raise MissingRunConfigValue(
-                    f"missing StaticAuxiliaryFileGroup/L3T_L4T_JET_WORKING in L3T_L4T_JET run-config: {filename}")
+                    f"missing StaticAncillaryFileGroup/L3T_L4T_JET_WORKING in L3T_L4T_JET run-config: {filename}")
 
-            working_directory = abspath(runconfig["StaticAuxiliaryFileGroup"]["L3T_L4T_JET_WORKING"])
+            working_directory = abspath(runconfig["StaticAncillaryFileGroup"]["L3T_L4T_JET_WORKING"])
             logger.info(f"working directory: {cl.dir(working_directory)}")
 
-            if "L3T_L4T_JET_SOURCES" not in runconfig["StaticAuxiliaryFileGroup"]:
+            if "L3T_L4T_JET_SOURCES" not in runconfig["StaticAncillaryFileGroup"]:
                 raise MissingRunConfigValue(
-                    f"missing StaticAuxiliaryFileGroup/L3T_L4T_JET_WORKING in L3T_L4T_JET run-config: {filename}")
+                    f"missing StaticAncillaryFileGroup/L3T_L4T_JET_SOURCES in L3T_L4T_JET run-config: {filename}")
 
-            sources_directory = abspath(runconfig["StaticAuxiliaryFileGroup"]["L3T_L4T_JET_SOURCES"])
+            sources_directory = abspath(runconfig["StaticAncillaryFileGroup"]["L3T_L4T_JET_SOURCES"])
             logger.info(f"sources directory: {cl.dir(sources_directory)}")
 
             GEOS5FP_directory = join(sources_directory, DEFAULT_GEOS5FP_DIRECTORY)
 
-            if "L3T_L4T_STATIC" not in runconfig["StaticAuxiliaryFileGroup"]:
+            if "L3T_L4T_STATIC" not in runconfig["StaticAncillaryFileGroup"]:
                 raise MissingRunConfigValue(
-                    f"missing StaticAuxiliaryFileGroup/L3T_L4T_STATIC in L3T_L4T_JET run-config: {filename}")
+                    f"missing StaticAncillaryFileGroup/L3T_L4T_STATIC in L3T_L4T_JET run-config: {filename}")
 
-            static_directory = abspath(runconfig["StaticAuxiliaryFileGroup"]["L3T_L4T_STATIC"])
+            static_directory = abspath(runconfig["StaticAncillaryFileGroup"]["L3T_L4T_STATIC"])
             logger.info(f"static directory: {cl.dir(static_directory)}")
 
             if "ProductPathGroup" not in runconfig:

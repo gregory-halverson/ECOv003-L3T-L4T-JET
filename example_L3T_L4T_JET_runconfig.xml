@@ -22,7 +22,7 @@
         <scalar name="L2T_LSTE">ECOv002_L2T_LSTE_21485_013_11SPS_20220420T211350_0601_01</scalar>
         <scalar name="L2T_STARS">ECOv002_L2T_STARS_21485_013_11SPS_20220420_0700_01</scalar>
     </group>
-    <group name="StaticAuxiliaryFileGroup">
+    <group name="StaticAncillaryFileGroup">
         <scalar name="L3T_L4T_STATIC">example_output/static_directory</scalar>
         <scalar name="L3T_L4T_SRTM">example_output/SRTM_directory</scalar>
         <scalar name="L3T_L4T_JET_SOURCES">example_output/sources_directory</scalar>
