@@ -512,7 +512,8 @@ def L3T_L4T_JET(
             vapor_gccm=vapor_gccm,
             ozone_cm=ozone_cm,
             KG_climate=KG_climate,
-            SZA=SZA
+            SZA=SZA,
+            GEDI_download_directory=GEDI_directory
         )
 
         Rn_BESS = BESS_results["Rn"]
