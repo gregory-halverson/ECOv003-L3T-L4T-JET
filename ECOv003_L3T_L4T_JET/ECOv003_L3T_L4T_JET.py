@@ -359,7 +359,8 @@ def L3T_L4T_JET(
             ozone_cm=ozone_cm,
             elevation_km=elevation_km,
             SZA=SZA,
-            KG_climate=KG_climate
+            KG_climate=KG_climate,
+            GEOS5FP_connection=GEOS5FP_connection,
         )
 
         Ra = FLiES_results["Ra"]
