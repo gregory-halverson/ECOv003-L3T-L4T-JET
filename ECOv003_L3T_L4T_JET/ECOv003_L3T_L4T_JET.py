@@ -499,6 +499,7 @@ def L3T_L4T_JET(
             hour_of_day=hour_of_day,
             day_of_year=day_of_year,
             GEOS5FP_connection=GEOS5FP_connection,
+            #FIXME need to insert MODISCI parameter for clumping index download location
             Ta_C=Ta_C,
             RH=RH,
             Rg=SWin_FLiES_ANN,
