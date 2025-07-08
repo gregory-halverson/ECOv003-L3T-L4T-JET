@@ -611,6 +611,9 @@ def L3T_L4T_JET(
             Ta_C=Ta_C,
             RH=RH,
             soil_moisture=SM,
+            field_capacity_directory=soil_grids_directory,
+            wilting_point_directory=soil_grids_directory,
+            canopy_height_directory=GEDI_directory,
             # FIXME pass download directories
         )
 
