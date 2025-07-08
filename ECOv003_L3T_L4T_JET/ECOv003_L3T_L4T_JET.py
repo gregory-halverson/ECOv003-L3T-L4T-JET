@@ -611,12 +611,14 @@ def L3T_L4T_JET(
             Ta_C=Ta_C,
             RH=RH,
             soil_moisture=SM,
+            field_capacity_directory=soil_grids_directory,
+            wilting_point_directory=soil_grids_directory,
+            canopy_height_directory=GEDI_directory
         )
 
         LE_PTJPLSM = rt.clip(PTJPLSM_results["LE"], 0, None)
         G_PTJPLSM = PTJPLSM_results["G"]
 
-        ## FIXME need to revise evaporative fraction to take soil heat flux into account
         EF_PTJPLSM = rt.where((LE_PTJPLSM == 0) | ((Rn - G_PTJPLSM) == 0), 0, LE_PTJPLSM / (Rn - G_PTJPLSM))
 
         if np.all(np.isnan(LE_PTJPLSM)):
