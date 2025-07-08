@@ -526,7 +526,7 @@ def L3T_L4T_JET(
         
         LE_BESS = BESS_results["LE"]
 
-        ## FIXME need to revise evaporative fraction to take soil heat flux into account
+        ## an need to revise evaporative fraction to take soil heat flux into account
         EF_BESS = rt.where((LE_BESS == 0) | ((Rn_BESS - G_BESS) == 0), 0, LE_BESS / (Rn_BESS - G_BESS))
         
         Rn_daily_BESS = daily_Rn_integration_verma(
