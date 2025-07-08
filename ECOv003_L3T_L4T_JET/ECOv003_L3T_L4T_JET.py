@@ -611,6 +611,7 @@ def L3T_L4T_JET(
             Ta_C=Ta_C,
             RH=RH,
             soil_moisture=SM,
+            # FIXME pass download directories
         )
 
         LE_PTJPLSM = rt.clip(PTJPLSM_results["LE"], 0, None)
