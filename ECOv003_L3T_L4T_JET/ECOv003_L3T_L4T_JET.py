@@ -617,7 +617,6 @@ def L3T_L4T_JET(
         LE_PTJPLSM = rt.clip(PTJPLSM_results["LE"], 0, None)
         G_PTJPLSM = PTJPLSM_results["G"]
 
-        ## FIXME need to revise evaporative fraction to take soil heat flux into account
         EF_PTJPLSM = rt.where((LE_PTJPLSM == 0) | ((Rn - G_PTJPLSM) == 0), 0, LE_PTJPLSM / (Rn - G_PTJPLSM))
 
         if np.all(np.isnan(LE_PTJPLSM)):
