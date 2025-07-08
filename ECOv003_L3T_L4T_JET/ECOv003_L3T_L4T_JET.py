@@ -613,8 +613,7 @@ def L3T_L4T_JET(
             soil_moisture=SM,
             field_capacity_directory=soil_grids_directory,
             wilting_point_directory=soil_grids_directory,
-            canopy_height_directory=GEDI_directory,
-            # FIXME pass download directories
+            canopy_height_directory=GEDI_directory
         )
 
         LE_PTJPLSM = rt.clip(PTJPLSM_results["LE"], 0, None)
