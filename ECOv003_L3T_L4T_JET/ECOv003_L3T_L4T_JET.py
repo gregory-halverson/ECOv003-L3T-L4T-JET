@@ -35,6 +35,7 @@ from MCD12C1_2019_v006 import load_MCD12C1_IGBP  # Custom module for loading MOD
 from FLiESLUT import process_FLiES_LUT_raster  # Custom module for processing FLiES Look-Up Table (LUT) rasters.
 from FLiESANN import FLiESANN  # Re-importing FLiESANN, potentially the main class.
 
+from MODISCI import MODISCI
 from BESS_JPL import BESS_JPL  # Custom module for the BESS-JPL (Breathing Earth System Simulator - Jet Propulsion Laboratory) model.
 from PMJPL import PMJPL  # Custom module for the PMJPL (Penman-Monteith Jet Propulsion Laboratory) model.
 from STIC_JPL import STIC_JPL  # Custom module for the STIC-JPL (Surface Temperature Initiated Closure - Jet Propulsion Laboratory) model.
@@ -311,6 +312,8 @@ def L3T_L4T_JET(
             download_directory=GEOS5FP_directory
         )
 
+        MODISCI_connection = MODISCI(directory=MODISCI_directory)
+
         SZA = calculate_SZA_from_DOY_and_hour(
             lat=geometry.lat,
             lon=geometry.lon,
@@ -499,6 +502,7 @@ def L3T_L4T_JET(
             hour_of_day=hour_of_day,
             day_of_year=day_of_year,
             GEOS5FP_connection=GEOS5FP_connection,
+            MODISCI_connection=MODISCI_connection,
             Ta_C=Ta_C,
             RH=RH,
             Rg=SWin_FLiES_ANN,
@@ -522,7 +526,7 @@ def L3T_L4T_JET(
         
         LE_BESS = BESS_results["LE"]
 
-        ## FIXME need to revise evaporative fraction to take soil heat flux into account
+        ## an need to revise evaporative fraction to take soil heat flux into account
         EF_BESS = rt.where((LE_BESS == 0) | ((Rn_BESS - G_BESS) == 0), 0, LE_BESS / (Rn_BESS - G_BESS))
         
         Rn_daily_BESS = daily_Rn_integration_verma(
