@@ -40,7 +40,7 @@ from BESS_JPL import BESS_JPL  # Custom module for the BESS-JPL (Breathing Earth
 from PMJPL import PMJPL  # Custom module for the PMJPL (Penman-Monteith Jet Propulsion Laboratory) model.
 from STIC_JPL import STIC_JPL  # Custom module for the STIC-JPL (Surface Temperature Initiated Closure - Jet Propulsion Laboratory) model.
 from PTJPLSM import PTJPLSM  # Custom module for the PTJPLSM (Priestley-Taylor Jet Propulsion Laboratory - Soil Moisture) model.
-from verma_net_radiation import process_verma_net_radiation, daily_Rn_integration_verma  # Custom modules for net radiation calculation using Verma's model and daily integration.
+from verma_net_radiation import verma_net_radiation, daily_Rn_integration_verma  # Custom modules for net radiation calculation using Verma's model and daily integration.
 from sun_angles import SHA_deg_from_DOY_lat, sunrise_from_SHA, daylight_from_SHA  # Additional solar angle calculations.
 
 from ECOv003_granules import write_L3T_JET  # Functions for writing ECOSTRESS Level 3/4 products.
@@ -557,7 +557,7 @@ def L3T_L4T_JET(
         AuxiliaryNWP = ",".join(NWP_filenames)
         metadata["ProductMetadata"]["AuxiliaryNWP"] = AuxiliaryNWP
 
-        verma_results = process_verma_net_radiation(
+        verma_results = verma_net_radiation(
             SWin=SWin,
             albedo=albedo,
             ST_C=ST_C,
