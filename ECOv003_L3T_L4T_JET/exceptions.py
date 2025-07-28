@@ -2,6 +2,4 @@
 class LPDAACServerUnreachable(Exception):
     pass
 
-# Custom exception for when the output is blank (e.g., all NaN values).
-class BlankOutputError(Exception):
-    pass
+from check_distribution import BlankOutputError
