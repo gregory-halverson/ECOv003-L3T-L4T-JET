@@ -532,7 +532,7 @@ def L3T_L4T_JET(
         Rn_daily_BESS = daily_Rn_integration_verma(
             Rn=Rn_BESS,
             hour_of_day=hour_of_day,
-            doy=day_of_year,
+            DOY=day_of_year,
             lat=geometry.lat,
         )
 
