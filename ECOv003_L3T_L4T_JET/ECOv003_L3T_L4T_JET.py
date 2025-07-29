@@ -812,7 +812,7 @@ def L3T_L4T_JET(
 
     except (FailedGEOS5FPDownload, ConnectionError, LPDAACServerUnreachable) as exception:
         logger.exception(exception)
-        exit_code = Auxiliary_SERVER_UNREACHABLE
+        exit_code = AUXILIARY_SERVER_UNREACHABLE
 
     except ECOSTRESSExitCodeException as exception:
         logger.exception(exception)
