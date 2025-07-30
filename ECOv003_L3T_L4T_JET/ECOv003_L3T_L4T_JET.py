@@ -67,11 +67,7 @@ from .sharpen_soil_moisture_data import sharpen_soil_moisture_data  # Module for
 
 from .exceptions import *
 
-# Read the version from a version.txt file located in the same directory as this script.
-with open(join(abspath(dirname(__file__)), "version.txt")) as f:
-    version = f.read()
-
-__version__ = version  # Set the package version.
+from .version import __version__
 
 logger = logging.getLogger(__name__)  # Get a logger instance for this module.
 
