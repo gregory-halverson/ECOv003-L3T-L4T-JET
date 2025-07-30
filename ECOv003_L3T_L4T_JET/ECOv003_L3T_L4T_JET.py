@@ -670,7 +670,8 @@ def L3T_L4T_JET(
             Ta_C=Ta_C,
             RH=RH,
             elevation_km=elevation_km,
-            Rn=Rn
+            Rn=Rn,
+            GEOS5FP_connection=GEOS5FP_connection,
         )
 
         LE_PMJPL = PMJPL_results["LE"]
