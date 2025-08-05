@@ -60,8 +60,7 @@ ECOv002_L3T_L4T_JET = ["*.txt"]
 "Homepage" = "https://github.com/ECOSTRESS-Collection-2/ECOv003-L3T-L4T-JET"
 
 [tool.setuptools.packages.find]
-include = ["ECOv003_L3T_L4T_JET"]
-exclude = []
+exclude = ["notebooks*", "examples*", "debugging*", "performance*"]
 
 [project.scripts]
 ECOv003-L3T-L4T-JET = "ECOv003_L3T_L4T_JET.ECOv003_L3T_L4T_JET:main"
