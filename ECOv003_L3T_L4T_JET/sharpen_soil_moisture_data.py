@@ -60,11 +60,15 @@ def sharpen_soil_moisture_data(
     """
     # Resample surface temperature, NDVI, and albedo to coarse geometry for training.
     ST_C_coarse = ST_C.to_geometry(coarse_geometry, resampling=upsampling)
+    check_distribution(ST_C_coarse, "ST_C_coarse", date_UTC, tile)
     NDVI_coarse = NDVI.to_geometry(coarse_geometry, resampling=upsampling)
+    check_distribution(NDVI_coarse, "NDVI_coarse", date_UTC, tile)
     albedo_coarse = albedo.to_geometry(coarse_geometry, resampling=upsampling)
+    check_distribution(albedo_coarse, "albedo_coarse", date_UTC, tile)
 
     # Retrieve coarse-resolution soil moisture from GEOS-5 FP.
     SM_coarse = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=coarse_geometry, resampling=downsampling)
+    check_distribution(SM_coarse, "SM_coarse", date_UTC, tile)
 
     # Create a Pandas DataFrame of coarse samples for regression.
     coarse_samples = pd.DataFrame({
@@ -73,6 +77,9 @@ def sharpen_soil_moisture_data(
         "NDVI": np.array(NDVI_coarse).ravel(),
         "albedo": np.array(albedo_coarse).ravel()
     }).dropna() # Remove rows with NaN values.
+
+    if len(coarse_samples) == 0:
+        raise ValueError(f"unable to retrieve coarse samples for downscaling orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
     # Train a linear regression model for soil moisture.
     SM_model = sklearn.linear_model.LinearRegression()
