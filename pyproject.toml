@@ -21,19 +21,19 @@ dependencies = [
     "ECOv002-granules>=1.1.1,<1.2.0",
     "ECOv003-exit-codes>=1.1.0,<1.2.0",
     "ECOv003-granules>=1.5.0,<1.6.0",
-    "FLiESANN>=1.5.0,<1.6.0",
+    "FLiESANN>=1.6.0,<1.7.0",
     "FLiESLUT>=1.0.3,<1.1.0",
-    "GEOS5FP>=1.2.2,<1.3.0",
+    "GEOS5FP>=1.2.3,<1.3.0",
     "koppengeiger>=1.0.5,<1.1.0",
     "MCD12C1-2019-v006>=1.0.1,<1.1.0",
     "NASADEM>=1.3.0,<1.4.0",
     "numpy",
     "pandas",
     "PM-JPL>=1.4.1,<1.5.0",
-    "PTJPLSM>=1.5.3,<1.6.0",
+    "PTJPLSM>=1.7.0,<1.8.0",
     "python-dateutil",
     "pytictoc",
-    "rasters>=1.8.0,<1.9.0",
+    "rasters>=1.9.0,<1.10.0",
     "scikit-learn",
     "STIC-JPL>=1.2.2,<1.3.0",
     "sun-angles>=1.2.0,<1.3.0",
@@ -60,8 +60,7 @@ ECOv002_L3T_L4T_JET = ["*.txt"]
 "Homepage" = "https://github.com/ECOSTRESS-Collection-2/ECOv003-L3T-L4T-JET"
 
 [tool.setuptools.packages.find]
-include = ["ECOv003_L3T_L4T_JET"]
-exclude = []
+exclude = ["notebooks*", "examples*", "debugging*", "performance*"]
 
 [project.scripts]
 ECOv003-L3T-L4T-JET = "ECOv003_L3T_L4T_JET.ECOv003_L3T_L4T_JET:main"

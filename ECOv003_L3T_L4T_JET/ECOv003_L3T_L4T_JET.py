@@ -288,7 +288,10 @@ def L3T_L4T_JET(
         hour_of_day = solar_hour_of_day_for_area(time_UTC=time_UTC, geometry=geometry)
         day_of_year = solar_day_of_year_for_area(time_UTC=time_UTC, geometry=geometry)
 
+        logger.info("reading surface temperature from L2T LSTE product")
         ST_K = L2T_LSTE_granule.ST_K
+        ST_C = ST_K - 273.15
+        check_distribution(ST_C, "ST_C", date_UTC=date_UTC, target=tile)
 
         logger.info(f"reading elevation from L2T LSTE: {L2T_LSTE_granule.product_filename}")
         elevation_km = L2T_LSTE_granule.elevation_km
@@ -296,15 +299,24 @@ def L3T_L4T_JET(
 
         emissivity = L2T_LSTE_granule.emissivity
         water_mask = L2T_LSTE_granule.water
+
+        logger.info("reading cloud mask from L2T LSTE product")
         cloud_mask = L2T_LSTE_granule.cloud
+        check_distribution(cloud_mask, "cloud_mask", date_UTC=date_UTC, target=tile)
+
+        logger.info("reading NDVI from L2T STARS product")
         NDVI = L2T_STARS_granule.NDVI
+        check_distribution(NDVI, "NDVI", date_UTC=date_UTC, target=tile)
+
+        logger.info("reading albedo from L2T STARS product")
         albedo = L2T_STARS_granule.albedo
+        check_distribution(albedo, "albedo", date_UTC=date_UTC, target=tile)
 
         percent_cloud = 100 * np.count_nonzero(cloud_mask) / cloud_mask.size
         metadata["ProductMetadata"]["QAPercentCloudCover"] = percent_cloud
 
         GEOS5FP_connection = GEOS5FP(
-            working_directory=working_directory,
+            # working_directory=working_directory,
             download_directory=GEOS5FP_directory
         )
 
@@ -435,25 +447,30 @@ def L3T_L4T_JET(
         if np.all(np.isnan(SWin)) or np.all(SWin == 0):
             raise BlankOutput(f"blank solar radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
-        ST_C = ST_K - 273.15
-
         # Sharpen meteorological variables if enabled.
         if sharpen_meteorology:
-            Ta_C, RH, Ta_C_smooth = sharpen_meteorology_data(
-                ST_C=ST_C,
-                NDVI=NDVI,
-                albedo=albedo,
-                geometry=geometry,
-                coarse_geometry=coarse_geometry,
-                time_UTC=time_UTC,
-                date_UTC=date_UTC,
-                tile=tile,
-                orbit=orbit,
-                scene=scene,
-                upsampling=upsampling,
-                downsampling=downsampling,
-                GEOS5FP_connection=GEOS5FP_connection
-            )
+            try:
+                Ta_C, RH, Ta_C_smooth = sharpen_meteorology_data(
+                    ST_C=ST_C,
+                    NDVI=NDVI,
+                    albedo=albedo,
+                    geometry=geometry,
+                    coarse_geometry=coarse_geometry,
+                    time_UTC=time_UTC,
+                    date_UTC=date_UTC,
+                    tile=tile,
+                    orbit=orbit,
+                    scene=scene,
+                    upsampling=upsampling,
+                    downsampling=downsampling,
+                    GEOS5FP_connection=GEOS5FP_connection
+                )
+            except Exception as e:
+                logger.error(e)
+                logger.warning("unable to sharpen meteorology")
+                Ta_C = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
+                Ta_C_smooth = Ta_C
+                RH = GEOS5FP_connection.RH(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
         else:
             Ta_C = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
             Ta_C_smooth = Ta_C
@@ -461,22 +478,27 @@ def L3T_L4T_JET(
 
         # Sharpen soil moisture if enabled.
         if sharpen_soil_moisture:
-            SM = sharpen_soil_moisture_data(
-                ST_C=ST_C,
-                NDVI=NDVI,
-                albedo=albedo,
-                water_mask=water_mask,
-                geometry=geometry,
-                coarse_geometry=coarse_geometry,
-                time_UTC=time_UTC,
-                date_UTC=date_UTC,
-                tile=tile,
-                orbit=orbit,
-                scene=scene,
-                upsampling=upsampling,
-                downsampling=downsampling,
-                GEOS5FP_connection=GEOS5FP_connection
-            )
+            try:
+                SM = sharpen_soil_moisture_data(
+                    ST_C=ST_C,
+                    NDVI=NDVI,
+                    albedo=albedo,
+                    water_mask=water_mask,
+                    geometry=geometry,
+                    coarse_geometry=coarse_geometry,
+                    time_UTC=time_UTC,
+                    date_UTC=date_UTC,
+                    tile=tile,
+                    orbit=orbit,
+                    scene=scene,
+                    upsampling=upsampling,
+                    downsampling=downsampling,
+                    GEOS5FP_connection=GEOS5FP_connection
+                )
+            except Exception as e:
+                logger.error(e)
+                logger.warning("unable to sharpen soil moisture")
+                SM = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
         else:
             SM = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
 
