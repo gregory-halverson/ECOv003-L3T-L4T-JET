@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ECOv003-L3T-L4T-JET"
-version = "1.7.1"
+version = "1.7.2"
 description = "ECOSTRESS Collection 3 JPL Evapotranspiration (JET) Product Generating Executable (PGE)"
 readme = "README.md"
 authors = [
@@ -15,7 +15,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "BESS-JPL~=1.16.0",
+    "BESS-JPL~=1.17.0",
     "check-distribution~=1.0.1",
     "colored-logging~=1.0.1",
     "ECOv002-granules~=1.1.1",
