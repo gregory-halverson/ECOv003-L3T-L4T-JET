@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ECOv003-L3T-L4T-JET"
-version = "1.7.2"
+version = "1.7.3"
 description = "ECOSTRESS Collection 3 JPL Evapotranspiration (JET) Product Generating Executable (PGE)"
 readme = "README.md"
 authors = [
@@ -29,8 +29,8 @@ dependencies = [
     "NASADEM~=1.3.0",
     "numpy",
     "pandas",
-    "PM-JPL~=1.4.1",
-    "PTJPLSM~=1.7.0",
+    "PM-JPL~=1.5.0",
+    "PTJPLSM~=1.8.0",
     "python-dateutil",
     "pytictoc",
     "rasters~=1.9.0",
