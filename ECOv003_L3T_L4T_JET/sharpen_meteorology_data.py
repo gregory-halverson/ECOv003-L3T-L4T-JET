@@ -124,6 +124,13 @@ def sharpen_meteorology_data(
     Ta_C = rt.where(np.isnan(Ta_C), Ta_C_smooth, Ta_C)  # Fill NaNs with smooth data.
     check_distribution(Ta_C, "Ta_C", date_UTC, tile)
 
+    # Mask out values that are not covered by the original ECOSTRESS pass
+    LST_mask = np.isnan(ST_C)
+    Ta_C[LST_mask] = np.nan
+    check_distribution(Ta_C, "Ta_C", date_UTC, tile)
+    Ta_C_smooth[LST_mask] = np.nan
+    check_distribution(Ta_C_smooth, "Ta_C_smooth", date_UTC, tile)
+
     # Calculate and log errors for quality assessment.
     logger.info(
         f"up-sampling final air temperature from {int(Ta_C.cell_size)}m to {int(coarse_geometry.cell_size)}m with {upsampling} method")
@@ -169,6 +176,12 @@ def sharpen_meteorology_data(
     logger.info("gap-filling dew-point temperature")
     Td_C = rt.where(np.isnan(Td_C), Td_C_smooth, Td_C)
     check_distribution(Td_C, "Td_C", date_UTC, tile)
+
+    # Mask out values that are not covered by the original ECOSTRESS pass
+    Td_C[LST_mask] = np.nan
+    check_distribution(Td_C, "Td_C", date_UTC, tile)
+
+    # Calculate and log errors for quality assessment.
     logger.info(
         f"up-sampling final dew-point temperature from {int(Td_C.cell_size)}m to {int(coarse_geometry.cell_size)}m with {upsampling} method")
     Td_C_final_coarse = Td_C.to_geometry(coarse_geometry, resampling=upsampling)
