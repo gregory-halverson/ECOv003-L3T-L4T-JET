@@ -152,34 +152,6 @@ def L3T_L4T_JET(
         L3T_ETAUX_browse_filename = runconfig.L3T_ETAUX_browse_filename
         logger.info(f"L3T ETAUX preview: {cl.file(L3T_ETAUX_browse_filename)}")
 
-        L3T_BESS_directory = runconfig.L3T_BESS_directory
-        logger.info(f"L3T BESS granule directory: {cl.dir(L3T_BESS_directory)}")
-        L3T_BESS_zip_filename = runconfig.L3T_BESS_zip_filename
-        logger.info(f"L3T BESS zip file: {cl.file(L3T_BESS_zip_filename)}")
-        L3T_BESS_browse_filename = runconfig.L3T_BESS_browse_filename
-        logger.info(f"L3T BESS preview: {cl.file(L3T_BESS_browse_filename)}")
-
-        L3T_MET_directory = runconfig.L3T_MET_directory
-        logger.info(f"L3T MET granule directory: {cl.dir(L3T_MET_directory)}")
-        L3T_MET_zip_filename = runconfig.L3T_MET_zip_filename
-        logger.info(f"L3T MET zip file: {cl.file(L3T_MET_zip_filename)}")
-        L3T_MET_browse_filename = runconfig.L3T_MET_browse_filename
-        logger.info(f"L3T MET preview: {cl.file(L3T_MET_browse_filename)}")
-
-        L3T_SEB_directory = runconfig.L3T_SEB_directory
-        logger.info(f"L3T SEB granule directory: {cl.dir(L3T_SEB_directory)}")
-        L3T_SEB_zip_filename = runconfig.L3T_SEB_zip_filename
-        logger.info(f"L3T SEB zip file: {cl.file(L3T_SEB_zip_filename)}")
-        L3T_SEB_browse_filename = runconfig.L3T_SEB_browse_filename
-        logger.info(f"L3T SEB preview: {cl.file(L3T_SEB_browse_filename)}")
-
-        L3T_SM_directory = runconfig.L3T_SM_directory
-        logger.info(f"L3T SM granule directory: {cl.dir(L3T_SM_directory)}")
-        L3T_SM_zip_filename = runconfig.L3T_SM_zip_filename
-        logger.info(f"L3T SM zip file: {cl.file(L3T_SM_zip_filename)}")
-        L3T_SM_browse_filename = runconfig.L3T_SM_browse_filename
-        logger.info(f"L3T SM preview: {cl.file(L3T_SM_browse_filename)}")
-
         L4T_ESI_granule_ID = runconfig.L4T_ESI_granule_ID
         logger.info(f"L4T ESI PT-JPL granule ID: {cl.val(L4T_ESI_granule_ID)}")
         L4T_ESI_directory = runconfig.L4T_ESI_directory
@@ -201,12 +173,8 @@ def L3T_L4T_JET(
         required_files = [
             L3T_JET_zip_filename,
             L3T_JET_browse_filename,
-            L3T_MET_zip_filename,
-            L3T_MET_browse_filename,
-            L3T_SEB_zip_filename,
-            L3T_SEB_browse_filename,
-            L3T_SM_zip_filename,
-            L3T_SM_browse_filename,
+            L3T_ETAUX_zip_filename,
+            L3T_ETAUX_browse_filename,
             L4T_ESI_zip_filename,
             L4T_ESI_browse_filename,
             L4T_WUE_zip_filename,

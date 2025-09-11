@@ -4,6 +4,7 @@ import logging
 import colored_logging as cl
 
 from ECOv003_granules import L2TLSTE
+from ECOv003_granules import L3TJET, L3TETAUX, L4TESI, L4TWUE
 
 from ECOv003_exit_codes import *
 
@@ -108,50 +109,53 @@ class L3TL4TJETConfig(ECOSTRESSRunConfig):
 
             L2T_LSTE_granule = L2TLSTE(L2T_LSTE_filename)
             time_UTC = L2T_LSTE_granule.time_UTC
-            timestamp = f"{time_UTC:%Y%m%dT%H%M%S}"
-            granule_ID = f"ECOv{collection}_L3T_JET_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
+            granule_ID = L3TJET.generate_granule_name(
+                orbit,
+                scene,
+                tile,
+                time_UTC,
+                process_count=product_counter,
+            )
 
             GEDI_directory = abspath(expanduser(join(static_directory, DEFAULT_GEDI_DIRECTORY)))
             MODISCI_directory = abspath(expanduser(join(static_directory, DEFAULT_MODISCI_DIRECTORY)))
             MCD12_directory = abspath(expanduser(join(static_directory, DEFAULT_MCD12C1_DIRECTORY)))
             soil_grids_directory = abspath(expanduser(join(static_directory, DEFAULT_SOIL_GRIDS_DIRECTORY)))
 
-            L3T_JET_granule_ID = f"ECOv{collection}_L3T_JET_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
+            L3T_JET_granule_ID = granule_ID
             L3T_JET_directory = join(output_directory, L3T_JET_granule_ID)
             L3T_JET_zip_filename = f"{L3T_JET_directory}.zip"
             L3T_JET_browse_filename = f"{L3T_JET_directory}.png"
 
-            L3T_ETAUX_granule_ID = f"ECOv{collection}_L3T_ETAUX_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
+            L3T_ETAUX_granule_ID = L3TETAUX.generate_granule_name(
+                orbit,
+                scene,
+                tile,
+                time_UTC,
+                process_count=product_counter,
+            )
             L3T_ETAUX_directory = join(output_directory, L3T_ETAUX_granule_ID)
             L3T_ETAUX_zip_filename = f"{L3T_ETAUX_directory}.zip"
             L3T_ETAUX_browse_filename = f"{L3T_ETAUX_directory}.png"
 
-            L3T_BESS_granule_ID = f"ECOv{collection}_L3T_BESS_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
-            L3T_BESS_directory = join(output_directory, L3T_BESS_granule_ID)
-            L3T_BESS_zip_filename = f"{L3T_BESS_directory}.zip"
-            L3T_BESS_browse_filename = f"{L3T_BESS_directory}.png"
-
-            L3T_MET_granule_ID = f"ECOv{collection}_L3T_MET_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
-            L3T_MET_directory = join(output_directory, L3T_MET_granule_ID)
-            L3T_MET_zip_filename = f"{L3T_MET_directory}.zip"
-            L3T_MET_browse_filename = f"{L3T_MET_directory}.png"
-
-            L3T_SEB_granule_ID = f"ECOv{collection}_L3T_SEB_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
-            L3T_SEB_directory = join(output_directory, L3T_SEB_granule_ID)
-            L3T_SEB_zip_filename = f"{L3T_SEB_directory}.zip"
-            L3T_SEB_browse_filename = f"{L3T_SEB_directory}.png"
-
-            L3T_SM_granule_ID = f"ECOv{collection}_L3T_SM_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
-            L3T_SM_directory = join(output_directory, L3T_SM_granule_ID)
-            L3T_SM_zip_filename = f"{L3T_SM_directory}.zip"
-            L3T_SM_browse_filename = f"{L3T_SM_directory}.png"
-
-            L4T_ESI_granule_ID = f"ECOv{collection}_L4T_ESI_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
+            L4T_ESI_granule_ID = L4TESI.generate_granule_name(
+                orbit,
+                scene,
+                tile,
+                time_UTC,
+                process_count=product_counter,
+            )
             L4T_ESI_directory = join(output_directory, L4T_ESI_granule_ID)
             L4T_ESI_zip_filename = f"{L4T_ESI_directory}.zip"
             L4T_ESI_browse_filename = f"{L4T_ESI_directory}.png"
 
-            L4T_WUE_granule_ID = f"ECOv{collection}_L4T_WUE_{orbit:05d}_{scene:03d}_{tile}_{timestamp}_{build}_{product_counter:02d}"
+            L4T_WUE_granule_ID = L4TWUE.generate_granule_name(
+                orbit,
+                scene,
+                tile,
+                time_UTC,
+                process_count=product_counter,
+            )
             L4T_WUE_directory = join(output_directory, L4T_WUE_granule_ID)
             L4T_WUE_zip_filename = f"{L4T_WUE_directory}.zip"
             L4T_WUE_browse_filename = f"{L4T_WUE_directory}.png"
@@ -186,26 +190,6 @@ class L3TL4TJETConfig(ECOSTRESSRunConfig):
             self.L3T_ETAUX_directory = L3T_ETAUX_directory
             self.L3T_ETAUX_zip_filename = L3T_ETAUX_zip_filename
             self.L3T_ETAUX_browse_filename = L3T_ETAUX_browse_filename
-
-            self.L3T_BESS_granule_ID = L3T_BESS_granule_ID
-            self.L3T_BESS_directory = L3T_BESS_directory
-            self.L3T_BESS_zip_filename = L3T_BESS_zip_filename
-            self.L3T_BESS_browse_filename = L3T_BESS_browse_filename
-
-            self.L3T_MET_granule_ID = L3T_MET_granule_ID
-            self.L3T_MET_directory = L3T_MET_directory
-            self.L3T_MET_zip_filename = L3T_MET_zip_filename
-            self.L3T_MET_browse_filename = L3T_MET_browse_filename
-
-            self.L3T_SEB_granule_ID = L3T_SEB_granule_ID
-            self.L3T_SEB_directory = L3T_SEB_directory
-            self.L3T_SEB_zip_filename = L3T_SEB_zip_filename
-            self.L3T_SEB_browse_filename = L3T_SEB_browse_filename
-
-            self.L3T_SM_granule_ID = L3T_SM_granule_ID
-            self.L3T_SM_directory = L3T_SM_directory
-            self.L3T_SM_zip_filename = L3T_SM_zip_filename
-            self.L3T_SM_browse_filename = L3T_SM_browse_filename
 
             self.L4T_WUE_granule_ID = L4T_WUE_granule_ID
             self.L4T_WUE_directory = L4T_WUE_directory
