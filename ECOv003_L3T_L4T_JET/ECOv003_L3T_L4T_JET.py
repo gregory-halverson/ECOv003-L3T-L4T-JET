@@ -173,6 +173,8 @@ def L3T_L4T_JET(
         required_files = [
             L3T_JET_zip_filename,
             L3T_JET_browse_filename,
+            L3T_ETAUX_zip_filename,
+            L3T_ETAUX_browse_filename,
             L4T_ESI_zip_filename,
             L4T_ESI_browse_filename,
             L4T_WUE_zip_filename,
