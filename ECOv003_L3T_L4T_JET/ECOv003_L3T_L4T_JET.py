@@ -691,6 +691,18 @@ def L3T_L4T_JET(
         Rn_Wm2 = Rn
         SWin_Wm2 = SWin
 
+        # Adding debugging statements for input rasters before the AquaSEBS call
+        logger.info("checking input distributions for AquaSEBS")
+        check_distribution(ST_C, "ST_C", date_UTC=date_UTC, target=tile)
+        check_distribution(emissivity, "emissivity", date_UTC=date_UTC, target=tile)
+        check_distribution(albedo, "albedo", date_UTC=date_UTC, target=tile)
+        check_distribution(Ta_C, "Ta_C", date_UTC=date_UTC, target=tile)
+        check_distribution(RH, "RH", date_UTC=date_UTC, target=tile)
+        check_distribution(windspeed_mps, "windspeed_mps", date_UTC=date_UTC, target=tile)
+        check_distribution(SWnet, "SWnet", date_UTC=date_UTC, target=tile)
+        check_distribution(Rn_Wm2, "Rn_Wm2", date_UTC=date_UTC, target=tile)
+        check_distribution(SWin_Wm2, "SWin_Wm2", date_UTC=date_UTC, target=tile)
+
         AquaSEBS_results = AquaSEBS(
             WST_C=ST_C,
             emissivity=emissivity,
@@ -707,9 +719,12 @@ def L3T_L4T_JET(
             GEOS5FP_connection=GEOS5FP_connection
         )
 
+        for key, value in AquaSEBS_results.items():
+            check_distribution(value, key)
+
         LE_AquaSEBS = AquaSEBS_results["LE_Wm2"]
         ETinst = rt.where(water_mask, LE_AquaSEBS, ETinst)
-
+        
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
         EF_PMJPL = rt.where((LE_PMJPL == 0) | ((Rn - G_PMJPL) == 0), 0, LE_PMJPL / (Rn - G_PMJPL))
 
@@ -764,7 +779,8 @@ def L3T_L4T_JET(
             time_UTC=time_UTC,
             build=build,
             product_counter=product_counter,
-            LE_PTJPLSM=ET_daily_kg_PTJPLSM,
+            # LE_PTJPLSM=ET_daily_kg_PTJPLSM,
+            LE_PTJPLSM=LE_PTJPLSM, # fixing instantaneous latent heat flux layer
             ET_PTJPLSM=ET_daily_kg_PTJPLSM,
             ET_STICJPL=ET_daily_kg_STIC,
             ET_BESSJPL=ET_daily_kg_BESS,
