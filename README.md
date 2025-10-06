@@ -23,7 +23,6 @@ NASA Jet Propulsion Laboratory 329G
 NASA Jet Propulsion Laboratory 329F
 
 [Claire Villanueva-Weeks](https://github.com/clairesvw) (she/her)<br>
-[claire.s.villanueva-weeks@jpl.nasa.gov](mailto:claire.s.villanueva-weeks@jpl.nasa.gov)<br>
 NASA Jet Propulsion Laboratory 329G
 
 The code for the ECOSTRESS level 3 JET PGE will be developed using open-science practices based on the [ECOSTRESS Collection 2 JET PGE](https://github.com/ECOSTRESS-Collection-2/ECOv002-L3T-L4T-JET) pending New Technology Report (NTR) and open-source license from NASA Jet Propulsion Laboratory.
