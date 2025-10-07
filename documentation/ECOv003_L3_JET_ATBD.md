@@ -1,8 +1,6 @@
-# ECOSTRESS Level-3 Evapotranspiration L3 (JET)
+# ECOv003 L3 JET Algorithm Theoretical Basis Document
 
-![ECOSTRESS Logo](ECOv003_L3_JET_ATBD_V1_20240813/media/image2.jpeg)
-
-**Algorithm Theoretical Basis Document**
+**Jet Propulsion Laboratory**
 
 **Authors:** Simon Hook, Kerry Cawse-Nicholson, Gregory Halverson, Maggie Johnson, Madeleine Pascolini-Campbell, AJ Purdy, Munish Sikka, Claire Villanueva-Weeks
 
