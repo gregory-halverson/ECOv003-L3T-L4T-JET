@@ -1,4 +1,4 @@
-# ECOSTRESS Level 3 Evapotranspiration, Evaporative Stress Index, Water Use Efficiency
+# ECOSTRESS Level 3 and 4 Evapotranspiration, Evaporative Stress Index, Water Use Efficiency
 
 [![CI](https://github.com/ECOSTRESS-Collection-3/ECOv003-L3T-L4T-JET/actions/workflows/ci.yml/badge.svg)](https://github.com/ECOSTRESS-Collection-3/ECOv003-L3T-L4T-JET/actions/workflows/ci.yml)
 
@@ -145,7 +145,7 @@ Two high-level quality flags are provided in all gridded and tiled products as t
 ### 2.3. L2T STARS NDVI and Albedo Product
 The STARS data product is produced with a separate Product Generating Executable (PGE) [ECOv003-L2-STARS](https://github.com/ECOSTRESS-Collection-3/ECOv003-L2-STARS).
 
-### 2.4. L4T ETAUX Ecosystem Auxiliary Inputs Product
+### 2.4. L3T ETAUX Ecosystem Auxiliary Inputs Product
 
 The ECOSTRESS ecosystem processing chain is designed to be independently reproducible. To facilitate open science, the auxiliary data inputs that are produced for evapotranspiration processing are distributed as a data product, such that the end user has the ability to run their own evapotranspiration model using ECOSTRESS data. The data layers of the L4T ETAUX product are described in Table 3.
 
@@ -153,10 +153,10 @@ The ECOSTRESS ecosystem processing chain is designed to be independently reprodu
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | -- |
 | Ta | Near-surface air temperature | float32 | Celsius | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
 | RH | Relative Humidity | float32 | Ratio | NaN | N/A | 0 | 1 | N/A | 12.06 mb |
-| SM | Soil Moisture | float32 | Ratio | NaN | N/A | 0 | 1 | N/A | 12.06 mb |
+| Rg | Global Radiation | float32 | W/m^2 | NaN | N/A | 0 | N/A | N/A | 12.06 mb |
 | Rn | Net Radiation | float32 | Ratio | NaN | N/A | 0 | N/A | N/A | 12.06 mb |
-| cloud | Cloud mask | float32 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
-| water | Water mask | float32 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
 
 *Table 2. Listing of the L4T ETAUX data layers.*
 
@@ -273,7 +273,7 @@ The surface energy balance processing for ECOSTRESS begins with an artificial ne
 
 The Breathing Earth System Simulator (BESS) algorithm, contributed by Dr. Youngryel Ryu, iteratively calculates net radiation (Rn), ET, and Gross Primary Production (GPP) estimates. The BESS Rn is used as the Rn input to the remaining ET models and is recorded in the L4T ETAUX product listed in Table 3.
 
-### 2.7. L3T ET Evapotranspiration Product
+### 2.7. L4T ET Evapotranspiration Product
 
 Following design of the L3T JET product from ECOSTRESS Collection 2, the ECOSTRESS Collection 3 L4T JET product uses an ensemble of evapotranspiration models to produce an evapotranspiration estimate.
 
@@ -295,13 +295,13 @@ The median of total latent heat flux in watts per square meter from the PT-JPL, 
 | BESSJPLdaily | BESS-JPL Daily | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
 | PMJPLdaily | PM-JPL (MOD16) Daily | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
 | ETdaily | Daily Evapotranspiration | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| ETdailyUncertainty | Daily Evapotranspiration Uncertainty | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| ETinstUncertainty | Instantaneous Evapotranspiration Uncertainty | float32 | W/m^2 | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
 | PTJPLSMcanopy | PT-JPL-SM Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| STICcanopy | PT-JPL-SM Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| STICJPLcanopy | STIC-JPL Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
 | PTJPLSMsoil | PT-JPL-SM Soil | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
 | PTJPLSMinterception | PT-JPL-SM Interception | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| cloud | Cloud mask | float32 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
-| water | Water mask | float32 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
 
 *Table 3. Listing of the L4T JET data layers.*
 
@@ -313,8 +313,8 @@ The PT-JPL-SM model generates estimates of both actual and potential instantaneo
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | -- |
 | ESI | Evaporative Stress Index | float32 | Ratio | NaN | N/A | 0 | 1 | N/A | 12.06 mb |
 | PET | Potential Evapotranspiration | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| cloud | Cloud mask | float32 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
-| water | Water mask | float32 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
 
 *Table 4. Listing of the L4T ESI data layers.*
 
@@ -324,8 +324,8 @@ The BESS GPP estimate represents the amount of carbon that plants are taking in.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | -- |
 | WUE | Water Use Efficiency | float32 | $$\text{g C kg}^{-1} \text{H}_2\text{O}$$ | NaN | N/A | 0 | 1 | N/A | 12.06 mb |
 | GPP | Gross Primary Production | float32 | $$\mu\text{mol m}^{-2} \text{s}^{-1}$$ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| cloud | Cloud mask | float32 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
-| water | Water mask | float32 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
 
 *Table 5. Listing of the L4T WUE data layers.*
 
