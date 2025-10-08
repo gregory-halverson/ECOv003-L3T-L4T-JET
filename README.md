@@ -25,13 +25,13 @@ NASA Jet Propulsion Laboratory 329F
 [Claire Villanueva-Weeks](https://github.com/clairesvw) (she/her)<br>
 NASA Jet Propulsion Laboratory 329G
 
-The code for the ECOSTRESS level 3 JET PGE will be developed using open-science practices based on the [ECOSTRESS Collection 2 JET PGE](https://github.com/ECOSTRESS-Collection-2/ECOv002-L3T-L4T-JET) pending New Technology Report (NTR) and open-source license from NASA Jet Propulsion Laboratory.
+The code for the ECOSTRESS level 3 JET PGE has been developed using open-science practices based on the [ECOSTRESS Collection 2 JET PGE](https://github.com/ECOSTRESS-Collection-2/ECOv002-L3T-L4T-JET) with New Technology Report (NTR) and open-source license from NASA Jet Propulsion Laboratory.
 
 The repositories for the evapotranspiration algorithms are located in the [JPL-Evapotranspiration-Algorithms](https://github.com/JPL-Evapotranspiration-Algorithms) organization.
 
 ## 1. Introduction 
 
-This software will produce estimates of:
+This software produces estimates of:
 - evapotranspiration (ET)
 - evaporative stress index (ESI)
 - water use efficiency (WUE)
