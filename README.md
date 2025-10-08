@@ -248,30 +248,30 @@ flowchart TB
         GEOS5FP_COT[GEOS-5 FP COT]
     end
 
-    BESS_Rn[BESS<br>70m<br>Net<br>Radiation]
-    BESS_GPP[BESS<br>70m<br>GPP]
-    BESS_ET[BESS<br>70m<br>ET]
+    BESS_JPL_Rn[BESS-JPL<br>70m<br>Net<br>Radiation]
+    BESS_JPL_GPP[BESS-JPL<br>70m<br>GPP]
+    BESS_JPL_ET[BESS-JPL<br>70m<br>ET]
 
     GEOS5FP_AOT --> FLiES
     GEOS5FP_COT --> FLiES
     albedo --> FLiES
     
-    FLiES --> BESS
-    ST --> BESS
-    NDVI --> BESS
-    albedo --> BESS
-    downscaled_Ta --> BESS
-    downscaled_RH --> BESS
-    downscaled_SM --> BESS
+    FLiES --> BESS_JPL
+    ST --> BESS_JPL
+    NDVI --> BESS_JPL
+    albedo --> BESS_JPL
+    downscaled_Ta --> BESS_JPL
+    downscaled_RH --> BESS_JPL
+    downscaled_SM --> BESS_JPL
 
-    BESS --> BESS_Rn
-    BESS --> BESS_GPP
-    BESS --> BESS_ET
+    BESS_JPL --> BESS_JPL_Rn
+    BESS_JPL --> BESS_JPL_GPP
+    BESS_JPL --> BESS_JPL_ET
 ```
 
 The surface energy balance processing for ECOSTRESS begins with an artificial neural network (ANN) implementation of the Forest Light Environmental Simulator (FLiES) radiative transfer algorithm, following the workflow established by Dr. Hideki Kobayashi and Dr. Youngryel Ryu. GEOS-5 FP provides sub-daily Cloud Optical Thickness (COT) in the `tavg1_2d_rad_Nx` product and Aerosol Optical Thickness (AOT) from `tavg3_2d_aer_Nx`. Together with STARS albedo, these variables are run through the ANN implementation of FLiES to estimate incoming shortwave radiation (Rg), bias-corrected to Rg from the GEOS-5 FP `tavg1_2d_rad_Nx` product.
 
-The Breathing Earth System Simulator (BESS) algorithm, contributed by Dr. Youngryel Ryu, iteratively calculates net radiation (Rn), ET, and Gross Primary Production (GPP) estimates. The BESS Rn is used as the Rn input to the remaining ET models and is recorded in the L3T ETAUX product listed in Table 3.
+The Breathing Earth System Simulator-Jet Propulsion Laboratory (BESS-JPL) algorithm, contributed by Dr. Youngryel Ryu, iteratively calculates net radiation (Rn), ET, and Gross Primary Production (GPP) estimates. The BESS-JPL Rn is used as the Rn input to the remaining ET models and is recorded in the L3T ETAUX product listed in Table 3.
 
 ### 2.7. L3T JET Evapotranspiration Product
 
@@ -279,13 +279,13 @@ Following design of the L3T JET product from ECOSTRESS Collection 2, the ECOSTRE
 
 The PT-JPL-SM model, developed by Dr. Adam Purdy and Dr. Joshua Fisher was designed as a SM-sensitive evapotranspiration product for the Soil Moisture Active-Passive (SMAP) mission, and then reimplemented as an ET model in the ECOSTRESS and SBG processing chain, using the downscaled soil moisture from the L3T ETAUX product. Similar to the PT-JPL model used in ECOSTRESS Collection 1, The PT-JPL-SM model estimates instantaneous canopy transpiration, leaf surface evaporation, and soil moisture evaporation using the Priestley-Taylor formula with a set of constraints. These three partitions are combined into total latent heat flux in watts per square meter for the ensemble estimate. 
 
-The Surface Temperature Initiated Closure (STIC) model, contributed by Dr. Kaniska Mallick, was designed as a ST-sensitive ET model, adopted by ECOSTRESS and SBG for improved estimates of ET reflecting mid-day heat stress. The STIC model estimates total latent heat flux directly. This instantaneous estimate of latent heat flux is included in the ensemble estimate.
+The Surface Temperature Initiated Closure-Jet Propulsion Laboratory (STIC-JPL) model, contributed by Dr. Kaniska Mallick, was designed as a ST-sensitive ET model, adopted by ECOSTRESS and SBG for improved estimates of ET reflecting mid-day heat stress. The STIC-JPL model estimates total latent heat flux directly. This instantaneous estimate of latent heat flux is included in the ensemble estimate.
 
-The MOD16 algorithm was designed as the ET product for the Moderate Resolution Imaging Spectroradiometer (MODIS) and then continued as a Visible Infrared Imaging Radiometer Suite (VIIRS) product. MOD16 uses a similar approach to PT-JPL and PT-JPL-SM to independently estimate vegetation and soil components of instantaneous ET, but using the Penman-Monteith formula instead of the Priestley-Taylor. The MOD16 latent heat flux partitions are summed to total latent heat flux for the ensemble estimate. A derivation of the MOD16 algorithm is included in the JET product as PM-JPL.
+The Penman-Monteith-Jet Propulsion Laboratory (PM-JPL) algorithm is a derivation of the MOD16 algorithm that was originally designed as the ET product for the Moderate Resolution Imaging Spectroradiometer (MODIS) and then continued as a Visible Infrared Imaging Radiometer Suite (VIIRS) product. PM-JPL uses a similar approach to PT-JPL and PT-JPL-SM to independently estimate vegetation and soil components of instantaneous ET, but using the Penman-Monteith formula instead of the Priestley-Taylor. The PM-JPL latent heat flux partitions are summed to total latent heat flux for the ensemble estimate.
 
-The BESS model is a coupled surface energy balance and photosynthesis model. The latent heat flux component of BESS is also included in the ensemble estimate.
+The Breathing Earth System Simulator-Jet Propulsion Laboratory (BESS-JPL) model is a coupled surface energy balance and photosynthesis model. The latent heat flux component of BESS-JPL is also included in the ensemble estimate.
 
-The median of total latent heat flux in watts per square meter from the PT-JPL, STIC, MOD16, and BESS models is upscaled to a daily ET estimate in millimeters per day and recorded in the L3T JET product as `ETdaily`. The standard deviation between these multiple estimates of ET is considered the uncertainty for the SBG evapotranspiration product, as `ETinstUncertainty`. The layers for the L3T JET products are listed in Table 6 Note that the ETdaily product represents the integrated ET between sunrise and sunset.
+The median of total latent heat flux in watts per square meter from the PT-JPL-SM, STIC-JPL, PM-JPL, and BESS-JPL models is upscaled to a daily ET estimate in millimeters per day and recorded in the L3T JET product as `ETdaily`. The standard deviation between these multiple estimates of ET is considered the uncertainty for the SBG evapotranspiration product, as `ETinstUncertainty`. The layers for the L3T JET products are listed in Table 6 Note that the ETdaily product represents the integrated ET between sunrise and sunset.
 
 | **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** |**Size** |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | -- |
@@ -318,7 +318,7 @@ The PT-JPL-SM model generates estimates of both actual and potential instantaneo
 
 *Table 4. Listing of the L4T ESI data layers.*
 
-The BESS GPP estimate represents the amount of carbon that plants are taking in. The transpiration component of PT-JPL-SM represents the amount of water that plants are releasing. The BESS GPP is divided by the PT-JPL-SM transpiration to estimate water use efficiency (WUE), the ratio of grams of carbon that plants take in to kilograms of water that plants release. These WUE and GPP estimates are distributed in the L4T WUE product as listed in Table 6.
+The BESS-JPL GPP estimate represents the amount of carbon that plants are taking in. The transpiration component of PT-JPL-SM represents the amount of water that plants are releasing. The BESS-JPL GPP is divided by the PT-JPL-SM transpiration to estimate water use efficiency (WUE), the ratio of grams of carbon that plants take in to kilograms of water that plants release. These WUE and GPP estimates are distributed in the L4T WUE product as listed in Table 6.
 
 | **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** |**Size** |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | -- |
@@ -331,7 +331,7 @@ The BESS GPP estimate represents the amount of carbon that plants are taking in.
 
 ## 3. Theory
 
-The JPL evapotranspiration (JET) data ensemble provides a robust estimation of ET from multiple ET models. The ET ensemble incorporates ET data from four algorithms: Priestley Taylor-Jet Propulsion Laboratory model with soil moisture (PT-JPL-SM), the Penman Monteith MODIS Global Evapotranspiration Model (MOD16), Soil Temperature Initiated Closure (STIC) model, and the Breathing Earth System Simulator (BESS) model. We present descriptions of these models here, inherited from the ECOSTRESS mission, as candidates for ECOSTRESS L3 evapotranspiration processing.
+The JPL evapotranspiration (JET) data ensemble provides a robust estimation of ET from multiple ET models. The ET ensemble incorporates ET data from four algorithms: Priestley Taylor-Jet Propulsion Laboratory model with soil moisture (PT-JPL-SM), the Penman Monteith-Jet Propulsion Laboratory model (PM-JPL), Surface Temperature Initiated Closure-Jet Propulsion Laboratory model (STIC-JPL), and the Breathing Earth System Simulator-Jet Propulsion Laboratory model (BESS-JPL). We present descriptions of these models here, inherited from the ECOSTRESS mission, as candidates for ECOSTRESS L3 evapotranspiration processing.
 
 ## 4. Cal/Val
 
