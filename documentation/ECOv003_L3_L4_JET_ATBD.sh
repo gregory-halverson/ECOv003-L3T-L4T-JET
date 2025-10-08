@@ -5,8 +5,8 @@
 
 echo "Rendering ECOv003 L3 JET ATBD to PDF..."
 
-pandoc "ECOv003_L3_JET_ATBD.md" \
-    -o "ECOv003_L3_JET_ATBD.pdf" \
+pandoc "ECOv003_L3_L4_JET_ATBD.md" \
+    -o "ECOv003_L3_L4_JET_ATBD.pdf" \
     --pdf-engine=xelatex \
     -V "mainfont:Arial Unicode MS" \
     -V geometry:margin=1in \
@@ -16,7 +16,7 @@ pandoc "ECOv003_L3_JET_ATBD.md" \
     -V linestretch=1.15
 
 if [ $? -eq 0 ]; then
-    echo "✅ PDF successfully generated: ECOv003_L3_JET_ATBD.pdf"
+    echo "✅ PDF successfully generated: ECOv003_L3_L4_JET_ATBD.pdf"
 else
     echo "❌ Error generating PDF"
     exit 1

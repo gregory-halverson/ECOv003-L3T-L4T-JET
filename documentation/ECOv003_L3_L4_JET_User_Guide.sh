@@ -5,8 +5,8 @@
 
 echo "Rendering ECOSTRESS User Guide to PDF..."
 
-pandoc "ECOv003_L3_L4_Ecosystem_Data_Products_User_Guide.md" \
-    -o "ECOv003_L3_L4_Ecosystem_Data_Products_User_Guide.pdf" \
+pandoc "ECOv003_L3_L4_JET_User_Guide.md" \
+    -o "ECOv003_L3_L4_JET_User_Guide.pdf" \
     --pdf-engine=xelatex \
     -V "mainfont:Arial Unicode MS" \
     -V geometry:margin=1in \
@@ -16,7 +16,7 @@ pandoc "ECOv003_L3_L4_Ecosystem_Data_Products_User_Guide.md" \
     -V linestretch=1.15
 
 if [ $? -eq 0 ]; then
-    echo "✅ PDF successfully generated: ECOv003_L3_L4_Ecosystem_Data_Products_User_Guide.pdf"
+    echo "✅ PDF successfully generated: ECOv003_L3_L4_JET_User_Guide.pdf"
 else
     echo "❌ Error generating PDF"
     exit 1
