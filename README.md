@@ -150,6 +150,7 @@ The ECOSTRESS ecosystem processing chain is designed to be independently reprodu
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | -- |
 | Ta | Near-surface air temperature | float32 | Celsius | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
 | RH | Relative Humidity | float32 | Ratio | NaN | N/A | 0 | 1 | N/A | 12.06 mb |
+| SM | Soil Moisture | float32 | m³/m³ | NaN | N/A | 0 | 1 | N/A | 12.06 mb |
 | Rg | Global Radiation | float32 | W/m^2 | NaN | N/A | 0 | N/A | N/A | 12.06 mb |
 | Rn | Net Radiation | float32 | Ratio | NaN | N/A | 0 | N/A | N/A | 12.06 mb |
 | cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |

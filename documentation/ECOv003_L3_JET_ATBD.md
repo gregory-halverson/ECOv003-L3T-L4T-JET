@@ -2,7 +2,7 @@
 
 **Jet Propulsion Laboratory**
 
-**Authors:** Simon Hook, Kerry Cawse-Nicholson, Gregory Halverson, Maggie Johnson, Madeleine Pascolini-Campbell, AJ Purdy, Munish Sikka, Claire Villanueva-Weeks
+**Authors:** Gregory H. Halverson, Kerry Cawse-Nicholson, Madeleine Pascolini-Campbell, Evan Davis, Claire Villanueva-Weeks, Simon Hook, AJ Purdy, Maggie Johnson, Munish Sikka
 
 **Affiliation:** ECOSTRESS Science Team, Jet Propulsion Laboratory, California Institute of Technology
 
@@ -33,7 +33,13 @@
 
 ### Purpose
 
-Evapotranspiration (ET) is one of the main science outputs from the ECOsystem Spaceborne Thermal Radiometer Experiment on Space Station (ECOSTRESS). ET is a Level-3 (L-3) product constructed from a combination of the ECOSTRESS Level-2 (L-2) Land Surface Temperature (LST) product and auxiliary data sources. The rate of ET is controlled by many environmental and biological factors, including:
+Evapotranspiration (ET) is one of the main science outputs from the ECOsystem Spaceborne Thermal Radiometer Experiment on Space Station (ECOSTRESS). ET is a Level-3 (L-3) product constructed from a combination of the ECOSTRESS Level-2 (L-2) Land Surface Temperature & Emissivity (LSTE) product and auxiliary data sources. 
+
+The ECOSTRESS Collection 3 L3T JET product uses an ensemble of four evapotranspiration models (PT-JPL-SM, STIC-JPL, PM-JPL, and BESS-JPL) to produce robust evapotranspiration estimates. This ensemble approach combines outputs from four distinct models, each with different strengths and theoretical foundations, to reduce uncertainty and improve overall accuracy.
+
+Accurate modelling of ET requires consideration of many environmental and biological controls including: solar radiation, the atmospheric water vapor deficit, soil water availability, vegetation physiology and phenology. LST holds the unique ability to capture when and where plants experience stress, as observed by elevated temperatures which can identify areas that have a reduced capacity to evaporate or transpire water to the atmosphere.
+
+The rate of ET is controlled by many environmental and biological factors, including:
 
 - Incoming radiation
 - Atmospheric water vapor deficit
@@ -62,18 +68,23 @@ This document provides:
 
 ### Auxiliary Variables
 
-| Auxiliary Variable       | Equation             | Source                          |
+| Auxiliary Variable       | Product Layer        | Source                          |
 |--------------------------|----------------------|---------------------------------|
-| Near-surface air temp.   | L3G MET             | GEOS-5 FP tavg1_2d_slv_Nx      |
-| Near-surface dew point   | Net radiation       | GEOS-5 FP tavg1_2d_slv_Nx      |
-| Relative humidity (RH)   | L3G MET             | GEOS-5 FP tavg1_2d_slv_Nx      |
-| Soil moisture (SM)       | L3G SM product      | GEOS-5 FP tavg1_2d_lnd_Nx      |
+| Near-surface air temp.   | Ta                  | GEOS-5 FP tavg1_2d_slv_Nx      |
+| Relative humidity (RH)   | RH                  | GEOS-5 FP tavg1_2d_slv_Nx      |
+| Soil moisture (SM)       | SM                  | GEOS-5 FP tavg1_2d_lnd_Nx      |
+| Global radiation         | Rg                  | GEOS-5 FP tavg1_2d_rad_Nx      |
+| Net radiation            | Rn                  | BESS-JPL calculation            |
+| Cloud mask               | cloud               | L2 CLOUD product                |
+| Water mask               | water               | NASADEM Surface Water Bodies    |
 
 ---
 
 ## Evapotranspiration Retrieval
 
-### PT-JPL~SM~: General Form
+The ensemble incorporates ET data from four algorithms: Priestley Taylor-Jet Propulsion Laboratory model with soil moisture (PT-JPL-SM), the Penman Monteith-Jet Propulsion Laboratory model (PM-JPL), Surface Temperature Initiated Closure-Jet Propulsion Laboratory model (STIC-JPL), and the Breathing Earth System Simulator-Jet Propulsion Laboratory model (BESS-JPL).
+
+### PT-JPL-SM: General Form
 
 The PT-JPL~SM~ model relies on the Priestley-Taylor equation to resolve potential ET (PET):
 
@@ -91,24 +102,56 @@ To reduce PET to actual ET (AET), ecophysiological constraint functions are appl
 
 ---
 
-### STIC: General Form
+### STIC-JPL: General Form
 
-The Surface Temperature Initiated Closure (STIC) model integrates LST into the Penman-Monteith Shuttleworth-Wallace system of ET equations. The general approach involves:
+The Surface Temperature Initiated Closure-Jet Propulsion Laboratory (STIC-JPL) model, contributed by Dr. Kaniska Mallick, was designed as a surface temperature-sensitive ET model, adopted by ECOSTRESS and SBG for improved estimates of ET reflecting mid-day heat stress. The STIC-JPL model integrates LST into the Penman-Monteith Shuttleworth-Wallace system of ET equations and estimates total latent heat flux directly using thermal remote sensing observations.
+
+The general approach involves:
 
 1. Solving state equations to find analytical solutions for aerodynamic temperature ($T_0$) and conductances ($g_a$, $g_{cs}$).
 2. Iteratively estimating unknowns using Penman-Monteith and Shuttleworth-Wallace equations.
 
 ---
 
-### MOD16: General Form
+### PM-JPL: General Form
 
-The MOD16 algorithm is based on the Penman-Monteith equation with environmental constraints from vegetation cover, temperature, and atmospheric moisture deficits. It resolves evaporative fluxes from the soil, canopy, and intercepted water separately.
+The Penman-Monteith-Jet Propulsion Laboratory (PM-JPL) algorithm is a derivation of the MOD16 algorithm that was originally designed as the ET product for the Moderate Resolution Imaging Spectroradiometer (MODIS) and continued as a Visible Infrared Imaging Radiometer Suite (VIIRS) product. PM-JPL uses a similar approach to PT-JPL and PT-JPL-SM to independently estimate vegetation and soil components of instantaneous ET, but using the Penman-Monteith formula instead of the Priestley-Taylor.
+
+The algorithm is based on the Penman-Monteith equation with environmental constraints from vegetation cover, temperature, and atmospheric moisture deficits. It resolves evaporative fluxes from the soil, canopy, and intercepted water separately. The PM-JPL latent heat flux partitions are summed to total latent heat flux for the ensemble estimate.
 
 ---
 
-### BESS: General Form
+### BESS-JPL: General Form
 
-The Breathing Earth System Simulator (BESS) couples atmospheric and canopy radiative transfer processes with photosynthesis, stomatal conductance, and transpiration. It uses a quadratic representation of the Penman-Monteith model to estimate transpiration.
+The Breathing Earth System Simulator-Jet-Jet Propulsion Laboratory Propulsion Laboratory (BESS-JPL) model is a coupled surface energy balance and photosynthesis model contributed by Dr. Youngryel Ryu. The model iteratively calculates net radiation, ET, and Gross Primary Production (GPP-JPL) estimates. The latent heat flux component of BESS-JPL is included in the ensemble estimate, while the BESS-JPL net radiation is used as input to the other ET models.
+
+The BESS-JPL model is a coupled surface energy balance and photosynthesis model contributed by Dr. Youngryel Ryu. The model iteratively calculates net radiation, ET, and Gross Primary Production (GPP) estimates. The latent heat flux component of BESS-JPL is included in the ensemble estimate, while the BESS-JPL net radiation is used as input to the other ET models.
+
+The BESS-JPL couples atmospheric and canopy radiative transfer processes with photosynthesis, stomatal conductance, and transpiration. It uses a quadratic representation of the Penman-Monteith model to estimate transpiration.
+
+### AquaSEBS Water Surface Evaporation
+
+For water surface pixels identified using the NASADEM Surface Water Body extent, the ECOSTRESS Collection 3 processing chain implements the AquaSEBS (Aquatic Surface Energy Balance System) model developed by Abdelrady et al. (2016) and validated by Fisher et al. (2023). Water surface evaporation is calculated using a physics-based approach that combines the equilibrium temperature model for water heat flux with the Priestley-Taylor equation for evaporation estimation.
+
+The AquaSEBS model implements the surface energy balance equation specifically adapted for water bodies:
+
+$$R_n = LE + H + W$$
+
+Where the water heat flux (W) is calculated using the equilibrium temperature model:
+
+$$W = \beta \times (T_e - WST)$$
+
+Latent heat flux is then calculated using the Priestley-Taylor equation with α = 1.26 for water surfaces:
+
+$$LE = \alpha \times \frac{\Delta}{\Delta + \gamma} \times (R_n - W)$$
+
+The AquaSEBS methodology has been extensively validated against 19 in situ open water evaporation sites worldwide spanning multiple climate zones, with daily evaporation estimates showing r² = 0.47-0.56 and RMSE = 1.2-1.5 mm/day.
+
+### Ensemble Processing
+
+The median of total latent heat flux in watts per square meter from the PT-JPL-SM, STIC-JPL, PM-JPL, and BESS-JPL models is upscaled to a daily ET estimate in millimeters per day and recorded in the L3T JET product as `ETdaily`. The standard deviation between these multiple estimates of ET is considered the uncertainty for the evapotranspiration product, as `ETinstUncertainty`. The ETdaily product represents the integrated ET between sunrise and sunset.
+
+---
 
 ---
 
@@ -130,6 +173,18 @@ The ECOSTRESS ET products target an error value of 1 mm/day, consistent with est
 ## Acknowledgements
 
 We thank Gregory Halverson, Laura Jewell, Gregory Moore, Caroline Famiglietti, Munish Sikka, Manish Verma, Kevin Tu, Alexandre Guillaume, Kaniska Mallick, Youngryel Ryu, and Hideki Kobayashi for their contributions.
+
+---
+
+## Algorithm Repositories
+
+The evapotranspiration algorithms are located in the [JPL-Evapotranspiration-Algorithms](https://github.com/JPL-Evapotranspiration-Algorithms) organization:
+
+- **PT-JPL-SM**: [https://github.com/JPL-Evapotranspiration-Algorithms/PT-JPL-SM](https://github.com/JPL-Evapotranspiration-Algorithms/PT-JPL-SM)
+- **STIC-JPL**: [https://github.com/JPL-Evapotranspiration-Algorithms/STIC-JPL](https://github.com/JPL-Evapotranspiration-Algorithms/STIC-JPL)
+- **PM-JPL**: [https://github.com/JPL-Evapotranspiration-Algorithms/PM-JPL](https://github.com/JPL-Evapotranspiration-Algorithms/PM-JPL)
+- **BESS-JPL**: [https://github.com/JPL-Evapotranspiration-Algorithms/BESS-JPL](https://github.com/JPL-Evapotranspiration-Algorithms/BESS-JPL)
+- **AquaSEBS**: [https://github.com/JPL-Evapotranspiration-Algorithms/AquaSEBS](https://github.com/JPL-Evapotranspiration-Algorithms/AquaSEBS)
 
 ---
 
