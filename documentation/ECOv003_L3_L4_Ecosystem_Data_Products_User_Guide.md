@@ -171,9 +171,9 @@ include the letter T in their level identifiers: L1CT, L2T, L3T, and
 L4T. The tiling system used for ECOSTRESS is borrowed from the modified
 Military Grid Reference System (MGRS) tiling scheme used by Sentinel 2.
 These tiles divide the Universal Transverse Mercator (UTM) zones into
-square tiles 109800 m across. ECOSTRESS uses a 60 m cell size with 1830
-rows by 1830 columns in each tile, totaling 3.35 million pixels per
-tile. This allows the end user to assume that each 60 m ECOSTRESS pixel
+square tiles 109800 m across. ECOSTRESS uses a 70 m cell size with 1568
+rows by 1568 columns in each tile, totaling 2.46 million pixels per
+tile. This allows the end user to assume that each 70 m ECOSTRESS pixel
 will remain in the same location at each timestep observed in analysis.
 The COG format also facilitates end-user analysis as a universally
 recognized and supported format, compatible with open-source software,
@@ -244,7 +244,7 @@ humidity (RH) are taken from the GEOS-5 FP tavg1_2d_slv_Nx product. Ta
 and RH are down-scaled using a linear regression between up-sampled ST,
 NDVI, and albedo as predictor variables to Ta or RH from GEOS-5 FP as a
 response variable, within each Sentinel tile. These regression
-coefficients are then applied to the 60 m ST, NDVI, and albedo, and this
+coefficients are then applied to the 70 m ST, NDVI, and albedo, and this
 first-pass estimate is then bias-corrected to the coarse image from
 GEOS-5 FP. These downscaled meteorology estimates are recorded in the
 L3T ETAUX product listed in Table 3. Areas of cloud are filled in with
