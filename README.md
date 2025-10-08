@@ -141,13 +141,10 @@ Information on the `StandardMetadata` is included on the [ECOSTRESS GitHub landi
 ### 2.2. Quality Flags
 
 Two high-level quality flags are provided in all gridded and tiled products as thematic/binary masks encoded to zero and one in unsigned 8-bit integer layers. The cloud layer represents the final cloud test from L2 CLOUD. The water layer represents the surface water body in the Shuttle Radar Topography Mission (SRTM) Digital Elevation Model. For both layers, zero means absence, and one means presence. Pixels with the value 1 in the cloud layer represent detection of cloud in that pixel. Pixels with the value 1 in the water layer represent open water surface in that pixel. All tiled product data layers written in `float32` contain a standard not-a-number (`NaN`) value at each pixel that could not be retrieved. The cloud and water layers are provided to explain these missing values.
-  
-### 2.3. L2T STARS NDVI and Albedo Product
-The STARS data product is produced with a separate Product Generating Executable (PGE) [ECOv003-L2-STARS](https://github.com/ECOSTRESS-Collection-3/ECOv003-L2-STARS).
 
-### 2.4. L3T ETAUX Ecosystem Auxiliary Inputs Product
+### 2.3. L3T ETAUX Ecosystem Auxiliary Inputs Product
 
-The ECOSTRESS ecosystem processing chain is designed to be independently reproducible. To facilitate open science, the auxiliary data inputs that are produced for evapotranspiration processing are distributed as a data product, such that the end user has the ability to run their own evapotranspiration model using ECOSTRESS data. The data layers of the L3T ETAUX product are described in Table 3.
+The ECOSTRESS ecosystem processing chain is designed to be independently reproducible. To facilitate open science, the auxiliary data inputs that are produced for evapotranspiration processing are distributed as a data product, such that the end user has the ability to run their own evapotranspiration model using ECOSTRESS data. The data layers of the L3T ETAUX product are described in Table 2.
 
 | **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** |**Size** |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | -- |
@@ -160,7 +157,7 @@ The ECOSTRESS ecosystem processing chain is designed to be independently reprodu
 
 *Table 2. Listing of the L3T ETAUX data layers.*
 
-### 2.5. Downscaled Meteorology & Soil Moisture
+### 2.4. Downscaled Meteorology & Soil Moisture
 
 ```mermaid
 flowchart TB
@@ -217,9 +214,9 @@ flowchart TB
     downscale_SM --> downscaled_SM
 ```
 
-Coarse resolution near-surface air temperature (Ta) and relative humidity (RH) are taken from the GEOS-5 FP `tavg1_2d_slv_Nx` product. Ta and RH are down-scaled using a linear regression between up-sampled ST, NDVI, and albedo as predictor variables to Ta or RH from GEOS-5 FP as a response variable, within each Sentinel tile. These regression coefficients are then applied to the 70 m ST, NDVI, and albedo, and this first-pass estimate is then bias-corrected to the coarse image from GEOS-5 FP. These downscaled meteorology estimates are recorded in the L3T ETAUX product listed in Table . Areas of cloud are filled in with bi-cubically resampled GEOS-5 FP. This same down-scaling procedure is applied to soil moisture (SM) from the GEOS-5 FP `tavg1_2d_lnd_Nx` product, which is recorded in the L3T ETAUX product listed in Table .
+Coarse resolution near-surface air temperature (Ta) and relative humidity (RH) are taken from the GEOS-5 FP `tavg1_2d_slv_Nx` product. Ta and RH are down-scaled using a linear regression between up-sampled ST, NDVI, and albedo as predictor variables to Ta or RH from GEOS-5 FP as a response variable, within each Sentinel tile. These regression coefficients are then applied to the 70 m ST, NDVI, and albedo, and this first-pass estimate is then bias-corrected to the coarse image from GEOS-5 FP. These downscaled meteorology estimates are recorded in the L3T ETAUX product listed in Table 2. Areas of cloud are filled in with bi-cubically resampled GEOS-5 FP. This same down-scaling procedure is applied to soil moisture (SM) from the GEOS-5 FP `tavg1_2d_lnd_Nx` product, which is recorded in the L3T ETAUX product listed in Table 2.
 
-### 2.6. Surface Energy Balance
+### 2.5. Surface Energy Balance
 
 ```mermaid
 flowchart TB
@@ -271,9 +268,9 @@ flowchart TB
 
 The surface energy balance processing for ECOSTRESS begins with an artificial neural network (ANN) implementation of the Forest Light Environmental Simulator (FLiES) radiative transfer algorithm, following the workflow established by Dr. Hideki Kobayashi and Dr. Youngryel Ryu. GEOS-5 FP provides sub-daily Cloud Optical Thickness (COT) in the `tavg1_2d_rad_Nx` product and Aerosol Optical Thickness (AOT) from `tavg3_2d_aer_Nx`. Together with STARS albedo, these variables are run through the ANN implementation of FLiES to estimate incoming shortwave radiation (Rg), bias-corrected to Rg from the GEOS-5 FP `tavg1_2d_rad_Nx` product.
 
-The Breathing Earth System Simulator-Jet Propulsion Laboratory (BESS-JPL) algorithm, contributed by Dr. Youngryel Ryu, iteratively calculates net radiation (Rn), ET, and Gross Primary Production (GPP) estimates. The BESS-JPL Rn is used as the Rn input to the remaining ET models and is recorded in the L3T ETAUX product listed in Table 3.
+The Breathing Earth System Simulator-Jet Propulsion Laboratory (BESS-JPL) algorithm, contributed by Dr. Youngryel Ryu, iteratively calculates net radiation (Rn), ET, and Gross Primary Production (GPP) estimates. The BESS-JPL Rn is used as the Rn input to the remaining ET models and is recorded in the L3T ETAUX product listed in Table 2.
 
-### 2.7. L3T JET Evapotranspiration Product
+### 2.6. L3T JET Evapotranspiration Product
 
 Following design of the L3T JET product from ECOSTRESS Collection 2, the ECOSTRESS Collection 3 L3T JET product uses an ensemble of evapotranspiration models to produce an evapotranspiration estimate.
 
@@ -285,9 +282,9 @@ The Penman-Monteith-Jet Propulsion Laboratory (PM-JPL) algorithm is a derivation
 
 The Breathing Earth System Simulator-Jet Propulsion Laboratory (BESS-JPL) model is a coupled surface energy balance and photosynthesis model. The latent heat flux component of BESS-JPL is also included in the ensemble estimate.
 
-The median of total latent heat flux in watts per square meter from the PT-JPL-SM, STIC-JPL, PM-JPL, and BESS-JPL models is upscaled to a daily ET estimate in millimeters per day and recorded in the L3T JET product as `ETdaily`. The standard deviation between these multiple estimates of ET is considered the uncertainty for the SBG evapotranspiration product, as `ETinstUncertainty`. The layers for the L3T JET products are listed in Table 6 Note that the ETdaily product represents the integrated ET between sunrise and sunset.
+The median of total latent heat flux in watts per square meter from the PT-JPL-SM, STIC-JPL, PM-JPL, and BESS-JPL models is upscaled to a daily ET estimate in millimeters per day and recorded in the L3T JET product as `ETdaily`. The standard deviation between these multiple estimates of ET is considered the uncertainty for the SBG evapotranspiration product, as `ETinstUncertainty`. The layers for the L3T JET products are listed in Table 3. Note that the ETdaily product represents the integrated ET between sunrise and sunset.
 
-### 2.7.1. Water Surface Evaporation
+### 2.6.1. Water Surface Evaporation
 
 For water surface pixels identified using the NASADEM Surface Water Body extent, the ECOSTRESS Collection 3 processing chain implements the AquaSEBS (Aquatic Surface Energy Balance System) model developed by Abdelrady et al. (2016) and validated by Fisher et al. (2023). Water surface evaporation is calculated using a physics-based approach that combines the equilibrium temperature model for water heat flux with the Priestley-Taylor equation for evaporation estimation.
 
@@ -346,9 +343,9 @@ Water surface evaporation estimates are included in the `ETdaily` layer in mm pe
 
 *Table 3. Listing of the L3T JET data layers.*
 
-### 2.8. L4T ESI and WUE Products
+### 2.7. L4T ESI and WUE Products
 
-The PT-JPL-SM model generates estimates of both actual and potential instantaneous ET. The potential evapotranspiration (PET) estimate represents the maximum expected ET if there were no water stress to plants on the ground. The ratio of the actual ET estimate to the PET estimate forms an index representing the water stress of plants, with zero being fully stressed with no observable ET and one being non-stressed with ET reaching PET. These ESI and PET estimates are distributed in the L4T ESI product as listed in Table 5.
+The PT-JPL-SM model generates estimates of both actual and potential instantaneous ET. The potential evapotranspiration (PET) estimate represents the maximum expected ET if there were no water stress to plants on the ground. The ratio of the actual ET estimate to the PET estimate forms an index representing the water stress of plants, with zero being fully stressed with no observable ET and one being non-stressed with ET reaching PET. These ESI and PET estimates are distributed in the L4T ESI product as listed in Table 4.
 
 | **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** |**Size** |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | -- |
@@ -359,7 +356,7 @@ The PT-JPL-SM model generates estimates of both actual and potential instantaneo
 
 *Table 4. Listing of the L4T ESI data layers.*
 
-The BESS-JPL GPP estimate represents the amount of carbon that plants are taking in. The transpiration component of PT-JPL-SM represents the amount of water that plants are releasing. The BESS-JPL GPP is divided by the PT-JPL-SM transpiration to estimate water use efficiency (WUE), the ratio of grams of carbon that plants take in to kilograms of water that plants release. These WUE and GPP estimates are distributed in the L4T WUE product as listed in Table 6.
+The BESS-JPL GPP estimate represents the amount of carbon that plants are taking in. The transpiration component of PT-JPL-SM represents the amount of water that plants are releasing. The BESS-JPL GPP is divided by the PT-JPL-SM transpiration to estimate water use efficiency (WUE), the ratio of grams of carbon that plants take in to kilograms of water that plants release. These WUE and GPP estimates are distributed in the L4T WUE product as listed in Table 5.
 
 | **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** |**Size** |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | -- |
