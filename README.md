@@ -287,6 +287,47 @@ The Breathing Earth System Simulator-Jet Propulsion Laboratory (BESS-JPL) model 
 
 The median of total latent heat flux in watts per square meter from the PT-JPL-SM, STIC-JPL, PM-JPL, and BESS-JPL models is upscaled to a daily ET estimate in millimeters per day and recorded in the L3T JET product as `ETdaily`. The standard deviation between these multiple estimates of ET is considered the uncertainty for the SBG evapotranspiration product, as `ETinstUncertainty`. The layers for the L3T JET products are listed in Table 6 Note that the ETdaily product represents the integrated ET between sunrise and sunset.
 
+### 2.7.1. Water Surface Evaporation
+
+For water surface pixels identified using the NASADEM Surface Water Body extent, the ECOSTRESS Collection 3 processing chain implements the AquaSEBS (Aquatic Surface Energy Balance System) model developed by Abdelrady et al. (2016) and validated by Fisher et al. (2023). Water surface evaporation is calculated using a physics-based approach that combines the equilibrium temperature model for water heat flux with the Priestley-Taylor equation for evaporation estimation.
+
+#### Methodology
+
+The AquaSEBS model implements the surface energy balance equation specifically adapted for water bodies:
+
+$$R_n = LE + H + W$$
+
+Where the water heat flux (W) is calculated using the equilibrium temperature model:
+
+$$W = \beta \times (T_e - WST)$$
+
+The key parameters include:
+- **Temperature difference**: $T_n = 0.5 \times (WST - T_d)$ where WST is water surface temperature and $T_d$ is dew point temperature
+- **Evaporation efficiency**: $\eta = 0.35 + 0.015 \times WST + 0.0012 \times T_n^2$
+- **Thermal exchange coefficient**: $\beta = 4.5 + 0.05 \times WST + (\eta + 0.47) \times S$
+- **Equilibrium temperature**: $T_e = T_d + \frac{SW_{net}}{\beta}$
+
+Latent heat flux is then calculated using the Priestley-Taylor equation with α = 1.26 for water surfaces:
+
+$$LE = \alpha \times \frac{\Delta}{\Delta + \gamma} \times (R_n - W)$$
+
+#### Validation and Accuracy
+
+The AquaSEBS methodology has been extensively validated against 19 in situ open water evaporation sites worldwide spanning multiple climate zones. Performance metrics include:
+
+**Daily evaporation estimates:**
+- **MODIS-based**: r² = 0.47, RMSE = 1.5 mm/day (41% of mean), Bias = 0.19 mm/day
+- **Landsat-based**: r² = 0.56, RMSE = 1.2 mm/day (38% of mean), Bias = -0.8 mm/day
+
+**Instantaneous estimates (controlled for high wind events >7.5 m/s):**
+- **Correlation**: r² = 0.71
+- **RMSE**: 53.7 W/m² (38% of mean)
+- **Bias**: -19.1 W/m² (13% of mean)
+
+The model demonstrates particular strength in water-limited environments and performs well across spatial scales from 30m (Landsat) to 1km (MODIS) resolution.
+
+Water surface evaporation estimates are included in the `ETdaily` layer in mm per day, integrated over the daylight period from sunrise to sunset.
+
 | **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** |**Size** |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | -- |
 | PTJPLSMinst | PT-JPL-SM Instantaneous | float32 | W/m^2 | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
