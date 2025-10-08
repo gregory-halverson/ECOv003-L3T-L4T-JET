@@ -10,10 +10,6 @@ The ECOSTRESS collection 3 level 3/4 evapotranspiration data products algorithm 
 [gregory.h.halverson@jpl.nasa.gov](mailto:gregory.h.halverson@jpl.nasa.gov)<br>
 NASA Jet Propulsion Laboratory 329G
 
-[Evan Davis](https://github.com/evandjpl) (he/him)<br>
-[evan.w.davis@jpl.nasa.gov](mailto:evan.w.davis@jpl.nasa.gov)<br>
-NASA Jet Propulsion Laboratory 397K
-
 [Kerry Cawse-Nicholson](https://github.com/kcawse) (she/her)<br>
 [kerry-anne.cawse-nicholson@jpl.nasa.gov](mailto:kerry-anne.cawse-nicholson@jpl.nasa.gov)<br>
 NASA Jet Propulsion Laboratory 329G
@@ -21,6 +17,10 @@ NASA Jet Propulsion Laboratory 329G
 [Madeleine Pascolini-Campbell](https://github.com/madeleinepc) (she/her)<br>
 [madeleine.a.pascolini-campbell@jpl.nasa.gov](mailto:madeleine.a.pascolini-campbell@jpl.nasa.gov)<br>
 NASA Jet Propulsion Laboratory 329F
+
+[Evan Davis](https://github.com/evandjpl) (he/him)<br>
+[evan.w.davis@jpl.nasa.gov](mailto:evan.w.davis@jpl.nasa.gov)<br>
+NASA Jet Propulsion Laboratory 397K
 
 [Claire Villanueva-Weeks](https://github.com/clairesvw) (she/her)<br>
 NASA Jet Propulsion Laboratory 329G
