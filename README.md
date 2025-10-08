@@ -272,21 +272,73 @@ The Breathing Earth System Simulator-Jet Propulsion Laboratory (BESS-JPL) algori
 
 ### 2.6. L3T JET Evapotranspiration Product
 
-Following design of the L3T JET product from ECOSTRESS Collection 2, the ECOSTRESS Collection 3 L3T JET product uses an ensemble of evapotranspiration models to produce an evapotranspiration estimate.
+The ECOSTRESS Collection 3 L3T JET product uses an ensemble of four evapotranspiration models (PT-JPL-SM, STIC-JPL, PM-JPL, and BESS-JPL) to produce robust evapotranspiration estimates. The data layers include individual model outputs, ensemble statistics, canopy partitioning components, and quality flags. The data layers for the L3T JET products are listed in Table 3.
 
-The PT-JPL-SM model, developed by Dr. Adam Purdy and Dr. Joshua Fisher was designed as a SM-sensitive evapotranspiration product for the Soil Moisture Active-Passive (SMAP) mission, and then reimplemented as an ET model in the ECOSTRESS and SBG processing chain, using the downscaled soil moisture from the L3T ETAUX product. Similar to the PT-JPL model used in ECOSTRESS Collection 1, The PT-JPL-SM model estimates instantaneous canopy transpiration, leaf surface evaporation, and soil moisture evaporation using the Priestley-Taylor formula with a set of constraints. These three partitions are combined into total latent heat flux in watts per square meter for the ensemble estimate. 
+| **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** |**Size** |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | -- |
+| PTJPLSMinst | PT-JPL-SM Instantaneous | float32 | W/m^2 | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| PTJPLSMdaily | PT-JPL-SM Daily | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| STICJPLdaily | STIC-JPL Daily | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| BESSJPLdaily | BESS-JPL Daily | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| PMJPLdaily | PM-JPL (MOD16) Daily | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| ETdaily | Daily Evapotranspiration | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| ETinstUncertainty | Instantaneous Evapotranspiration Uncertainty | float32 | W/m^2 | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| PTJPLSMcanopy | PT-JPL-SM Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| STICJPLcanopy | STIC-JPL Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| PTJPLSMsoil | PT-JPL-SM Soil | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| PTJPLSMinterception | PT-JPL-SM Interception | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
 
-The Surface Temperature Initiated Closure-Jet Propulsion Laboratory (STIC-JPL) model, contributed by Dr. Kaniska Mallick, was designed as a ST-sensitive ET model, adopted by ECOSTRESS and SBG for improved estimates of ET reflecting mid-day heat stress. The STIC-JPL model estimates total latent heat flux directly. This instantaneous estimate of latent heat flux is included in the ensemble estimate.
+*Table 3. Listing of the L3T JET data layers.*
 
-The Penman-Monteith-Jet Propulsion Laboratory (PM-JPL) algorithm is a derivation of the MOD16 algorithm that was originally designed as the ET product for the Moderate Resolution Imaging Spectroradiometer (MODIS) and then continued as a Visible Infrared Imaging Radiometer Suite (VIIRS) product. PM-JPL uses a similar approach to PT-JPL and PT-JPL-SM to independently estimate vegetation and soil components of instantaneous ET, but using the Penman-Monteith formula instead of the Priestley-Taylor. The PM-JPL latent heat flux partitions are summed to total latent heat flux for the ensemble estimate.
+Following design of the L3T JET product from ECOSTRESS Collection 2, the ECOSTRESS Collection 3 L3T JET product uses an ensemble of evapotranspiration models to produce robust evapotranspiration estimates. The ensemble approach combines outputs from four distinct models, each with different strengths and theoretical foundations, to reduce uncertainty and improve overall accuracy.
 
-The Breathing Earth System Simulator-Jet Propulsion Laboratory (BESS-JPL) model is a coupled surface energy balance and photosynthesis model. The latent heat flux component of BESS-JPL is also included in the ensemble estimate.
+#### 2.6.1. Priestley-Taylor (PT-JPL-SM) Evapotranspiration Model
 
-The median of total latent heat flux in watts per square meter from the PT-JPL-SM, STIC-JPL, PM-JPL, and BESS-JPL models is upscaled to a daily ET estimate in millimeters per day and recorded in the L3T JET product as `ETdaily`. The standard deviation between these multiple estimates of ET is considered the uncertainty for the SBG evapotranspiration product, as `ETinstUncertainty`. The layers for the L3T JET products are listed in Table 3. Note that the ETdaily product represents the integrated ET between sunrise and sunset.
+The Priestley-Taylor Jet Propulsion Laboratory model with Soil Moisture (PT-JPL-SM), developed by Dr. Adam Purdy and Dr. Joshua Fisher, was designed as a soil moisture-sensitive evapotranspiration product for the Soil Moisture Active-Passive (SMAP) mission. The model estimates instantaneous canopy transpiration, leaf surface evaporation, and soil moisture evaporation using the Priestley-Taylor formula with a set of constraints. These three partitions are combined into total latent heat flux in watts per square meter for the ensemble estimate.
 
-### 2.6.1. Water Surface Evaporation
+**Reference**: Purdy, A.J., Fisher, J.B., Goulden, M.L., Colliander, A., Halverson, G., Tu, K., Famiglietti, J.S. (2018). SMAP soil moisture improves global evapotranspiration. *Remote Sensing of Environment*, 219, 1-14. https://doi.org/10.1016/j.rse.2018.09.023
+
+**Repository**: [PT-JPL-SM](https://github.com/JPL-Evapotranspiration-Algorithms/PT-JPL-SM)
+
+#### 2.6.2. Surface Temperature Initiated Closure (STIC-JPL) Evapotranspiration Model
+
+The Surface Temperature Initiated Closure-Jet Propulsion Laboratory (STIC-JPL) model, contributed by Dr. Kaniska Mallick, was designed as a surface temperature-sensitive ET model, adopted by ECOSTRESS and SBG for improved estimates of ET reflecting mid-day heat stress. The STIC-JPL model estimates total latent heat flux directly using thermal remote sensing observations. This instantaneous estimate of latent heat flux is included in the ensemble estimate.
+
+**Reference**: Mallick, K., Trebs, I., Boegh, E., Giustarini, L., Schlerf, M., Drewry, D.T., Hoffmann, L., von Randow, C., Kruijt, B., Araùjo, A., Saleska, S., Ehleringer, J.R., Domingues, T.F., Ometto, J.P.H.B., Nobre, A.D., de Moraes, O.L.L., Hayek, M., Munger, J.W., Wofsy, S.C. (2016). Canopy-scale biophysical controls of transpiration and evaporation in the Amazon Basin. *Hydrology and Earth System Sciences*, 20, 4237-4264. https://doi.org/10.5194/hess-20-4237-2016
+
+**Repository**: [STIC-JPL](https://github.com/JPL-Evapotranspiration-Algorithms/STIC-JPL)
+
+#### 2.6.3. Penman Monteith (PM-JPL) Evapotranspiration Model
+
+The Penman-Monteith-Jet Propulsion Laboratory (PM-JPL) algorithm is a derivation of the MOD16 algorithm that was originally designed as the ET product for the Moderate Resolution Imaging Spectroradiometer (MODIS) and continued as a Visible Infrared Imaging Radiometer Suite (VIIRS) product. PM-JPL uses a similar approach to PT-JPL and PT-JPL-SM to independently estimate vegetation and soil components of instantaneous ET, but using the Penman-Monteith formula instead of the Priestley-Taylor. The PM-JPL latent heat flux partitions are summed to total latent heat flux for the ensemble estimate.
+
+**Reference**: Running, S., Mu, Q., Zhao, M., Moreno, A. (2019). MODIS Global Terrestrial Evapotranspiration (ET) Product (MOD16A2/A3 and MOD16A2GF/A3GF). NASA Earth Observing System Data and Information System (EOSDIS) Land Processes Distributed Active Archive Center (LP DAAC). https://doi.org/10.5067/MODIS/MOD16A2.061
+
+**Repository**: [PM-JPL](https://github.com/JPL-Evapotranspiration-Algorithms/PM-JPL)
+
+#### 2.6.4. Breathing Earth System Simulator (BESS-JPL) Gross Primary Production (GPP) Model
+
+The Breathing Earth System Simulator Jet Propulsion Laboratory (BESS-JPL) model is a coupled surface energy balance and photosynthesis model contributed by Dr. Youngryel Ryu. The model iteratively calculates net radiation, ET, and Gross Primary Production (GPP) estimates. The latent heat flux component of BESS-JPL is included in the ensemble estimate, while the BESS-JPL net radiation is used as input to the other ET models.
+
+**Reference**: Ryu, Y., Baldocchi, D.D., Kobayashi, H., van Ingen, C., Li, J., Black, T.A., Beringer, J., van Gorsel, E., Knohl, A., Law, B.E., Roupsard, O. (2011). Integration of MODIS land and atmosphere products with a coupled-process model to estimate gross primary productivity and evapotranspiration from 1 km to global scales. *Global Biogeochemical Cycles*, 25, GB4017. https://doi.org/10.1029/2011GB004053
+
+**Repository**: [BESS-JPL](https://github.com/JPL-Evapotranspiration-Algorithms/BESS-JPL)
+
+#### 2.6.5. Ensemble Processing
+
+The median of total latent heat flux in watts per square meter from the PT-JPL-SM, STIC-JPL, PM-JPL, and BESS-JPL models is upscaled to a daily ET estimate in millimeters per day and recorded in the L3T JET product as `ETdaily`. The standard deviation between these multiple estimates of ET is considered the uncertainty for the SBG evapotranspiration product, as `ETinstUncertainty`. Note that the ETdaily product represents the integrated ET between sunrise and sunset.
+
+#### 2.6.6. AquaSEBS Water Surface Evaporation
 
 For water surface pixels identified using the NASADEM Surface Water Body extent, the ECOSTRESS Collection 3 processing chain implements the AquaSEBS (Aquatic Surface Energy Balance System) model developed by Abdelrady et al. (2016) and validated by Fisher et al. (2023). Water surface evaporation is calculated using a physics-based approach that combines the equilibrium temperature model for water heat flux with the Priestley-Taylor equation for evaporation estimation.
+
+**References**: 
+- Abdelrady, A., Timmermans, J., Vekerdy, Z., Salama, M.S. (2016). Surface Energy Balance of Fresh and Saline Waters: AquaSEBS. *Remote Sensing*, 8, 583. https://doi.org/10.3390/rs8070583
+- Fisher, J.B., Dohlen, M.B., Halverson, G.H., Collison, J.W., Hook, S.J., Hulley, G.C. (2023). Remotely sensed terrestrial open water evaporation. *Scientific Reports*, 13, 8217. https://doi.org/10.1038/s41598-023-34921-2
+
+**Repository**: [AquaSEBS](https://github.com/JPL-Evapotranspiration-Algorithms/AquaSEBS)
 
 #### Methodology
 
@@ -324,24 +376,6 @@ The AquaSEBS methodology has been extensively validated against 19 in situ open 
 The model demonstrates particular strength in water-limited environments and performs well across spatial scales from 30m (Landsat) to 1km (MODIS) resolution.
 
 Water surface evaporation estimates are included in the `ETdaily` layer in mm per day, integrated over the daylight period from sunrise to sunset.
-
-| **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** |**Size** |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | -- |
-| PTJPLSMinst | PT-JPL-SM Instantaneous | float32 | W/m^2 | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| PTJPLSMdaily | PT-JPL-SM Daily | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| STICJPLdaily | STIC-JPL Daily | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| BESSJPLdaily | BESS-JPL Daily | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| PMJPLdaily | PM-JPL (MOD16) Daily | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| ETdaily | Daily Evapotranspiration | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| ETinstUncertainty | Instantaneous Evapotranspiration Uncertainty | float32 | W/m^2 | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| PTJPLSMcanopy | PT-JPL-SM Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| STICJPLcanopy | STIC-JPL Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| PTJPLSMsoil | PT-JPL-SM Soil | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| PTJPLSMinterception | PT-JPL-SM Interception | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
-| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
-
-*Table 3. Listing of the L3T JET data layers.*
 
 ### 2.7. L4T ESI and WUE Products
 
