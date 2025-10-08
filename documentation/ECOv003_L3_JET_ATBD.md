@@ -1,16 +1,112 @@
-# ECOv003 L3 JET Algorithm Theoretical Basis Document
+# ECOSTRESS Collection 3 Level-3 Evapotranspiration (JET) Algorithm Theoretical Basis Document
 
-**Jet Propulsion Laboratory**
+**ECOsystem Spaceborne Thermal Radiometer Experiment on Space Station (ECOSTRESS)**
 
-**Authors:** Gregory H. Halverson, Kerry Cawse-Nicholson, Madeleine Pascolini-Campbell, Evan Davis, Claire Villanueva-Weeks, Simon Hook, AJ Purdy, Maggie Johnson, Munish Sikka
+**October 8, 2025**
 
-**Affiliation:** ECOSTRESS Science Team, Jet Propulsion Laboratory, California Institute of Technology
+## Authors
 
-**Date:** August 2024
+**Gregory H. Halverson**  
+ECOSTRESS Science Team  
+Jet Propulsion Laboratory  
+California Institute of Technology
+
+**Kerry Cawse-Nicholson**  
+ECOSTRESS Science Team  
+Jet Propulsion Laboratory  
+California Institute of Technology
+
+**Madeleine Pascolini-Campbell**  
+ECOSTRESS Science Team  
+Jet Propulsion Laboratory  
+California Institute of Technology
+
+**Simon Hook**  
+ECOSTRESS Science Team  
+Jet Propulsion Laboratory  
+California Institute of Technology
+
+**AJ Purdy**  
+ECOSTRESS Science Team  
+Jet Propulsion Laboratory  
+California Institute of Technology
+
+**Margaret Johnson**  
+ECOSTRESS Science Team  
+Jet Propulsion Laboratory  
+California Institute of Technology
+
+**Evan Davis**  
+ECOSTRESS Science Team  
+Jet Propulsion Laboratory  
+California Institute of Technology
+
+**Munish Sikka**  
+ECOSTRESS Science Team  
+Jet Propulsion Laboratory  
+California Institute of Technology
+
+**Claire Villanueva-Weeks**  
+ECOSTRESS Science Team  
+Jet Propulsion Laboratory  
+California Institute of Technology
+
+---
+
+*© 2025 California Institute of Technology. Government sponsorship acknowledged.*
+
+**National Aeronautics and Space Administration**  
+Jet Propulsion Laboratory  
+4800 Oak Grove Drive  
+Pasadena, California 91109-8099  
+California Institute of Technology
+
+This research was carried out at the Jet Propulsion Laboratory,
+California Institute of Technology, under a contract with the National
+Aeronautics and Space Administration.
+
+Reference herein to any specific commercial product, process, or service
+by trade name, trademark, manufacturer, or otherwise, does not
+constitute or imply its endorsement by the United States Government or
+the Jet Propulsion Laboratory, California Institute of Technology.
+
+© 2025. California Institute of Technology. Government sponsorship
+acknowledged.
 
 **Document Number:** ECOSTRESS Science Document no. D-1001467
 
 ---
+
+**Contacts**
+
+Readers seeking additional information about this product may contact
+the following:
+
+- Gregory Halverson\
+  Jet Propulsion Laboratory\
+  4800 Oak Grove Dr.\
+  Pasadena, CA 91109\
+  Email: <gregory.h.halverson@jpl.nasa.gov>\
+  Office: (626) 660-6818
+
+<!-- -->
+
+- Kerry Cawse-Nicholson
+
+  MS 183-501\
+  Jet Propulsion Laboratory\
+  4800 Oak Grove Dr.\
+  Pasadena, CA 91109\
+  Email: <kerry-anne.cawse-nicholson@jpl.nasa.gov>\
+  Office: (818) 354-1594
+
+- Margaret Johnson\
+  Jet Propulsion Laboratory\
+  4800 Oak Grove Dr.\
+  Pasadena, CA 91109\
+  Email: <maggie.johnson@jpl.nasa.gov>
+
+  Office: (818) 354-8885
 
 ## Table of Contents
 
