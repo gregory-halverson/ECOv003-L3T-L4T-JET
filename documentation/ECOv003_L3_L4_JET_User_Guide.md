@@ -155,9 +155,6 @@ tiled products are listed in Table 1.
 | **Product Long Name** | **Product Short Name** |
 |---|---|
 | STARS NDVI/Albedo | L2T STARS |
-| Surface Energy Balance | L3T SEB |
-| Soil Moisture | L3T SM |
-| Meteorology | L3T MET |
 | Ecosystem Auxiliary Inputs | L3T ETAUX |
 | Evapotranspiration Ensemble | L3T JET |
 | DisALEXI-JPL Evapotranspiration | L3T ET ALEXI |
