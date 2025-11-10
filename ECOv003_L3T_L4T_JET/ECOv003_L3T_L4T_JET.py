@@ -378,12 +378,12 @@ def L3T_L4T_JET(
         albedo_NWP = GEOS5FP_connection.ALBEDO(time_UTC=time_UTC, geometry=geometry)
         RVIS_NWP = GEOS5FP_connection.ALBVISDR(time_UTC=time_UTC, geometry=geometry)
         albedo_visible = rt.clip(albedo * (RVIS_NWP / albedo_NWP), 0, 1)
-        check_distribution(albedo_visible, "RVIS")
+        check_distribution(albedo_visible, "albedo_visible")
         RNIR_NWP = GEOS5FP_connection.ALBNIRDR(time_UTC=time_UTC, geometry=geometry)
         albedo_NIR = rt.clip(albedo * (RNIR_NWP / albedo_NWP), 0, 1)
-        check_distribution(albedo_NIR, "RNIR")
-        PARDir = PAR_direct_Wm2
-        check_distribution(PARDir, "PARDir")
+        check_distribution(albedo_NIR, "albedo_NIR")
+        PAR_direct_Wm2 = PAR_direct_Wm2
+        check_distribution(PAR_direct_Wm2, "PAR_direct_Wm2")
 
         SWin_FLiES_LUT= process_FLiES_LUT_raster(
             geometry=geometry,
