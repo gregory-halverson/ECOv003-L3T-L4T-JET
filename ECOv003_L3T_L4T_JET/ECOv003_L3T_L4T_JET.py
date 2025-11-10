@@ -309,16 +309,16 @@ def L3T_L4T_JET(
 
         MODISCI_connection = MODISCI(directory=MODISCI_directory)
 
-        SZA = calculate_SZA_from_DOY_and_hour(
+        SZA_deg = calculate_SZA_from_DOY_and_hour(
             lat=geometry.lat,
             lon=geometry.lon,
             DOY=day_of_year,
             hour=hour_of_day
         )
 
-        check_distribution(SZA, "SZA", date_UTC=date_UTC, target=tile)
+        check_distribution(SZA_deg, "SZA", date_UTC=date_UTC, target=tile)
 
-        if np.all(SZA >= SZA_DEGREE_CUTOFF):
+        if np.all(SZA_deg >= SZA_DEGREE_CUTOFF):
             raise DaytimeFilter(f"solar zenith angle exceeds {SZA_DEGREE_CUTOFF} for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
         logger.info("retrieving GEOS-5 FP aerosol optical thickness raster")
@@ -344,6 +344,8 @@ def L3T_L4T_JET(
 
         if zero_COT_correction:
             COT = COT * 0.0
+            
+        elevation_m = elevation_km * 1000
 
         FLiES_results = FLiESANN(
             albedo=albedo,
@@ -355,21 +357,23 @@ def L3T_L4T_JET(
             AOT=AOT,
             vapor_gccm=vapor_gccm,
             ozone_cm=ozone_cm,
-            elevation_km=elevation_km,
-            SZA=SZA,
+            elevation_m=elevation_m,
+            SZA_deg=SZA_deg,
             KG_climate=KG_climate,
             GEOS5FP_connection=GEOS5FP_connection,
         )
+        
+        # Updated variable names to match new FLiESANN results dictionary
 
-        Ra = FLiES_results["Ra"]
-        SWin_FLiES_ANN_raw = FLiES_results["Rg"]
-        UV = FLiES_results["UV"]
-        VIS = FLiES_results["VIS"]
-        NIR = FLiES_results["NIR"]
-        VISdiff = FLiES_results["VISdiff"]
-        NIRdiff = FLiES_results["NIRdiff"]
-        VISdir = FLiES_results["VISdir"]
-        NIRdir = FLiES_results["NIRdir"]
+        SWin_TOA_Wm2 = FLiES_results["SWin_TOA_Wm2"]        # Previously "Ra"
+        SWin_FLiES_ANN_raw = FLiES_results["SWin_Wm2"]      # Previously "Rg"
+        UV_Wm2 = FLiES_results["UV_Wm2"]              # Previously "UV"
+        PAR_Wm2 = FLiES_results["PAR_Wm2"]            # Previously "VIS"
+        NIR_Wm2 = FLiES_results["NIR_Wm2"]            # Previously "NIR"
+        PAR_diffuse_Wm2 = FLiES_results["PAR_diffuse_Wm2"] # Previously "VISdiff"
+        NIR_diffuse_Wm2 = FLiES_results["NIR_diffuse_Wm2"] # Previously "NIRdiff"
+        PAR_direct_Wm2 = FLiES_results["PAR_direct_Wm2"]  # Previously "VISdir"
+        NIR_direct_Wm2 = FLiES_results["NIR_direct_Wm2"]  # Previously "NIRdir"
 
         albedo_NWP = GEOS5FP_connection.ALBEDO(time_UTC=time_UTC, geometry=geometry)
         RVIS_NWP = GEOS5FP_connection.ALBVISDR(time_UTC=time_UTC, geometry=geometry)
@@ -378,7 +382,7 @@ def L3T_L4T_JET(
         RNIR_NWP = GEOS5FP_connection.ALBNIRDR(time_UTC=time_UTC, geometry=geometry)
         albedo_NIR = rt.clip(albedo * (RNIR_NWP / albedo_NWP), 0, 1)
         check_distribution(albedo_NIR, "RNIR")
-        PARDir = VISdir
+        PARDir = PAR_direct_Wm2
         check_distribution(PARDir, "PARDir")
 
         SWin_FLiES_LUT= process_FLiES_LUT_raster(
@@ -388,7 +392,7 @@ def L3T_L4T_JET(
             COT=COT,
             koppen_geiger=KG_climate,
             albedo=albedo,
-            SZA=SZA,
+            SZA=SZA_deg,
             GEOS5FP_connection=GEOS5FP_connection
         )
 
@@ -511,17 +515,17 @@ def L3T_L4T_JET(
             Ta_C=Ta_C,
             RH=RH,
             Rg=SWin_FLiES_ANN,
-            VISdiff=VISdiff,
-            VISdir=VISdir,
-            NIRdiff=NIRdiff,
-            NIRdir=NIRdir,
-            UV=UV,
+            VISdiff=PAR_diffuse_Wm2,
+            VISdir=PAR_direct_Wm2,
+            NIRdiff=NIR_diffuse_Wm2,
+            NIRdir=NIR_direct_Wm2,
+            UV=UV_Wm2,
             albedo_visible=albedo_visible,
             albedo_NIR=albedo_NIR,
             vapor_gccm=vapor_gccm,
             ozone_cm=ozone_cm,
             KG_climate=KG_climate,
-            SZA=SZA,
+            SZA=SZA_deg,
             GEDI_download_directory=GEDI_directory
         )
 
