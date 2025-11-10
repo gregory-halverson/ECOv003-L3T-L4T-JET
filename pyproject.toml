@@ -16,30 +16,30 @@ classifiers = [
 ]
 dependencies = [
     "AquaSEBS",
-    "BESS-JPL~=1.17.0",
-    "check-distribution~=1.0.1",
+    "BESS-JPL~=1.19.0",
+    "check-distribution~=1.1.0",
     "colored-logging~=1.0.1",
     "ECOv002-granules~=1.2.1",
     "ECOv003-exit-codes~=1.1.0",
     "ECOv003-granules~=1.10.0",
-    "FLiESANN~=1.6.0",
+    "FLiESANN~=2.1.0",
     "FLiESLUT~=1.0.3",
-    "GEOS5FP~=1.2.3",
-    "koppengeiger~=1.0.5",
+    "GEOS5FP~=1.3.0",
+    "koppengeiger~=1.1.0",
     "MCD12C1-2019-v006~=1.0.1",
-    "NASADEM~=1.3.0",
+    "NASADEM~=1.4.0",
     "numpy",
     "pandas",
-    "PM-JPL~=1.5.0",
-    "PTJPLSM~=1.8.0",
+    "PM-JPL~=1.6.0",
+    "PTJPLSM~=1.9.0",
     "python-dateutil",
     "pytictoc",
-    "rasters~=1.9.0",
+    "rasters~=1.14.0",
     "rasterio",
     "scikit-learn",
     "STIC-JPL~=1.2.2",
     "untangle",
-    "verma-net-radiation~=1.3.0"
+    "verma-net-radiation~=1.8.0"
 ]
 
 requires-python = ">=3.10"

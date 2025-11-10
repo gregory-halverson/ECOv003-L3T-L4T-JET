@@ -40,7 +40,7 @@ from BESS_JPL import BESS_JPL  # Custom module for the BESS-JPL (Breathing Earth
 from PMJPL import PMJPL  # Custom module for the PMJPL (Penman-Monteith Jet Propulsion Laboratory) model.
 from STIC_JPL import STIC_JPL  # Custom module for the STIC-JPL (Surface Temperature Initiated Closure - Jet Propulsion Laboratory) model.
 from PTJPLSM import PTJPLSM  # Custom module for the PTJPLSM (Priestley-Taylor Jet Propulsion Laboratory - Soil Moisture) model.
-from verma_net_radiation import verma_net_radiation, daily_Rn_integration_verma  # Custom modules for net radiation calculation using Verma's model and daily integration.
+from verma_net_radiation import verma_net_radiation, daylight_Rn_integration_verma  # Custom modules for net radiation calculation using Verma's model and daily integration.
 from sun_angles import SHA_deg_from_DOY_lat, sunrise_from_SHA, daylight_from_SHA  # Additional solar angle calculations.
 
 from ECOv003_granules import write_L3T_JET  # Functions for writing ECOSTRESS Level 3/4 products.
@@ -534,7 +534,7 @@ def L3T_L4T_JET(
         ## an need to revise evaporative fraction to take soil heat flux into account
         EF_BESS = rt.where((LE_BESS == 0) | ((Rn_BESS - G_BESS) == 0), 0, LE_BESS / (Rn_BESS - G_BESS))
         
-        Rn_daily_BESS = daily_Rn_integration_verma(
+        Rn_daily_BESS = daylight_Rn_integration_verma(
             Rn=Rn_BESS,
             hour_of_day=hour_of_day,
             DOY=day_of_year,
@@ -735,7 +735,7 @@ def L3T_L4T_JET(
         sunrise_hour = sunrise_from_SHA(SHA)
         daylight_hours = daylight_from_SHA(SHA)
 
-        Rn_daily = daily_Rn_integration_verma(
+        Rn_daily = daylight_Rn_integration_verma(
             Rn=Rn,
             hour_of_day=hour_of_day,
             DOY=day_of_year,
