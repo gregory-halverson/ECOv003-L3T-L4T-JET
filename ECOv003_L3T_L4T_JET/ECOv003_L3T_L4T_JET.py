@@ -461,7 +461,7 @@ def L3T_L4T_JET(
             ST_C=ST_C,
             NDVI=NDVI,
             albedo=albedo,
-            elevation_km=elevation_km,
+            elevation_m=elevation_m,
             geometry=geometry,
             time_UTC=time_UTC,
             hour_of_day=hour_of_day,
@@ -485,28 +485,27 @@ def L3T_L4T_JET(
             GEDI_download_directory=GEDI_directory
         )
 
-        Rn_BESS = BESS_results["Rn"]
-        G_BESS = BESS_results["G"]
-        check_distribution(Rn_BESS, "Rn_BESS", date_UTC=date_UTC, target=tile)
+        Rn_BESS_Wm2 = BESS_results["Rn_Wm2"]
+        G_BESS_Wm2 = BESS_results["G_Wm2"]
+        check_distribution(Rn_BESS_Wm2, "Rn_BESS_Wm2", date_UTC=date_UTC, target=tile)
         
-        LE_BESS = BESS_results["LE"]
+        LE_BESS_Wm2 = BESS_results["LE_Wm2"]
 
         ## an need to revise evaporative fraction to take soil heat flux into account
-        EF_BESS = rt.where((LE_BESS == 0) | ((Rn_BESS - G_BESS) == 0), 0, LE_BESS / (Rn_BESS - G_BESS))
+        EF_BESS = rt.where((LE_BESS_Wm2 == 0) | ((Rn_BESS_Wm2 - G_BESS_Wm2) == 0), 0, LE_BESS_Wm2 / (Rn_BESS_Wm2 - G_BESS_Wm2))
         
         Rn_daily_BESS = daylight_Rn_integration_verma(
-            Rn=Rn_BESS,
-            hour_of_day=hour_of_day,
-            DOY=day_of_year,
-            lat=geometry.lat,
+            Rn_Wm2=Rn_BESS_Wm2,
+            time_UTC=time_UTC,
+            geometry=geometry
         )
 
         LE_daily_BESS = rt.clip(EF_BESS * Rn_daily_BESS, 0, None)
 
         if water_mask is not None:
-            LE_BESS = rt.where(water_mask, np.nan, LE_BESS)
+            LE_BESS_Wm2 = rt.where(water_mask, np.nan, LE_BESS_Wm2)
 
-        check_distribution(LE_BESS, "LE_BESS", date_UTC=date_UTC, target=tile)
+        check_distribution(LE_BESS_Wm2, "LE_BESS", date_UTC=date_UTC, target=tile)
         
         GPP_inst_umol_m2_s = BESS_results["GPP"]
         
@@ -523,7 +522,7 @@ def L3T_L4T_JET(
         metadata["ProductMetadata"]["AuxiliaryNWP"] = AuxiliaryNWP
 
         verma_results = verma_net_radiation(
-            SWin=SWin,
+            SWin_Wm2=SWin_Wm2,
             albedo=albedo,
             ST_C=ST_C,
             emissivity=emissivity,
@@ -531,22 +530,22 @@ def L3T_L4T_JET(
             RH=RH
         )
 
-        Rn_verma = verma_results["Rn"]
+        Rn_verma_Wm2 = verma_results["Rn_Wm2"]
 
         if Rn_model_name == "verma":
-            Rn = Rn_verma
+            Rn_Wm2 = Rn_verma_Wm2
         elif Rn_model_name == "BESS":
-            Rn = Rn_BESS
+            Rn_Wm2 = Rn_BESS_Wm2
         else:
             raise ValueError(f"unrecognized net radiation model: {Rn_model_name}")
 
-        if np.all(np.isnan(Rn)) or np.all(Rn == 0):
+        if np.all(np.isnan(Rn_Wm2)) or np.all(Rn_Wm2 == 0):
             raise BlankOutput(f"blank net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
         STIC_results = STIC_JPL(
             geometry=geometry,
             time_UTC=time_UTC,
-            Rn_Wm2=Rn,
+            Rn_Wm2=Rn_Wm2,
             RH=RH,
             Ta_C=Ta_C_smooth,
             ST_C=ST_C,
@@ -563,7 +562,7 @@ def L3T_L4T_JET(
         STICJPLcanopy = rt.clip(rt.where((LEt_STIC == 0) | (LE_STIC == 0), 0, LEt_STIC / LE_STIC), 0, 1)
 
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
-        EF_STIC = rt.where((LE_STIC == 0) | ((Rn - G_STIC) == 0), 0, LE_STIC / (Rn - G_STIC))
+        EF_STIC = rt.where((LE_STIC == 0) | ((Rn_Wm2 - G_STIC) == 0), 0, LE_STIC / (Rn_Wm2 - G_STIC))
 
         PTJPLSM_results = PTJPLSM(
             geometry=geometry,
@@ -572,7 +571,7 @@ def L3T_L4T_JET(
             emissivity=emissivity,
             NDVI=NDVI,
             albedo=albedo,
-            Rn_Wm2=Rn,
+            Rn_Wm2=Rn_Wm2,
             Ta_C=Ta_C,
             RH=RH,
             soil_moisture=SM,
@@ -581,10 +580,10 @@ def L3T_L4T_JET(
             canopy_height_directory=GEDI_directory
         )
 
-        LE_PTJPLSM = rt.clip(PTJPLSM_results["LE"], 0, None)
-        G_PTJPLSM = PTJPLSM_results["G"]
+        LE_PTJPLSM = rt.clip(PTJPLSM_results["LE_Wm2"], 0, None)
+        G_PTJPLSM = PTJPLSM_results["G_Wm2"]
 
-        EF_PTJPLSM = rt.where((LE_PTJPLSM == 0) | ((Rn - G_PTJPLSM) == 0), 0, LE_PTJPLSM / (Rn - G_PTJPLSM))
+        EF_PTJPLSM = rt.where((LE_PTJPLSM == 0) | ((Rn_Wm2 - G_PTJPLSM) == 0), 0, LE_PTJPLSM / (Rn_Wm2 - G_PTJPLSM))
 
         if np.all(np.isnan(LE_PTJPLSM)):
             raise BlankOutput(
@@ -594,21 +593,21 @@ def L3T_L4T_JET(
             raise BlankOutput(
                 f"blank daily ET output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
 
-        LE_canopy_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["LE_canopy"], 0, None)
+        LE_canopy_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["LE_canopy_Wm2"], 0, None)
 
         PTJPLSMcanopy = rt.clip(LE_canopy_PTJPLSM_Wm2 / LE_PTJPLSM, 0, 1)
 
         if water_mask is not None:
             PTJPLSMcanopy = rt.where(water_mask, np.nan, PTJPLSMcanopy)
         
-        LE_soil_PTJPLSM = rt.clip(PTJPLSM_results["LE_soil"], 0, None)
+        LE_soil_PTJPLSM = rt.clip(PTJPLSM_results["LE_soil_Wm2"], 0, None)
 
         PTJPLSMsoil = rt.clip(LE_soil_PTJPLSM / LE_PTJPLSM, 0, 1)
 
         if water_mask is not None:
             PTJPLSMsoil = rt.where(water_mask, np.nan, PTJPLSMsoil)
         
-        LE_interception_PTJPLSM = rt.clip(PTJPLSM_results["LE_interception"], 0, None)
+        LE_interception_PTJPLSM = rt.clip(PTJPLSM_results["LE_interception_Wm2"], 0, None)
 
         PTJPLSMinterception = rt.clip(LE_interception_PTJPLSM / LE_PTJPLSM, 0, 1)
 
@@ -635,7 +634,7 @@ def L3T_L4T_JET(
             Ta_C=Ta_C,
             RH=RH,
             elevation_km=elevation_km,
-            Rn=Rn,
+            Rn=Rn_Wm2,
             GEOS5FP_connection=GEOS5FP_connection,
         )
 
@@ -643,13 +642,11 @@ def L3T_L4T_JET(
         G_PMJPL = PMJPL_results["G"]
 
         ETinst = rt.Raster(
-            np.nanmedian([np.array(LE_PTJPLSM), np.array(LE_BESS), np.array(LE_PMJPL), np.array(LE_STIC)], axis=0),
+            np.nanmedian([np.array(LE_PTJPLSM), np.array(LE_BESS_Wm2), np.array(LE_PMJPL), np.array(LE_STIC)], axis=0),
             geometry=geometry)
 
         windspeed_mps = GEOS5FP_connection.wind_speed(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-        SWnet = SWin * (1 - albedo)
-        Rn_Wm2 = Rn
-        SWin_Wm2 = SWin
+        SWnet = SWin_Wm2 * (1 - albedo)
 
         # Adding debugging statements for input rasters before the AquaSEBS call
         logger.info("checking input distributions for AquaSEBS")
@@ -686,17 +683,17 @@ def L3T_L4T_JET(
         ETinst = rt.where(water_mask, LE_AquaSEBS, ETinst)
         
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
-        EF_PMJPL = rt.where((LE_PMJPL == 0) | ((Rn - G_PMJPL) == 0), 0, LE_PMJPL / (Rn - G_PMJPL))
+        EF_PMJPL = rt.where((LE_PMJPL == 0) | ((Rn_Wm2 - G_PMJPL) == 0), 0, LE_PMJPL / (Rn_Wm2 - G_PMJPL))
 
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
-        EF = rt.where((ETinst == 0) | (Rn == 0), 0, ETinst / Rn)
+        EF = rt.where((ETinst == 0) | (Rn_Wm2 == 0), 0, ETinst / Rn_Wm2)
 
         SHA = SHA_deg_from_DOY_lat(day_of_year, geometry.lat)
         sunrise_hour = sunrise_from_SHA(SHA)
         daylight_hours = daylight_from_SHA(SHA)
 
         Rn_daily = daylight_Rn_integration_verma(
-            Rn=Rn,
+            Rn=Rn_Wm2,
             hour_of_day=hour_of_day,
             DOY=day_of_year,
             lat=geometry.lat,
@@ -718,7 +715,7 @@ def L3T_L4T_JET(
         ET_daily_kg_PMJPL = np.clip(LE_daily_PMJPL * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
 
         ETinstUncertainty = rt.Raster(
-            np.nanstd([np.array(LE_PTJPLSM), np.array(LE_BESS), np.array(LE_PMJPL), np.array(LE_STIC)], axis=0),
+            np.nanstd([np.array(LE_PTJPLSM), np.array(LE_BESS_Wm2), np.array(LE_PMJPL), np.array(LE_STIC)], axis=0),
             geometry=geometry).mask(~water_mask)
 
         GPP_inst_g_m2_s = GPP_inst_umol_m2_s / 1000000 * 12.011
@@ -768,7 +765,7 @@ def L3T_L4T_JET(
             product_counter=product_counter,
             Ta_C=Ta_C,
             RH=RH,
-            Rn=Rn,
+            Rn=Rn_Wm2,
             Rg=SWin,
             SM=SM,
             water_mask=water_mask,
