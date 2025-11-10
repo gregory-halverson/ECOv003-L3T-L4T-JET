@@ -20,7 +20,7 @@ import colored_logging as cl  # Custom module for colored console logging.
 
 import rasters as rt  # Custom or external library for raster data processing.
 from rasters import Raster, RasterGrid, RasterGeometry  # Specific classes from the rasters library for handling raster data, grids, and geometries.
-from rasters import linear_downscale, bias_correct  # Functions for downscaling and bias correction of rasters.
+from rasters import linear_downscale  # Functions for downscaling of rasters.
 
 from check_distribution import check_distribution  # Custom module for checking and potentially visualizing data distributions.
 
@@ -32,7 +32,6 @@ from GEOS5FP import GEOS5FP, FailedGEOS5FPDownload  # Custom module for interact
 from sun_angles import calculate_SZA_from_DOY_and_hour  # Custom module for calculating Solar Zenith Angle (SZA).
 
 from MCD12C1_2019_v006 import load_MCD12C1_IGBP  # Custom module for loading MODIS Land Cover Type (IGBP classification) data.
-from FLiESLUT import process_FLiES_LUT_raster  # Custom module for processing FLiES Look-Up Table (LUT) rasters.
 from FLiESANN import FLiESANN  # Re-importing FLiESANN, potentially the main class.
 
 from MODISCI import MODISCI
@@ -79,11 +78,9 @@ def L3T_L4T_JET(
         runconfig_filename: str,
         upsampling: str = None,
         downsampling: str = None,
-        SWin_model_name: str = SWIN_MODEL_NAME,
         Rn_model_name: str = RN_MODEL_NAME,
         include_SEB_diagnostics: bool = INCLUDE_SEB_DIAGNOSTICS,
         include_JET_diagnostics: bool = INCLUDE_JET_DIAGNOSTICS,
-        bias_correct_FLiES_ANN: bool = BIAS_CORRECT_FLIES_ANN,
         zero_COT_correction: bool = ZERO_COT_CORRECTION,
         sharpen_meteorology: bool = SHARPEN_METEOROLOGY,
         sharpen_soil_moisture: bool = SHARPEN_SOIL_MOISTURE,
@@ -103,11 +100,9 @@ def L3T_L4T_JET(
         runconfig_filename: Path to the XML run configuration file.
         upsampling: Upsampling method for spatial resampling (e.g., 'average', 'linear'). Defaults to 'average'.
         downsampling: Downsampling method for spatial resampling (e.g., 'linear', 'average'). Defaults to 'linear'.
-        SWin_model_name: Model to use for incoming shortwave radiation ('GEOS5FP', 'FLiES-ANN', 'FLiES-LUT'). Defaults to SWIN_MODEL_NAME.
         Rn_model_name: Model to use for net radiation ('verma', 'BESS'). Defaults to RN_MODEL_NAME.
         include_SEB_diagnostics: Whether to include Surface Energy Balance diagnostics in the output. Defaults to INCLUDE_SEB_DIAGNOSTICS.
         include_JET_diagnostics: Whether to include JET diagnostics in the output. Defaults to INCLUDE_JET_DIAGNOSTICS.
-        bias_correct_FLiES_ANN: Whether to bias correct the FLiES-ANN shortwave radiation output. Defaults to BIAS_CORRECT_FLIES_ANN.
         zero_COT_correction: Whether to set Cloud Optical Thickness to zero for correction. Defaults to ZERO_COT_CORRECTION.
         sharpen_meteorology: Whether to sharpen meteorological variables using a regression model. Defaults to SHARPEN_METEOROLOGY.
         sharpen_soil_moisture: Whether to sharpen soil moisture using a regression model. Defaults to SHARPEN_SOIL_MOISTURE.
@@ -385,54 +380,15 @@ def L3T_L4T_JET(
         PAR_direct_Wm2 = PAR_direct_Wm2
         check_distribution(PAR_direct_Wm2, "PAR_direct_Wm2")
 
-        SWin_FLiES_LUT= process_FLiES_LUT_raster(
-            geometry=geometry,
-            time_UTC=time_UTC,
-            cloud_mask=cloud_mask,
-            COT=COT,
-            koppen_geiger=KG_climate,
-            albedo=albedo,
-            SZA=SZA_deg,
-            GEOS5FP_connection=GEOS5FP_connection
-        )
-
         coarse_geometry = geometry.rescale(GEOS_IN_SENTINEL_COARSE_CELL_SIZE)
 
-        SWin_coarse = GEOS5FP_connection.SWin(
-            time_UTC=time_UTC,
-            geometry=coarse_geometry,
-            resampling=downsampling
-        )
+        # Use raw FLiES-ANN output directly without bias correction
+        SWin_Wm2 = SWin_FLiES_ANN_raw
 
-        if bias_correct_FLiES_ANN:
-            SWin_FLiES_ANN = bias_correct(
-                coarse_image=SWin_coarse,
-                fine_image=SWin_FLiES_ANN_raw,
-                upsampling=upsampling,
-                downsampling=downsampling
-            )
-        else:
-            SWin_FLiES_ANN = SWin_FLiES_ANN_raw
+        check_distribution(SWin_Wm2, "SWin_FLiES_ANN", date_UTC=date_UTC, target=tile)
 
-        check_distribution(SWin_FLiES_ANN, "SWin_FLiES_ANN", date_UTC=date_UTC, target=tile)
-
-        SWin_GEOS5FP = GEOS5FP_connection.SWin(
-            time_UTC=time_UTC,
-            geometry=geometry,
-            resampling=downsampling
-        )
-
-        check_distribution(SWin_GEOS5FP, "SWin_GEOS5FP", date_UTC=date_UTC, target=tile)
-
-        if SWin_model_name == "GEOS5FP":
-            SWin = SWin_GEOS5FP
-        elif SWin_model_name == "FLiES-ANN":
-            SWin = SWin_FLiES_ANN
-        elif SWin_model_name == "FLiES-LUT":
-            SWin = SWin_FLiES_LUT
-        else:
-            raise ValueError(f"unrecognized solar radiation model: {SWin_model_name}")
-
+        # Use FLiES-ANN solar radiation exclusively
+        SWin = SWin_Wm2
         SWin = rt.where(np.isnan(ST_K), np.nan, SWin)
 
         if np.all(np.isnan(SWin)) or np.all(SWin == 0):
@@ -514,18 +470,18 @@ def L3T_L4T_JET(
             MODISCI_connection=MODISCI_connection,
             Ta_C=Ta_C,
             RH=RH,
-            Rg=SWin_FLiES_ANN,
-            VISdiff=PAR_diffuse_Wm2,
-            VISdir=PAR_direct_Wm2,
-            NIRdiff=NIR_diffuse_Wm2,
-            NIRdir=NIR_direct_Wm2,
-            UV=UV_Wm2,
+            SWin_Wm2=SWin_Wm2,
+            PAR_diffuse_Wm2=PAR_diffuse_Wm2,
+            PAR_direct_Wm2=PAR_direct_Wm2,
+            NIR_diffuse_Wm2=NIR_diffuse_Wm2,
+            NIR_direct_Wm2=NIR_direct_Wm2,
+            UV_Wm2=UV_Wm2,
             albedo_visible=albedo_visible,
             albedo_NIR=albedo_NIR,
             vapor_gccm=vapor_gccm,
             ozone_cm=ozone_cm,
             KG_climate=KG_climate,
-            SZA=SZA_deg,
+            SZA_deg=SZA_deg,
             GEDI_download_directory=GEDI_directory
         )
 
