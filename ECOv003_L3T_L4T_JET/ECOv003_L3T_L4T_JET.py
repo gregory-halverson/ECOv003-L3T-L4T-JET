@@ -15,7 +15,7 @@ import pandas as pd  # For data manipulation and analysis, especially with tabul
 import sklearn  # Scikit-learn, a machine learning library.
 import sklearn.linear_model  # Specifically for linear regression models.
 from dateutil import parser  # For parsing dates and times from various formats.
-
+from AquaSEBS import AquaSEBS
 import colored_logging as cl  # Custom module for colored console logging.
 
 import rasters as rt  # Custom or external library for raster data processing.
@@ -49,6 +49,10 @@ from ECOv003_granules import write_L4T_ESI
 from ECOv003_granules import write_L4T_WUE
 
 from ECOv003_granules import L2TLSTE, L2TSTARS, L3TJET, L3TSM, L3TSEB, L3TMET, L4TESI, L4TWUE  # Product classes or constants from ECOv003_granules.
+
+from ECOv002_granules import L2TLSTE as ECOv002L2TLSTE  # Importing L2TLSTE from ECOv002_granules with an alias to avoid naming conflicts.
+from ECOv002_granules import L2TSTARS as ECOv002L2TSTARS  # Importing L2TSTARS from ECOv002_granules with an alias to avoid naming conflicts.
+
 from ECOv003_granules import ET_COLORMAP, SM_COLORMAP, WATER_COLORMAP, CLOUD_COLORMAP, RH_COLORMAP, GPP_COLORMAP  # Colormaps for visualization.
 
 from ECOv003_exit_codes import * # Import all custom exit codes.
@@ -152,34 +156,6 @@ def L3T_L4T_JET(
         L3T_ETAUX_browse_filename = runconfig.L3T_ETAUX_browse_filename
         logger.info(f"L3T ETAUX preview: {cl.file(L3T_ETAUX_browse_filename)}")
 
-        L3T_BESS_directory = runconfig.L3T_BESS_directory
-        logger.info(f"L3T BESS granule directory: {cl.dir(L3T_BESS_directory)}")
-        L3T_BESS_zip_filename = runconfig.L3T_BESS_zip_filename
-        logger.info(f"L3T BESS zip file: {cl.file(L3T_BESS_zip_filename)}")
-        L3T_BESS_browse_filename = runconfig.L3T_BESS_browse_filename
-        logger.info(f"L3T BESS preview: {cl.file(L3T_BESS_browse_filename)}")
-
-        L3T_MET_directory = runconfig.L3T_MET_directory
-        logger.info(f"L3T MET granule directory: {cl.dir(L3T_MET_directory)}")
-        L3T_MET_zip_filename = runconfig.L3T_MET_zip_filename
-        logger.info(f"L3T MET zip file: {cl.file(L3T_MET_zip_filename)}")
-        L3T_MET_browse_filename = runconfig.L3T_MET_browse_filename
-        logger.info(f"L3T MET preview: {cl.file(L3T_MET_browse_filename)}")
-
-        L3T_SEB_directory = runconfig.L3T_SEB_directory
-        logger.info(f"L3T SEB granule directory: {cl.dir(L3T_SEB_directory)}")
-        L3T_SEB_zip_filename = runconfig.L3T_SEB_zip_filename
-        logger.info(f"L3T SEB zip file: {cl.file(L3T_SEB_zip_filename)}")
-        L3T_SEB_browse_filename = runconfig.L3T_SEB_browse_filename
-        logger.info(f"L3T SEB preview: {cl.file(L3T_SEB_browse_filename)}")
-
-        L3T_SM_directory = runconfig.L3T_SM_directory
-        logger.info(f"L3T SM granule directory: {cl.dir(L3T_SM_directory)}")
-        L3T_SM_zip_filename = runconfig.L3T_SM_zip_filename
-        logger.info(f"L3T SM zip file: {cl.file(L3T_SM_zip_filename)}")
-        L3T_SM_browse_filename = runconfig.L3T_SM_browse_filename
-        logger.info(f"L3T SM preview: {cl.file(L3T_SM_browse_filename)}")
-
         L4T_ESI_granule_ID = runconfig.L4T_ESI_granule_ID
         logger.info(f"L4T ESI PT-JPL granule ID: {cl.val(L4T_ESI_granule_ID)}")
         L4T_ESI_directory = runconfig.L4T_ESI_directory
@@ -201,12 +177,8 @@ def L3T_L4T_JET(
         required_files = [
             L3T_JET_zip_filename,
             L3T_JET_browse_filename,
-            L3T_MET_zip_filename,
-            L3T_MET_browse_filename,
-            L3T_SEB_zip_filename,
-            L3T_SEB_browse_filename,
-            L3T_SM_zip_filename,
-            L3T_SM_browse_filename,
+            L3T_ETAUX_zip_filename,
+            L3T_ETAUX_browse_filename,
             L4T_ESI_zip_filename,
             L4T_ESI_browse_filename,
             L4T_WUE_zip_filename,
@@ -262,12 +234,26 @@ def L3T_L4T_JET(
         if not exists(L2T_LSTE_filename):
             raise InputFilesInaccessible(f"L2T LSTE file does not exist: {L2T_LSTE_filename}")
 
-        L2T_LSTE_granule = L2TLSTE(L2T_LSTE_filename)
+        # Check the basename of the file to determine collection, not the full path
+        L2T_LSTE_basename = basename(L2T_LSTE_filename)
+        if "ECOv003" in L2T_LSTE_basename:
+            L2T_LSTE_granule = L2TLSTE(L2T_LSTE_filename)
+        elif "ECOv002" in L2T_LSTE_basename:
+            L2T_LSTE_granule = ECOv002L2TLSTE(L2T_LSTE_filename)
+        else:
+            raise ValueError(f"collection not recognized in L2T LSTE filename: {L2T_LSTE_filename}")
 
         if not exists(L2T_STARS_filename):
             raise InputFilesInaccessible(f"L2T STARS file does not exist: {L2T_STARS_filename}")
 
-        L2T_STARS_granule = L2TSTARS(L2T_STARS_filename)
+        # Check the basename of the file to determine collection, not the full path
+        L2T_STARS_basename = basename(L2T_STARS_filename)
+        if "ECOv003" in L2T_STARS_basename:
+            L2T_STARS_granule = L2TSTARS(L2T_STARS_filename)
+        elif "ECOv002" in L2T_STARS_basename:
+            L2T_STARS_granule = ECOv002L2TSTARS(L2T_STARS_filename)
+        else:
+            raise ValueError(f"collection not recognized in L2T STARS filename: {L2T_STARS_filename}")
 
         metadata = L2T_STARS_granule.metadata_dict
         metadata["StandardMetadata"]["PGEVersion"] = __version__
@@ -279,7 +265,9 @@ def L3T_L4T_JET(
 
         geometry = L2T_LSTE_granule.geometry
         time_UTC = L2T_LSTE_granule.time_UTC
+        logger.info(f"overpass time: {cl.time(time_UTC)} UTC")
         date_UTC = time_UTC.date()
+        logger.info(f"overpass date: {cl.time(date_UTC)} UTC")
         time_solar = L2T_LSTE_granule.time_solar
         logger.info(
             f"orbit {cl.val(orbit)} scene {cl.val(scene)} tile {cl.place(tile)} overpass time: {cl.time(time_UTC)} UTC ({cl.time(time_solar)} solar)")
@@ -698,6 +686,45 @@ def L3T_L4T_JET(
             np.nanmedian([np.array(LE_PTJPLSM), np.array(LE_BESS), np.array(LE_PMJPL), np.array(LE_STIC)], axis=0),
             geometry=geometry)
 
+        windspeed_mps = GEOS5FP_connection.wind_speed(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
+        SWnet = SWin * (1 - albedo)
+        Rn_Wm2 = Rn
+        SWin_Wm2 = SWin
+
+        # Adding debugging statements for input rasters before the AquaSEBS call
+        logger.info("checking input distributions for AquaSEBS")
+        check_distribution(ST_C, "ST_C", date_UTC=date_UTC, target=tile)
+        check_distribution(emissivity, "emissivity", date_UTC=date_UTC, target=tile)
+        check_distribution(albedo, "albedo", date_UTC=date_UTC, target=tile)
+        check_distribution(Ta_C, "Ta_C", date_UTC=date_UTC, target=tile)
+        check_distribution(RH, "RH", date_UTC=date_UTC, target=tile)
+        check_distribution(windspeed_mps, "windspeed_mps", date_UTC=date_UTC, target=tile)
+        check_distribution(SWnet, "SWnet", date_UTC=date_UTC, target=tile)
+        check_distribution(Rn_Wm2, "Rn_Wm2", date_UTC=date_UTC, target=tile)
+        check_distribution(SWin_Wm2, "SWin_Wm2", date_UTC=date_UTC, target=tile)
+
+        AquaSEBS_results = AquaSEBS(
+            WST_C=ST_C,
+            emissivity=emissivity,
+            albedo=albedo,
+            Ta_C=Ta_C,
+            RH=RH,
+            windspeed_mps=windspeed_mps,
+            SWnet=SWnet,
+            Rn_Wm2=Rn_Wm2,
+            SWin_Wm2=SWin_Wm2,
+            geometry=geometry,
+            time_UTC=time_UTC,
+            water=water_mask,
+            GEOS5FP_connection=GEOS5FP_connection
+        )
+
+        for key, value in AquaSEBS_results.items():
+            check_distribution(value, key)
+
+        LE_AquaSEBS = AquaSEBS_results["LE_Wm2"]
+        ETinst = rt.where(water_mask, LE_AquaSEBS, ETinst)
+        
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
         EF_PMJPL = rt.where((LE_PMJPL == 0) | ((Rn - G_PMJPL) == 0), 0, LE_PMJPL / (Rn - G_PMJPL))
 
@@ -752,7 +779,8 @@ def L3T_L4T_JET(
             time_UTC=time_UTC,
             build=build,
             product_counter=product_counter,
-            LE_PTJPLSM=ET_daily_kg_PTJPLSM,
+            # LE_PTJPLSM=ET_daily_kg_PTJPLSM,
+            LE_PTJPLSM=LE_PTJPLSM, # fixing instantaneous latent heat flux layer
             ET_PTJPLSM=ET_daily_kg_PTJPLSM,
             ET_STICJPL=ET_daily_kg_STIC,
             ET_BESSJPL=ET_daily_kg_BESS,

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ECOv003-L3T-L4T-JET"
-version = "1.7.3"
+version = "1.10.0"
 description = "ECOSTRESS Collection 3 JPL Evapotranspiration (JET) Product Generating Executable (PGE)"
 readme = "README.md"
 authors = [
@@ -15,12 +15,13 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
+    "AquaSEBS",
     "BESS-JPL~=1.17.0",
     "check-distribution~=1.0.1",
     "colored-logging~=1.0.1",
-    "ECOv002-granules~=1.1.1",
+    "ECOv002-granules~=1.2.1",
     "ECOv003-exit-codes~=1.1.0",
-    "ECOv003-granules~=1.5.0",
+    "ECOv003-granules~=1.10.0",
     "FLiESANN~=1.6.0",
     "FLiESLUT~=1.0.3",
     "GEOS5FP~=1.2.3",
@@ -34,6 +35,7 @@ dependencies = [
     "python-dateutil",
     "pytictoc",
     "rasters~=1.9.0",
+    "rasterio",
     "scikit-learn",
     "STIC-JPL~=1.2.2",
     "untangle",
