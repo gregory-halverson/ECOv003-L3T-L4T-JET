@@ -721,7 +721,8 @@ def L3T_L4T_JET(
             geometry=geometry,
             time_UTC=time_UTC,
             water=water_mask,
-            GEOS5FP_connection=GEOS5FP_connection
+            GEOS5FP_connection=GEOS5FP_connection,
+            upscale_to_daylight=True
         )
 
         for key, value in AquaSEBS_results.items():
@@ -734,6 +735,9 @@ def L3T_L4T_JET(
         
         LE_instantaneous_Wm2 = rt.where(water_mask, LE_AquaSEBS_Wm2, LE_instantaneous_Wm2)
         check_distribution(LE_instantaneous_Wm2, "LE_instantaneous_Wm2", date_UTC=date_UTC, target=tile)
+        
+        ET_daylight_AquaSEBS_kg = AquaSEBS_results["ET_daylight_kg"]
+        check_distribution(ET_daylight_AquaSEBS_kg, "ET_daylight_AquaSEBS_kg", date_UTC=date_UTC, target=tile)
         
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
         EF_PMJPL = rt.where((LE_PMJPL_Wm2 == 0) | ((Rn_Wm2 - G_PMJPL_Wm2) == 0), 0, LE_PMJPL_Wm2 / (Rn_Wm2 - G_PMJPL_Wm2))

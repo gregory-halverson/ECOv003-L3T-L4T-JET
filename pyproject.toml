@@ -15,7 +15,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "AquaSEBS",
+    "AquaSEBS~=1.1.0",
     "BESS-JPL~=1.20.0",
     "check-distribution~=1.1.0",
     "colored-logging~=1.0.1",
