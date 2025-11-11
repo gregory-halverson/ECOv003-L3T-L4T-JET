@@ -486,7 +486,8 @@ def L3T_L4T_JET(
             ozone_cm=ozone_cm,
             KG_climate=KG_climate,
             SZA_deg=SZA_deg,
-            GEDI_download_directory=GEDI_directory
+            GEDI_download_directory=GEDI_directory,
+            upscale_to_daylight=True
         )
 
         Rn_BESS_Wm2 = BESS_results["Rn_Wm2"]
@@ -497,6 +498,7 @@ def L3T_L4T_JET(
         LE_BESS_Wm2 = BESS_results["LE_Wm2"]
         check_distribution(LE_BESS_Wm2, "LE_BESS_Wm2", date_UTC=date_UTC, target=tile)
         
+        # FIXME BESS needs to generate ET_daylight_kg
         ET_daylight_BESS_kg = BESS_results["ET_daylight_kg"]
 
         ## an need to revise evaporative fraction to take soil heat flux into account
@@ -515,7 +517,7 @@ def L3T_L4T_JET(
 
         check_distribution(LE_BESS_Wm2, "LE_BESS_Wm2", date_UTC=date_UTC, target=tile)
         
-        GPP_inst_umol_m2_s = BESS_results["GPP_inst_umol_m2_s"]
+        GPP_inst_umol_m2_s = BESS_results["GPP"]
         
         if water_mask is not None:
             GPP_inst_umol_m2_s = rt.where(water_mask, np.nan, GPP_inst_umol_m2_s)
@@ -560,14 +562,21 @@ def L3T_L4T_JET(
             albedo=albedo,
             emissivity=emissivity,
             NDVI=NDVI,
-            max_iterations=3
+            max_iterations=3,
+            upscale_to_daylight=True
         )
 
         LE_STIC_Wm2 = STIC_results["LE_Wm2"]
-        LE_canoy_STIC_Wm2 = STIC_results["LE_canopy_Wm2"]
+        check_distribution(LE_STIC_Wm2, "LE_STIC_Wm2", date_UTC=date_UTC, target=tile)
+        
+        LE_canopy_STIC_Wm2 = STIC_results["LE_canopy_Wm2"]
+        check_distribution(LE_canopy_STIC_Wm2, "LE_canoy_STIC_Wm2", date_UTC=date_UTC, target=tile)
+        
         G_STIC_Wm2 = STIC_results["G_Wm2"]
+        check_distribution(G_STIC_Wm2, "G_STIC_Wm2", date_UTC=date_UTC, target=tile)
 
-        STICJPLcanopy = rt.clip(rt.where((LE_canoy_STIC_Wm2 == 0) | (LE_STIC_Wm2 == 0), 0, LE_canoy_STIC_Wm2 / LE_STIC_Wm2), 0, 1)
+        LE_canopy_fraction_STIC = rt.clip(rt.where((LE_canopy_STIC_Wm2 == 0) | (LE_STIC_Wm2 == 0), 0, LE_canopy_STIC_Wm2 / LE_STIC_Wm2), 0, 1)
+        check_distribution(LE_canopy_fraction_STIC, "LE_canopy_fraction_STIC", date_UTC=date_UTC, target=tile)
 
         ## FIXME need to revise evaporative fraction to take soil heat flux into account
         EF_STIC = rt.where((LE_STIC_Wm2 == 0) | ((Rn_Wm2 - G_STIC_Wm2) == 0), 0, LE_STIC_Wm2 / (Rn_Wm2 - G_STIC_Wm2))
@@ -585,7 +594,8 @@ def L3T_L4T_JET(
             soil_moisture=SM,
             field_capacity_directory=soil_grids_directory,
             wilting_point_directory=soil_grids_directory,
-            canopy_height_directory=GEDI_directory
+            canopy_height_directory=GEDI_directory,
+            upscale_to_daylight=True
         )
 
         LE_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["LE_Wm2"], 0, None)
@@ -637,7 +647,7 @@ def L3T_L4T_JET(
         
         check_distribution(LE_interception_fraction_PTJPLSM, "LE_interception_fraction_PTJPLSM", date_UTC=date_UTC, target=tile)
         
-        PET_instantaneous_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["PET_instantaneous_PTJPLSM_Wm2"], 0, None)
+        PET_instantaneous_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["PET_Wm2"], 0, None)
         check_distribution(PET_instantaneous_PTJPLSM_Wm2, "PET_instantaneous_PTJPLSM_Wm2", date_UTC=date_UTC, target=tile)
 
         ESI_PTJPLSM = rt.clip(LE_PTJPLSM_Wm2 / PET_instantaneous_PTJPLSM_Wm2, 0, 1)
@@ -662,6 +672,7 @@ def L3T_L4T_JET(
             elevation_km=elevation_km,
             Rn_Wm2=Rn_Wm2,
             GEOS5FP_connection=GEOS5FP_connection,
+            upscale_to_daylight=True
         )
 
         LE_PMJPL_Wm2 = PMJPL_results["LE_Wm2"]
@@ -797,7 +808,7 @@ def L3T_L4T_JET(
             ET_daily_kg=ET_daily_kg,
             ETinstUncertainty=ETinstUncertainty,
             PTJPLSMcanopy=LE_canopy_fraction_PTJPLSM,
-            STICJPLcanopy=STICJPLcanopy,
+            STICJPLcanopy=LE_canopy_fraction_STIC,
             PTJPLSMsoil=LE_soil_fraction_PTJPLSM,
             PTJPLSMinterception=LE_interception_fraction_PTJPLSM,
             water_mask=water_mask,

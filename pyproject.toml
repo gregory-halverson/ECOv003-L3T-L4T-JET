@@ -37,7 +37,7 @@ dependencies = [
     "rasters~=1.14.0",
     "rasterio",
     "scikit-learn",
-    "STIC-JPL~=1.2.2",
+    "STIC-JPL~=1.4.0",
     "untangle",
     "verma-net-radiation~=1.8.0"
 ]
