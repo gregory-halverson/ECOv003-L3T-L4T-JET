@@ -42,6 +42,8 @@ from PTJPLSM import PTJPLSM  # Custom module for the PTJPLSM (Priestley-Taylor J
 from verma_net_radiation import verma_net_radiation, daylight_Rn_integration_verma  # Custom modules for net radiation calculation using Verma's model and daily integration.
 from sun_angles import SHA_deg_from_DOY_lat, sunrise_from_SHA, daylight_from_SHA  # Additional solar angle calculations.
 
+from ECOv003_L3T_L4T_JET.write_ECOv003_products import write_ECOv003_products
+
 from ECOv003_granules import write_L3T_JET  # Functions for writing ECOSTRESS Level 3/4 products.
 from ECOv003_granules import write_L3T_ETAUX
 from ECOv003_granules import write_L4T_ESI
@@ -820,87 +822,34 @@ def L3T_L4T_JET(
 
         metadata["StandardMetadata"]["CollectionLabel"] = "ECOv003"
 
-        write_L3T_JET(
-            L3T_JET_zip_filename=L3T_JET_zip_filename,
-            L3T_JET_browse_filename=L3T_JET_browse_filename,
-            L3T_JET_directory=L3T_JET_directory,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            time_UTC=time_UTC,
-            build=build,
-            product_counter=product_counter,
-            LE_instantaneous_PTJPLSM_Wm2=LE_PTJPLSM_Wm2,
+        write_ECOv003_products(
+            runconfig=runconfig,
+            metadata=metadata,
+            LE_PTJPLSM_Wm2=LE_PTJPLSM_Wm2,
             ET_daylight_PTJPLSM_kg=ET_daylight_PTJPLSM_kg,
-            LE_instantaneous_STICJPL_Wm2=LE_STIC_Wm2,
-            ET_daylight_STICJPL_kg=ET_daylight_STIC_kg,
-            LE_instantaneous_BESSJPL_Wm2=LE_BESS_Wm2,
-            ET_daylight_BESSJPL_kg=ET_daylight_BESS_kg,
-            LE_instantaneous_PMJPL_Wm2=LE_PMJPL_Wm2,
+            LE_STIC_Wm2=LE_STIC_Wm2,
+            ET_daylight_STIC_kg=ET_daylight_STIC_kg,
+            LE_BESS_Wm2=LE_BESS_Wm2,
+            ET_daylight_BESS_kg=ET_daylight_BESS_kg,
+            LE_PMJPL_Wm2=LE_PMJPL_Wm2,
             ET_daylight_PMJPL_kg=ET_daylight_PMJPL_kg,
             ET_daylight_kg=ET_daylight_kg,
-            ET_daylight_uncertainty_kg=ET_uncertainty,
+            ET_uncertainty=ET_uncertainty,
             LE_canopy_fraction_PTJPLSM=LE_canopy_fraction_PTJPLSM,
             LE_canopy_fraction_STIC=LE_canopy_fraction_STIC,
             LE_soil_fraction_PTJPLSM=LE_soil_fraction_PTJPLSM,
             LE_interception_fraction_PTJPLSM=LE_interception_fraction_PTJPLSM,
             water_mask=water_mask,
             cloud_mask=cloud_mask,
-            metadata=metadata
-        )
-
-        write_L3T_ETAUX(
-            L3T_ETAUX_zip_filename=L3T_ETAUX_zip_filename,
-            L3T_ETAUX_browse_filename=L3T_ETAUX_browse_filename,
-            L3T_ETAUX_directory=L3T_ETAUX_directory,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            time_UTC=time_UTC,
-            build=build,
-            product_counter=product_counter,
             Ta_C=Ta_C,
             RH=RH,
-            Rn=Rn_Wm2,
-            Rg=SWin,
+            Rn_Wm2=Rn_Wm2,
+            SWin=SWin,
             SM=SM,
-            water_mask=water_mask,
-            cloud_mask=cloud_mask,
-            metadata=metadata
-        )
-
-        write_L4T_ESI(
-            L4T_ESI_zip_filename=L4T_ESI_zip_filename,
-            L4T_ESI_browse_filename=L4T_ESI_browse_filename,
-            L4T_ESI_directory=L4T_ESI_directory,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            time_UTC=time_UTC,
-            build=build,
-            product_counter=product_counter,
-            ESI=ESI_PTJPLSM,
-            PET=PET_instantaneous_PTJPLSM_Wm2,
-            water_mask=water_mask,
-            cloud_mask=cloud_mask,
-            metadata=metadata
-        )
-
-        write_L4T_WUE(
-            L4T_WUE_zip_filename=L4T_WUE_zip_filename,
-            L4T_WUE_browse_filename=L4T_WUE_browse_filename,
-            L4T_WUE_directory=L4T_WUE_directory,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            time_UTC=time_UTC,
-            build=build,
-            product_counter=product_counter,
+            ESI_PTJPLSM=ESI_PTJPLSM,
+            PET_instantaneous_PTJPLSM_Wm2=PET_instantaneous_PTJPLSM_Wm2,
             WUE=WUE,
-            GPP=GPP_inst_g_m2_s,
-            water_mask=water_mask,
-            cloud_mask=cloud_mask,
-            metadata=metadata
+            GPP_inst_g_m2_s=GPP_inst_g_m2_s
         )
 
         logger.info(f"finished L3T L4T JET run in {cl.time(timer.tocvalue())} seconds")
