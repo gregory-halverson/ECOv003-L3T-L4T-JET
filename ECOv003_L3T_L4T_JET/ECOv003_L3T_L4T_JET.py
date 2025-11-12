@@ -207,6 +207,7 @@ def L3T_L4T_JET(
         ST_K = inputs['ST_K']
         ST_C = inputs['ST_C']
         elevation_km = inputs['elevation_km']
+        elevation_m = inputs['elevation_m']
         emissivity = inputs['emissivity']
         water_mask = inputs['water_mask']
         cloud_mask = inputs['cloud_mask']
@@ -221,29 +222,125 @@ def L3T_L4T_JET(
         ozone_cm = inputs['ozone_cm']
         hour_of_day = inputs['hour_of_day']
         day_of_year = inputs['day_of_year']
+        time_solar = inputs['time_solar']
         KG_climate = inputs['KG_climate']
-        elevation_m = inputs['elevation_m']
-        FLiES_results = inputs['FLiES_results']
-        SWin_Wm2 = inputs['SWin_Wm2']
-        UV_Wm2 = inputs['UV_Wm2']
-        PAR_Wm2 = inputs['PAR_Wm2']
-        NIR_Wm2 = inputs['NIR_Wm2']
-        PAR_diffuse_Wm2 = inputs['PAR_diffuse_Wm2']
-        NIR_diffuse_Wm2 = inputs['NIR_diffuse_Wm2']
-        PAR_direct_Wm2 = inputs['PAR_direct_Wm2']
-        NIR_direct_Wm2 = inputs['NIR_direct_Wm2']
-        albedo_visible = inputs['albedo_visible']
-        albedo_NIR = inputs['albedo_NIR']
         coarse_geometry = inputs['coarse_geometry']
-        SWin = inputs['SWin']
-        Ta_C = inputs['Ta_C']
-        Ta_C_smooth = inputs['Ta_C_smooth']
-        RH = inputs['RH']
-        SM = inputs['SM']
-        SVP_Pa = inputs['SVP_Pa']
-        Ea_Pa = inputs['Ea_Pa']
-        Ea_kPa = inputs['Ea_kPa']
-        Ta_K = inputs['Ta_K']
+
+        # Run FLiES-ANN
+        logger.info(f"running Forest Light Environmental Simulator for {cl.place(tile)} at {cl.time(time_UTC)} UTC")
+        
+        doy_solar = time_solar.timetuple().tm_yday
+
+        FLiES_results = FLiESANN(
+            albedo=albedo,
+            geometry=geometry,
+            time_UTC=time_UTC,
+            day_of_year=doy_solar,
+            hour_of_day=hour_of_day,
+            COT=COT,
+            AOT=AOT,
+            vapor_gccm=vapor_gccm,
+            ozone_cm=ozone_cm,
+            elevation_m=elevation_m,
+            SZA_deg=SZA_deg,
+            KG_climate=KG_climate,
+            GEOS5FP_connection=GEOS5FP_connection,
+        )
+        
+        # Extract FLiES-ANN results with updated variable names
+        SWin_TOA_Wm2 = FLiES_results["SWin_TOA_Wm2"]
+        SWin_FLiES_ANN_raw = FLiES_results["SWin_Wm2"]
+        UV_Wm2 = FLiES_results["UV_Wm2"]
+        PAR_Wm2 = FLiES_results["PAR_Wm2"]
+        NIR_Wm2 = FLiES_results["NIR_Wm2"]
+        PAR_diffuse_Wm2 = FLiES_results["PAR_diffuse_Wm2"]
+        NIR_diffuse_Wm2 = FLiES_results["NIR_diffuse_Wm2"]
+        PAR_direct_Wm2 = FLiES_results["PAR_direct_Wm2"]
+        NIR_direct_Wm2 = FLiES_results["NIR_direct_Wm2"]
+
+        # Calculate partitioned albedo
+        albedo_NWP = GEOS5FP_connection.ALBEDO(time_UTC=time_UTC, geometry=geometry)
+        RVIS_NWP = GEOS5FP_connection.ALBVISDR(time_UTC=time_UTC, geometry=geometry)
+        albedo_visible = rt.clip(albedo * (RVIS_NWP / albedo_NWP), 0, 1)
+        check_distribution(albedo_visible, "albedo_visible")
+        RNIR_NWP = GEOS5FP_connection.ALBNIRDR(time_UTC=time_UTC, geometry=geometry)
+        albedo_NIR = rt.clip(albedo * (RNIR_NWP / albedo_NWP), 0, 1)
+        check_distribution(albedo_NIR, "albedo_NIR")
+        check_distribution(PAR_direct_Wm2, "PAR_direct_Wm2")
+
+        # Use raw FLiES-ANN output directly without bias correction
+        SWin_Wm2 = SWin_FLiES_ANN_raw
+        check_distribution(SWin_Wm2, "SWin_FLiES_ANN", date_UTC=date_UTC, target=tile)
+
+        # Use FLiES-ANN solar radiation exclusively
+        SWin = SWin_Wm2
+        SWin = rt.where(np.isnan(ST_K), np.nan, SWin)
+
+        # Check for blank output
+        if np.all(np.isnan(SWin)) or np.all(SWin == 0):
+            raise BlankOutput(
+                f"blank solar radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
+
+        # Sharpen meteorological variables if enabled
+        if sharpen_meteorology:
+            try:
+                Ta_C, RH, Ta_C_smooth = sharpen_meteorology_data(
+                    ST_C=ST_C,
+                    NDVI=NDVI,
+                    albedo=albedo,
+                    geometry=geometry,
+                    coarse_geometry=coarse_geometry,
+                    time_UTC=time_UTC,
+                    date_UTC=date_UTC,
+                    tile=tile,
+                    orbit=orbit,
+                    scene=scene,
+                    upsampling=upsampling,
+                    downsampling=downsampling,
+                    GEOS5FP_connection=GEOS5FP_connection
+                )
+            except Exception as e:
+                logger.error(e)
+                logger.warning("unable to sharpen meteorology")
+                Ta_C = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
+                Ta_C_smooth = Ta_C
+                RH = GEOS5FP_connection.RH(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
+        else:
+            Ta_C = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
+            Ta_C_smooth = Ta_C
+            RH = GEOS5FP_connection.RH(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
+
+        # Sharpen soil moisture if enabled
+        if sharpen_soil_moisture:
+            try:
+                SM = sharpen_soil_moisture_data(
+                    ST_C=ST_C,
+                    NDVI=NDVI,
+                    albedo=albedo,
+                    water_mask=water_mask,
+                    geometry=geometry,
+                    coarse_geometry=coarse_geometry,
+                    time_UTC=time_UTC,
+                    date_UTC=date_UTC,
+                    tile=tile,
+                    orbit=orbit,
+                    scene=scene,
+                    upsampling=upsampling,
+                    downsampling=downsampling,
+                    GEOS5FP_connection=GEOS5FP_connection
+                )
+            except Exception as e:
+                logger.error(e)
+                logger.warning("unable to sharpen soil moisture")
+                SM = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
+        else:
+            SM = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
+
+        # Calculate vapor pressure variables
+        SVP_Pa = 0.6108 * np.exp((17.27 * Ta_C) / (Ta_C + 237.3)) * 1000  # [Pa]
+        Ea_Pa = RH * SVP_Pa
+        Ea_kPa = Ea_Pa / 1000
+        Ta_K = Ta_C + 273.15
 
         logger.info(f"running Breathing Earth System Simulator for {cl.place(tile)} at {cl.time(time_UTC)} UTC")
 

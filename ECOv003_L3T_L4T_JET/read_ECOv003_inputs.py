@@ -57,8 +57,9 @@ def read_ECOv003_inputs(
     Read and process ECOv003 input data from L2T LSTE and L2T STARS granules.
     
     This function loads input granules, retrieves meteorological data from GEOS-5 FP,
-    runs FLiES-ANN for solar radiation modeling, and optionally sharpens meteorological
-    and soil moisture data using regression models.
+    and prepares all necessary inputs for FLiES-ANN solar radiation modeling.
+    Note: FLiES-ANN is called in the main L3T_L4T_JET function, not here.
+    Meteorological and soil moisture sharpening also occur in the main function.
     
     Args:
         L2T_LSTE_filename: Path to the L2T LSTE input file.
@@ -72,16 +73,17 @@ def read_ECOv003_inputs(
         date_UTC: UTC date of the overpass.
         geometry: Raster geometry for the tile.
         zero_COT_correction: Whether to set Cloud Optical Thickness to zero.
-        sharpen_meteorology: Whether to sharpen meteorological variables.
-        sharpen_soil_moisture: Whether to sharpen soil moisture.
-        upsampling: Upsampling method for spatial resampling.
-        downsampling: Downsampling method for spatial resampling.
+        sharpen_meteorology: Whether to sharpen meteorological variables (parameter kept for interface consistency).
+        sharpen_soil_moisture: Whether to sharpen soil moisture (parameter kept for interface consistency).
+        upsampling: Upsampling method for spatial resampling (parameter kept for interface consistency).
+        downsampling: Downsampling method for spatial resampling (parameter kept for interface consistency).
     
     Returns:
-        A dictionary containing all processed input variables and metadata including:
+        A dictionary containing input variables and metadata needed for FLiES-ANN and subsequent processing:
         - metadata: Product metadata dictionary
         - ST_K, ST_C: Surface temperature in Kelvin and Celsius
         - elevation_km: Elevation in kilometers
+        - elevation_m: Elevation in meters
         - emissivity: Surface emissivity
         - water_mask: Water mask
         - cloud_mask: Cloud mask
@@ -91,34 +93,14 @@ def read_ECOv003_inputs(
         - MODISCI_connection: MODIS CI connection object
         - SZA_deg: Solar zenith angle in degrees
         - AOT: Aerosol optical thickness
-        - COT: Cloud optical thickness
+        - COT: Cloud optical thickness (corrected if zero_COT_correction=True)
         - vapor_gccm: Water vapor in g/cm²
         - ozone_cm: Ozone in cm
         - hour_of_day: Solar hour of day
         - day_of_year: Solar day of year
+        - time_solar: Solar time
         - KG_climate: Köppen-Geiger climate classification
-        - elevation_m: Elevation in meters
-        - FLiES_results: Dictionary of FLiES-ANN results
-        - SWin_Wm2: Incoming shortwave radiation in W/m²
-        - UV_Wm2: UV radiation in W/m²
-        - PAR_Wm2: Photosynthetically active radiation in W/m²
-        - NIR_Wm2: Near-infrared radiation in W/m²
-        - PAR_diffuse_Wm2: Diffuse PAR in W/m²
-        - NIR_diffuse_Wm2: Diffuse NIR in W/m²
-        - PAR_direct_Wm2: Direct PAR in W/m²
-        - NIR_direct_Wm2: Direct NIR in W/m²
-        - albedo_visible: Visible albedo
-        - albedo_NIR: NIR albedo
         - coarse_geometry: Coarse resolution geometry
-        - SWin: Incoming shortwave radiation (same as SWin_Wm2)
-        - Ta_C: Air temperature in Celsius
-        - Ta_C_smooth: Smoothed air temperature in Celsius
-        - RH: Relative humidity
-        - SM: Soil moisture
-        - SVP_Pa: Saturated vapor pressure in Pa
-        - Ea_Pa: Actual vapor pressure in Pa
-        - Ea_kPa: Actual vapor pressure in kPa
-        - Ta_K: Air temperature in Kelvin
     """
     # Check L2T LSTE file existence
     if not exists(L2T_LSTE_filename):
@@ -233,131 +215,19 @@ def read_ECOv003_inputs(
     ozone_cm = GEOS5FP_connection.ozone_cm(time_UTC=time_UTC, geometry=geometry)
     check_distribution(ozone_cm, "ozone_cm", date_UTC=date_UTC, target=tile)
 
-    # Run FLiES-ANN
-    logger.info(f"running Forest Light Environmental Simulator for {cl.place(tile)} at {cl.time(time_UTC)} UTC")
-    
-    doy_solar = time_solar.timetuple().tm_yday
+    # Calculate derived variables needed for later processing
     KG_climate = load_koppen_geiger(albedo.geometry)
-
+    
     # Apply COT correction if requested
     if zero_COT_correction:
         COT = COT * 0.0
     
     elevation_m = elevation_km * 1000
 
-    FLiES_results = FLiESANN(
-        albedo=albedo,
-        geometry=geometry,
-        time_UTC=time_UTC,
-        day_of_year=doy_solar,
-        hour_of_day=hour_of_day,
-        COT=COT,
-        AOT=AOT,
-        vapor_gccm=vapor_gccm,
-        ozone_cm=ozone_cm,
-        elevation_m=elevation_m,
-        SZA_deg=SZA_deg,
-        KG_climate=KG_climate,
-        GEOS5FP_connection=GEOS5FP_connection,
-    )
-    
-    # Extract FLiES-ANN results with updated variable names
-    SWin_TOA_Wm2 = FLiES_results["SWin_TOA_Wm2"]
-    SWin_FLiES_ANN_raw = FLiES_results["SWin_Wm2"]
-    UV_Wm2 = FLiES_results["UV_Wm2"]
-    PAR_Wm2 = FLiES_results["PAR_Wm2"]
-    NIR_Wm2 = FLiES_results["NIR_Wm2"]
-    PAR_diffuse_Wm2 = FLiES_results["PAR_diffuse_Wm2"]
-    NIR_diffuse_Wm2 = FLiES_results["NIR_diffuse_Wm2"]
-    PAR_direct_Wm2 = FLiES_results["PAR_direct_Wm2"]
-    NIR_direct_Wm2 = FLiES_results["NIR_direct_Wm2"]
-
-    # Calculate partitioned albedo
-    albedo_NWP = GEOS5FP_connection.ALBEDO(time_UTC=time_UTC, geometry=geometry)
-    RVIS_NWP = GEOS5FP_connection.ALBVISDR(time_UTC=time_UTC, geometry=geometry)
-    albedo_visible = rt.clip(albedo * (RVIS_NWP / albedo_NWP), 0, 1)
-    check_distribution(albedo_visible, "albedo_visible")
-    RNIR_NWP = GEOS5FP_connection.ALBNIRDR(time_UTC=time_UTC, geometry=geometry)
-    albedo_NIR = rt.clip(albedo * (RNIR_NWP / albedo_NWP), 0, 1)
-    check_distribution(albedo_NIR, "albedo_NIR")
-    check_distribution(PAR_direct_Wm2, "PAR_direct_Wm2")
-
     # Create coarse geometry
     coarse_geometry = geometry.rescale(GEOS_IN_SENTINEL_COARSE_CELL_SIZE)
 
-    # Use raw FLiES-ANN output directly without bias correction
-    SWin_Wm2 = SWin_FLiES_ANN_raw
-    check_distribution(SWin_Wm2, "SWin_FLiES_ANN", date_UTC=date_UTC, target=tile)
-
-    # Use FLiES-ANN solar radiation exclusively
-    SWin = SWin_Wm2
-    SWin = rt.where(np.isnan(ST_K), np.nan, SWin)
-
-    # Check for blank output
-    if np.all(np.isnan(SWin)) or np.all(SWin == 0):
-        raise BlankOutput(
-            f"blank solar radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
-
-    # Sharpen meteorological variables if enabled
-    if sharpen_meteorology:
-        try:
-            Ta_C, RH, Ta_C_smooth = sharpen_meteorology_data(
-                ST_C=ST_C,
-                NDVI=NDVI,
-                albedo=albedo,
-                geometry=geometry,
-                coarse_geometry=coarse_geometry,
-                time_UTC=time_UTC,
-                date_UTC=date_UTC,
-                tile=tile,
-                orbit=orbit,
-                scene=scene,
-                upsampling=upsampling,
-                downsampling=downsampling,
-                GEOS5FP_connection=GEOS5FP_connection
-            )
-        except Exception as e:
-            logger.error(e)
-            logger.warning("unable to sharpen meteorology")
-            Ta_C = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-            Ta_C_smooth = Ta_C
-            RH = GEOS5FP_connection.RH(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-    else:
-        Ta_C = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-        Ta_C_smooth = Ta_C
-        RH = GEOS5FP_connection.RH(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-
-    # Sharpen soil moisture if enabled
-    if sharpen_soil_moisture:
-        try:
-            SM = sharpen_soil_moisture_data(
-                ST_C=ST_C,
-                NDVI=NDVI,
-                albedo=albedo,
-                water_mask=water_mask,
-                geometry=geometry,
-                coarse_geometry=coarse_geometry,
-                time_UTC=time_UTC,
-                date_UTC=date_UTC,
-                tile=tile,
-                orbit=orbit,
-                scene=scene,
-                upsampling=upsampling,
-                downsampling=downsampling,
-                GEOS5FP_connection=GEOS5FP_connection
-            )
-        except Exception as e:
-            logger.error(e)
-            logger.warning("unable to sharpen soil moisture")
-            SM = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-    else:
-        SM = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-
-    # Calculate vapor pressure variables
-    SVP_Pa = 0.6108 * np.exp((17.27 * Ta_C) / (Ta_C + 237.3)) * 1000  # [Pa]
-    Ea_Pa = RH * SVP_Pa
-    Ea_kPa = Ea_Pa / 1000
-    Ta_K = Ta_C + 273.15
+    # Note: Meteorology and soil moisture sharpening will be done after FLiES-ANN in main function
 
     # Return all variables as a dictionary
     return {
@@ -365,6 +235,7 @@ def read_ECOv003_inputs(
         'ST_K': ST_K,
         'ST_C': ST_C,
         'elevation_km': elevation_km,
+        'elevation_m': elevation_m,
         'emissivity': emissivity,
         'water_mask': water_mask,
         'cloud_mask': cloud_mask,
@@ -379,27 +250,7 @@ def read_ECOv003_inputs(
         'ozone_cm': ozone_cm,
         'hour_of_day': hour_of_day,
         'day_of_year': day_of_year,
+        'time_solar': time_solar,
         'KG_climate': KG_climate,
-        'elevation_m': elevation_m,
-        'FLiES_results': FLiES_results,
-        'SWin_Wm2': SWin_Wm2,
-        'UV_Wm2': UV_Wm2,
-        'PAR_Wm2': PAR_Wm2,
-        'NIR_Wm2': NIR_Wm2,
-        'PAR_diffuse_Wm2': PAR_diffuse_Wm2,
-        'NIR_diffuse_Wm2': NIR_diffuse_Wm2,
-        'PAR_direct_Wm2': PAR_direct_Wm2,
-        'NIR_direct_Wm2': NIR_direct_Wm2,
-        'albedo_visible': albedo_visible,
-        'albedo_NIR': albedo_NIR,
-        'coarse_geometry': coarse_geometry,
-        'SWin': SWin,
-        'Ta_C': Ta_C,
-        'Ta_C_smooth': Ta_C_smooth,
-        'RH': RH,
-        'SM': SM,
-        'SVP_Pa': SVP_Pa,
-        'Ea_Pa': Ea_Pa,
-        'Ea_kPa': Ea_kPa,
-        'Ta_K': Ta_K
+        'coarse_geometry': coarse_geometry
     }
