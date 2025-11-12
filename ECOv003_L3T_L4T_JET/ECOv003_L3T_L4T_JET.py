@@ -315,7 +315,7 @@ def L3T_L4T_JET(
 
         NWP_filenames = sorted([posixpath.basename(filename) for filename in GEOS5FP_connection.filenames])
         AuxiliaryNWP = ",".join(NWP_filenames)
-        metadata["ProductMetadata"]["AuxiliaryNWP"] = AuxiliaryNWP
+        
 
         verma_results = verma_net_radiation(
             SWin_Wm2=SWin_Wm2,
@@ -589,6 +589,7 @@ def L3T_L4T_JET(
         WUE = rt.clip(WUE, 0, 10)
 
         metadata["StandardMetadata"]["CollectionLabel"] = "ECOv003"
+        metadata["ProductMetadata"]["AuxiliaryNWP"] = AuxiliaryNWP
 
         write_ECOv003_products(
             runconfig=runconfig,
