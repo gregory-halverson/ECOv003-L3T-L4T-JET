@@ -57,9 +57,9 @@ def read_ECOv003_inputs(
     Read and process ECOv003 input data from L2T LSTE and L2T STARS granules.
     
     This function loads input granules, retrieves meteorological data from GEOS-5 FP,
-    and prepares all necessary inputs for FLiES-ANN solar radiation modeling.
+    sharpens meteorology and soil moisture (if enabled), and prepares all necessary 
+    inputs for FLiES-ANN solar radiation modeling.
     Note: FLiES-ANN is called in the main L3T_L4T_JET function, not here.
-    Meteorological and soil moisture sharpening also occur in the main function.
     
     Args:
         L2T_LSTE_filename: Path to the L2T LSTE input file.
@@ -73,10 +73,10 @@ def read_ECOv003_inputs(
         date_UTC: UTC date of the overpass.
         geometry: Raster geometry for the tile.
         zero_COT_correction: Whether to set Cloud Optical Thickness to zero.
-        sharpen_meteorology: Whether to sharpen meteorological variables (parameter kept for interface consistency).
-        sharpen_soil_moisture: Whether to sharpen soil moisture (parameter kept for interface consistency).
-        upsampling: Upsampling method for spatial resampling (parameter kept for interface consistency).
-        downsampling: Downsampling method for spatial resampling (parameter kept for interface consistency).
+        sharpen_meteorology: Whether to sharpen meteorological variables.
+        sharpen_soil_moisture: Whether to sharpen soil moisture.
+        upsampling: Upsampling method for spatial resampling.
+        downsampling: Downsampling method for spatial resampling.
     
     Returns:
         A dictionary containing input variables and metadata needed for FLiES-ANN and subsequent processing:
@@ -101,6 +101,14 @@ def read_ECOv003_inputs(
         - time_solar: Solar time
         - KG_climate: Köppen-Geiger climate classification
         - coarse_geometry: Coarse resolution geometry
+        - Ta_C: Air temperature in Celsius (sharpened if enabled)
+        - Ta_C_smooth: Smoothed air temperature in Celsius
+        - RH: Relative humidity (sharpened if enabled)
+        - SM: Soil moisture (sharpened if enabled)
+        - SVP_Pa: Saturated vapor pressure in Pa
+        - Ea_Pa: Actual vapor pressure in Pa
+        - Ea_kPa: Actual vapor pressure in kPa
+        - Ta_K: Air temperature in Kelvin
     """
     # Check L2T LSTE file existence
     if not exists(L2T_LSTE_filename):
@@ -227,7 +235,66 @@ def read_ECOv003_inputs(
     # Create coarse geometry
     coarse_geometry = geometry.rescale(GEOS_IN_SENTINEL_COARSE_CELL_SIZE)
 
-    # Note: Meteorology and soil moisture sharpening will be done after FLiES-ANN in main function
+    # Sharpen meteorological variables if enabled
+    if sharpen_meteorology:
+        try:
+            Ta_C, RH, Ta_C_smooth = sharpen_meteorology_data(
+                ST_C=ST_C,
+                NDVI=NDVI,
+                albedo=albedo,
+                geometry=geometry,
+                coarse_geometry=coarse_geometry,
+                time_UTC=time_UTC,
+                date_UTC=date_UTC,
+                tile=tile,
+                orbit=orbit,
+                scene=scene,
+                upsampling=upsampling,
+                downsampling=downsampling,
+                GEOS5FP_connection=GEOS5FP_connection
+            )
+        except Exception as e:
+            logger.error(e)
+            logger.warning("unable to sharpen meteorology")
+            Ta_C = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
+            Ta_C_smooth = Ta_C
+            RH = GEOS5FP_connection.RH(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
+    else:
+        Ta_C = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
+        Ta_C_smooth = Ta_C
+        RH = GEOS5FP_connection.RH(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
+
+    # Sharpen soil moisture if enabled
+    if sharpen_soil_moisture:
+        try:
+            SM = sharpen_soil_moisture_data(
+                ST_C=ST_C,
+                NDVI=NDVI,
+                albedo=albedo,
+                water_mask=water_mask,
+                geometry=geometry,
+                coarse_geometry=coarse_geometry,
+                time_UTC=time_UTC,
+                date_UTC=date_UTC,
+                tile=tile,
+                orbit=orbit,
+                scene=scene,
+                upsampling=upsampling,
+                downsampling=downsampling,
+                GEOS5FP_connection=GEOS5FP_connection
+            )
+        except Exception as e:
+            logger.error(e)
+            logger.warning("unable to sharpen soil moisture")
+            SM = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
+    else:
+        SM = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
+
+    # Calculate vapor pressure variables
+    SVP_Pa = 0.6108 * np.exp((17.27 * Ta_C) / (Ta_C + 237.3)) * 1000  # [Pa]
+    Ea_Pa = RH * SVP_Pa
+    Ea_kPa = Ea_Pa / 1000
+    Ta_K = Ta_C + 273.15
 
     # Return all variables as a dictionary
     return {
@@ -252,5 +319,13 @@ def read_ECOv003_inputs(
         'day_of_year': day_of_year,
         'time_solar': time_solar,
         'KG_climate': KG_climate,
-        'coarse_geometry': coarse_geometry
+        'coarse_geometry': coarse_geometry,
+        'Ta_C': Ta_C,
+        'Ta_C_smooth': Ta_C_smooth,
+        'RH': RH,
+        'SM': SM,
+        'SVP_Pa': SVP_Pa,
+        'Ea_Pa': Ea_Pa,
+        'Ea_kPa': Ea_kPa,
+        'Ta_K': Ta_K
     }

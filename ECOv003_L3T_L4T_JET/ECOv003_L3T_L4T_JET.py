@@ -225,6 +225,14 @@ def L3T_L4T_JET(
         time_solar = inputs['time_solar']
         KG_climate = inputs['KG_climate']
         coarse_geometry = inputs['coarse_geometry']
+        Ta_C = inputs['Ta_C']
+        Ta_C_smooth = inputs['Ta_C_smooth']
+        RH = inputs['RH']
+        SM = inputs['SM']
+        SVP_Pa = inputs['SVP_Pa']
+        Ea_Pa = inputs['Ea_Pa']
+        Ea_kPa = inputs['Ea_kPa']
+        Ta_K = inputs['Ta_K']
 
         # Run FLiES-ANN
         logger.info(f"running Forest Light Environmental Simulator for {cl.place(tile)} at {cl.time(time_UTC)} UTC")
@@ -280,67 +288,6 @@ def L3T_L4T_JET(
         if np.all(np.isnan(SWin)) or np.all(SWin == 0):
             raise BlankOutput(
                 f"blank solar radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
-
-        # Sharpen meteorological variables if enabled
-        if sharpen_meteorology:
-            try:
-                Ta_C, RH, Ta_C_smooth = sharpen_meteorology_data(
-                    ST_C=ST_C,
-                    NDVI=NDVI,
-                    albedo=albedo,
-                    geometry=geometry,
-                    coarse_geometry=coarse_geometry,
-                    time_UTC=time_UTC,
-                    date_UTC=date_UTC,
-                    tile=tile,
-                    orbit=orbit,
-                    scene=scene,
-                    upsampling=upsampling,
-                    downsampling=downsampling,
-                    GEOS5FP_connection=GEOS5FP_connection
-                )
-            except Exception as e:
-                logger.error(e)
-                logger.warning("unable to sharpen meteorology")
-                Ta_C = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-                Ta_C_smooth = Ta_C
-                RH = GEOS5FP_connection.RH(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-        else:
-            Ta_C = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-            Ta_C_smooth = Ta_C
-            RH = GEOS5FP_connection.RH(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-
-        # Sharpen soil moisture if enabled
-        if sharpen_soil_moisture:
-            try:
-                SM = sharpen_soil_moisture_data(
-                    ST_C=ST_C,
-                    NDVI=NDVI,
-                    albedo=albedo,
-                    water_mask=water_mask,
-                    geometry=geometry,
-                    coarse_geometry=coarse_geometry,
-                    time_UTC=time_UTC,
-                    date_UTC=date_UTC,
-                    tile=tile,
-                    orbit=orbit,
-                    scene=scene,
-                    upsampling=upsampling,
-                    downsampling=downsampling,
-                    GEOS5FP_connection=GEOS5FP_connection
-                )
-            except Exception as e:
-                logger.error(e)
-                logger.warning("unable to sharpen soil moisture")
-                SM = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-        else:
-            SM = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-
-        # Calculate vapor pressure variables
-        SVP_Pa = 0.6108 * np.exp((17.27 * Ta_C) / (Ta_C + 237.3)) * 1000  # [Pa]
-        Ea_Pa = RH * SVP_Pa
-        Ea_kPa = Ea_Pa / 1000
-        Ta_K = Ta_C + 273.15
 
         logger.info(f"running Breathing Earth System Simulator for {cl.place(tile)} at {cl.time(time_UTC)} UTC")
 
