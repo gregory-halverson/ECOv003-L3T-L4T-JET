@@ -74,7 +74,8 @@ from .exceptions import *
 
 from .version import __version__
 
-from .read_ECOv003_inputs import read_ECOv003_inputs  # Module for reading ECOv003 input data.
+from .read_ECOv003_inputs import read_ECOv003_inputs
+from .read_ECOv003_configuration import read_ECOv003_configuration  # Module for reading ECOv003 input data.
 
 logger = logging.getLogger(__name__)  # Get a logger instance for this module.
 
@@ -129,130 +130,58 @@ def L3T_L4T_JET(
         downsampling = "linear"
 
     try:
-        runconfig = L3TL4TJETConfig(runconfig_filename)
-        working_directory = runconfig.working_directory
-        granule_ID = runconfig.granule_ID
-        log_filename = join(working_directory, "log", f"{granule_ID}.log")
-        cl.configure(filename=log_filename, strip_console=strip_console)
-        timer = TicToc()
-        timer.tic()
-        logger.info(f"started L3T L4T JET run at {cl.time(datetime.utcnow())} UTC")
-        logger.info(f"L3T_L4T_JET PGE ({cl.val(runconfig.PGE_version)})")
-        logger.info(f"L3T_L4T_JET run-config: {cl.file(runconfig_filename)}")
+        # Read and process configuration
+        config = read_ECOv003_configuration(
+            runconfig_filename=runconfig_filename,
+            strip_console=strip_console,
+            overwrite=overwrite
+        )
 
-        L3T_JET_granule_ID = runconfig.L3T_JET_granule_ID
-        logger.info(f"L3T JET granule ID: {cl.val(L3T_JET_granule_ID)}")
+        # Check if we should exit early (output already exists and no overwrite)
+        if config['should_exit']:
+            return config['exit_code']
 
-        L3T_JET_directory = runconfig.L3T_JET_directory
-        logger.info(f"L3T JET granule directory: {cl.dir(L3T_JET_directory)}")
-        L3T_JET_zip_filename = runconfig.L3T_JET_zip_filename
-        logger.info(f"L3T JET zip file: {cl.file(L3T_JET_zip_filename)}")
-        L3T_JET_browse_filename = runconfig.L3T_JET_browse_filename
-        logger.info(f"L3T JET preview: {cl.file(L3T_JET_browse_filename)}")
-
-        L3T_ETAUX_directory = runconfig.L3T_ETAUX_directory
-        logger.info(f"L3T ETAUX granule directory: {cl.dir(L3T_ETAUX_directory)}")
-        L3T_ETAUX_zip_filename = runconfig.L3T_ETAUX_zip_filename
-        logger.info(f"L3T ETAUX zip file: {cl.file(L3T_ETAUX_zip_filename)}")
-        L3T_ETAUX_browse_filename = runconfig.L3T_ETAUX_browse_filename
-        logger.info(f"L3T ETAUX preview: {cl.file(L3T_ETAUX_browse_filename)}")
-
-        L4T_ESI_granule_ID = runconfig.L4T_ESI_granule_ID
-        logger.info(f"L4T ESI PT-JPL granule ID: {cl.val(L4T_ESI_granule_ID)}")
-        L4T_ESI_directory = runconfig.L4T_ESI_directory
-        logger.info(f"L4T ESI PT-JPL granule directory: {cl.dir(L4T_ESI_directory)}")
-        L4T_ESI_zip_filename = runconfig.L4T_ESI_zip_filename
-        logger.info(f"L4T ESI PT-JPL zip file: {cl.file(L4T_ESI_zip_filename)}")
-        L4T_ESI_browse_filename = runconfig.L4T_ESI_browse_filename
-        logger.info(f"L4T ESI PT-JPL preview: {cl.file(L4T_ESI_browse_filename)}")
-
-        L4T_WUE_granule_ID = runconfig.L4T_WUE_granule_ID
-        logger.info(f"L4T WUE granule ID: {cl.val(L4T_WUE_granule_ID)}")
-        L4T_WUE_directory = runconfig.L4T_WUE_directory
-        logger.info(f"L4T WUE granule directory: {cl.dir(L4T_WUE_directory)}")
-        L4T_WUE_zip_filename = runconfig.L4T_WUE_zip_filename
-        logger.info(f"L4T WUE zip file: {cl.file(L4T_WUE_zip_filename)}")
-        L4T_WUE_browse_filename = runconfig.L4T_WUE_browse_filename
-        logger.info(f"L4T WUE preview: {cl.file(L4T_WUE_browse_filename)}")
-
-        required_files = [
-            L3T_JET_zip_filename,
-            L3T_JET_browse_filename,
-            L3T_ETAUX_zip_filename,
-            L3T_ETAUX_browse_filename,
-            L4T_ESI_zip_filename,
-            L4T_ESI_browse_filename,
-            L4T_WUE_zip_filename,
-            L4T_WUE_browse_filename
-        ]
-
-        some_files_missing = False
-
-        for filename in required_files:
-            if exists(filename):
-                logger.info(f"found product file: {cl.file(filename)}")
-            else:
-                logger.info(f"product file not found: {cl.file(filename)}")
-                some_files_missing = True
-
-        if not some_files_missing and not overwrite:
-            logger.info("L3T_L4T_JET output already found (use --overwrite flag to regenerate)")
-            return SUCCESS_EXIT_CODE
-        elif not some_files_missing and overwrite:
-            logger.info("L3T_L4T_JET output already found but overwrite flag is set, proceeding with processing")
-
-        logger.info(f"working_directory: {cl.dir(working_directory)}")
-        output_directory = runconfig.output_directory
-        logger.info(f"output directory: {cl.dir(output_directory)}")
-        sources_directory = runconfig.sources_directory
-        logger.info(f"sources directory: {cl.dir(sources_directory)}")
-        GEOS5FP_directory = runconfig.GEOS5FP_directory
-        logger.info(f"GEOS-5 FP directory: {cl.dir(GEOS5FP_directory)}")
-        static_directory = runconfig.static_directory
-        logger.info(f"static directory: {cl.dir(static_directory)}")
-        GEDI_directory = runconfig.GEDI_directory
-        logger.info(f"GEDI directory: {cl.dir(GEDI_directory)}")
-        MODISCI_directory = runconfig.MODISCI_directory
-        logger.info(f"MODIS CI directory: {cl.dir(MODISCI_directory)}")
-        MCD12_directory = runconfig.MCD12_directory
-        logger.info(f"MCD12C1 IGBP directory: {cl.dir(MCD12_directory)}")
-        soil_grids_directory = runconfig.soil_grids_directory
-        logger.info(f"SoilGrids directory: {cl.dir(soil_grids_directory)}")
-        logger.info(f"log: {cl.file(log_filename)}")
-        orbit = runconfig.orbit
-        logger.info(f"orbit: {cl.val(orbit)}")
-        scene = runconfig.scene
-        logger.info(f"scene: {cl.val(scene)}")
-        tile = runconfig.tile
-        logger.info(f"tile: {cl.val(tile)}")
-        build = runconfig.build
-        logger.info(f"build: {cl.val(build)}")
-        product_counter = runconfig.product_counter
-        logger.info(f"product counter: {cl.val(product_counter)}")
-        L2T_LSTE_filename = runconfig.L2T_LSTE_filename
-        logger.info(f"L2T_LSTE file: {cl.file(L2T_LSTE_filename)}")
-        L2T_STARS_filename = runconfig.L2T_STARS_filename
-        logger.info(f"L2T_STARS file: {cl.file(L2T_STARS_filename)}")
-
-        # Read input data and load from L2T_LSTE granule
-        if not exists(L2T_LSTE_filename):
-            raise InputFilesInaccessible(f"L2T LSTE file does not exist: {L2T_LSTE_filename}")
-
-        # Check the basename of the file to determine collection, not the full path
-        L2T_LSTE_basename = basename(L2T_LSTE_filename)
-        if "ECOv003" in L2T_LSTE_basename:
-            L2T_LSTE_granule = L2TLSTE(L2T_LSTE_filename)
-        elif "ECOv002" in L2T_LSTE_basename:
-            L2T_LSTE_granule = ECOv002L2TLSTE(L2T_LSTE_filename)
-        else:
-            raise ValueError(f"collection not recognized in L2T LSTE filename: {L2T_LSTE_filename}")
-
-        geometry = L2T_LSTE_granule.geometry
-        time_UTC = L2T_LSTE_granule.time_UTC
-        logger.info(f"overpass time: {cl.time(time_UTC)} UTC")
-        date_UTC = time_UTC.date()
-        logger.info(f"overpass date: {cl.time(date_UTC)} UTC")
-        timestamp = f"{time_UTC:%Y%m%dT%H%M%S}"
+        # Unpack configuration variables
+        runconfig = config['runconfig']
+        timer = config['timer']
+        working_directory = config['working_directory']
+        granule_ID = config['granule_ID']
+        log_filename = config['log_filename']
+        L3T_JET_granule_ID = config['L3T_JET_granule_ID']
+        L3T_JET_directory = config['L3T_JET_directory']
+        L3T_JET_zip_filename = config['L3T_JET_zip_filename']
+        L3T_JET_browse_filename = config['L3T_JET_browse_filename']
+        L3T_ETAUX_directory = config['L3T_ETAUX_directory']
+        L3T_ETAUX_zip_filename = config['L3T_ETAUX_zip_filename']
+        L3T_ETAUX_browse_filename = config['L3T_ETAUX_browse_filename']
+        L4T_ESI_granule_ID = config['L4T_ESI_granule_ID']
+        L4T_ESI_directory = config['L4T_ESI_directory']
+        L4T_ESI_zip_filename = config['L4T_ESI_zip_filename']
+        L4T_ESI_browse_filename = config['L4T_ESI_browse_filename']
+        L4T_WUE_granule_ID = config['L4T_WUE_granule_ID']
+        L4T_WUE_directory = config['L4T_WUE_directory']
+        L4T_WUE_zip_filename = config['L4T_WUE_zip_filename']
+        L4T_WUE_browse_filename = config['L4T_WUE_browse_filename']
+        output_directory = config['output_directory']
+        sources_directory = config['sources_directory']
+        GEOS5FP_directory = config['GEOS5FP_directory']
+        static_directory = config['static_directory']
+        GEDI_directory = config['GEDI_directory']
+        MODISCI_directory = config['MODISCI_directory']
+        MCD12_directory = config['MCD12_directory']
+        soil_grids_directory = config['soil_grids_directory']
+        orbit = config['orbit']
+        scene = config['scene']
+        tile = config['tile']
+        build = config['build']
+        product_counter = config['product_counter']
+        L2T_LSTE_filename = config['L2T_LSTE_filename']
+        L2T_STARS_filename = config['L2T_STARS_filename']
+        L2T_LSTE_granule = config['L2T_LSTE_granule']
+        geometry = config['geometry']
+        time_UTC = config['time_UTC']
+        date_UTC = config['date_UTC']
+        timestamp = config['timestamp']
 
         # Call read_ECOv003_inputs to process all input data
         inputs = read_ECOv003_inputs(
