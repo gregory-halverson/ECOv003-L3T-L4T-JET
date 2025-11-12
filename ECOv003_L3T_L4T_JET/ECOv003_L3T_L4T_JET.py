@@ -74,6 +74,8 @@ from .exceptions import *
 
 from .version import __version__
 
+from .read_ECOv003_inputs import read_ECOv003_inputs  # Module for reading ECOv003 input data.
+
 logger = logging.getLogger(__name__)  # Get a logger instance for this module.
 
 def L3T_L4T_JET(
@@ -232,6 +234,7 @@ def L3T_L4T_JET(
         L2T_STARS_filename = runconfig.L2T_STARS_filename
         logger.info(f"L2T_STARS file: {cl.file(L2T_STARS_filename)}")
 
+        # Read input data and load from L2T_LSTE granule
         if not exists(L2T_LSTE_filename):
             raise InputFilesInaccessible(f"L2T LSTE file does not exist: {L2T_LSTE_filename}")
 
@@ -244,222 +247,74 @@ def L3T_L4T_JET(
         else:
             raise ValueError(f"collection not recognized in L2T LSTE filename: {L2T_LSTE_filename}")
 
-        if not exists(L2T_STARS_filename):
-            raise InputFilesInaccessible(f"L2T STARS file does not exist: {L2T_STARS_filename}")
-
-        # Check the basename of the file to determine collection, not the full path
-        L2T_STARS_basename = basename(L2T_STARS_filename)
-        if "ECOv003" in L2T_STARS_basename:
-            L2T_STARS_granule = L2TSTARS(L2T_STARS_filename)
-        elif "ECOv002" in L2T_STARS_basename:
-            L2T_STARS_granule = ECOv002L2TSTARS(L2T_STARS_filename)
-        else:
-            raise ValueError(f"collection not recognized in L2T STARS filename: {L2T_STARS_filename}")
-
-        metadata = L2T_STARS_granule.metadata_dict
-        metadata["StandardMetadata"]["PGEVersion"] = __version__
-        metadata["StandardMetadata"]["PGEName"] = "L3T_L4T_JET"
-        metadata["StandardMetadata"]["ProcessingLevelID"] = "L3T"
-        metadata["StandardMetadata"]["SISName"] = "Level 3 Product Specification Document"
-        metadata["StandardMetadata"]["SISVersion"] = "Preliminary"
-        metadata["StandardMetadata"]["AuxiliaryInputPointer"] = "AuxiliaryNWP"
-
         geometry = L2T_LSTE_granule.geometry
         time_UTC = L2T_LSTE_granule.time_UTC
         logger.info(f"overpass time: {cl.time(time_UTC)} UTC")
         date_UTC = time_UTC.date()
         logger.info(f"overpass date: {cl.time(date_UTC)} UTC")
-        time_solar = L2T_LSTE_granule.time_solar
-        logger.info(
-            f"orbit {cl.val(orbit)} scene {cl.val(scene)} tile {cl.place(tile)} overpass time: {cl.time(time_UTC)} UTC ({cl.time(time_solar)} solar)")
         timestamp = f"{time_UTC:%Y%m%dT%H%M%S}"
 
-        hour_of_day = solar_hour_of_day_for_area(time_UTC=time_UTC, geometry=geometry)
-        day_of_year = solar_day_of_year_for_area(time_UTC=time_UTC, geometry=geometry)
-
-        logger.info("reading surface temperature from L2T LSTE product")
-        ST_K = L2T_LSTE_granule.ST_K
-        ST_C = ST_K - 273.15
-        check_distribution(ST_C, "ST_C", date_UTC=date_UTC, target=tile)
-
-        logger.info(f"reading elevation from L2T LSTE: {L2T_LSTE_granule.product_filename}")
-        elevation_km = L2T_LSTE_granule.elevation_km
-        check_distribution(elevation_km, "elevation_km", date_UTC=date_UTC, target=tile)
-
-        emissivity = L2T_LSTE_granule.emissivity
-        water_mask = L2T_LSTE_granule.water
-
-        logger.info("reading cloud mask from L2T LSTE product")
-        cloud_mask = L2T_LSTE_granule.cloud
-        check_distribution(cloud_mask, "cloud_mask", date_UTC=date_UTC, target=tile)
-
-        logger.info("reading NDVI from L2T STARS product")
-        NDVI = L2T_STARS_granule.NDVI
-        check_distribution(NDVI, "NDVI", date_UTC=date_UTC, target=tile)
-
-        logger.info("reading albedo from L2T STARS product")
-        albedo = L2T_STARS_granule.albedo
-        check_distribution(albedo, "albedo", date_UTC=date_UTC, target=tile)
-
-        percent_cloud = 100 * np.count_nonzero(cloud_mask) / cloud_mask.size
-        metadata["ProductMetadata"]["QAPercentCloudCover"] = percent_cloud
-
-        GEOS5FP_connection = GEOS5FP(
-            download_directory=GEOS5FP_directory
-        )
-
-        MODISCI_connection = MODISCI(directory=MODISCI_directory)
-
-        SZA_deg = calculate_SZA_from_DOY_and_hour(
-            lat=geometry.lat,
-            lon=geometry.lon,
-            DOY=day_of_year,
-            hour=hour_of_day
-        )
-
-        check_distribution(SZA_deg, "SZA", date_UTC=date_UTC, target=tile)
-
-        if np.all(SZA_deg >= SZA_DEGREE_CUTOFF):
-            raise DaytimeFilter(f"solar zenith angle exceeds {SZA_DEGREE_CUTOFF} for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
-
-        logger.info("retrieving GEOS-5 FP aerosol optical thickness raster")
-        AOT = GEOS5FP_connection.AOT(time_UTC=time_UTC, geometry=geometry)
-        check_distribution(AOT, "AOT", date_UTC=date_UTC, target=tile)
-
-        logger.info("generating GEOS-5 FP cloud optical thickness raster")
-        COT = GEOS5FP_connection.COT(time_UTC=time_UTC, geometry=geometry)
-        check_distribution(COT, "COT", date_UTC=date_UTC, target=tile)
-
-        logger.info("generating GEOS5-FP water vapor raster in grams per square centimeter")
-        vapor_gccm = GEOS5FP_connection.vapor_gccm(time_UTC=time_UTC, geometry=geometry)
-        check_distribution(vapor_gccm, "vapor_gccm", date_UTC=date_UTC, target=tile)
-
-        logger.info("generating GEOS5-FP ozone raster in grams per square centimeter")
-        ozone_cm = GEOS5FP_connection.ozone_cm(time_UTC=time_UTC, geometry=geometry)
-        check_distribution(ozone_cm, "ozone_cm", date_UTC=date_UTC, target=tile)
-
-        logger.info(f"running Forest Light Environmental Simulator for {cl.place(tile)} at {cl.time(time_UTC)} UTC")
-
-        doy_solar = time_solar.timetuple().tm_yday
-        KG_climate = load_koppen_geiger(albedo.geometry)
-
-        if zero_COT_correction:
-            COT = COT * 0.0
-            
-        elevation_m = elevation_km * 1000
-
-        FLiES_results = FLiESANN(
-            albedo=albedo,
-            geometry=geometry,
+        # Call read_ECOv003_inputs to process all input data
+        inputs = read_ECOv003_inputs(
+            L2T_LSTE_filename=L2T_LSTE_filename,
+            L2T_STARS_filename=L2T_STARS_filename,
+            orbit=orbit,
+            scene=scene,
+            tile=tile,
+            GEOS5FP_directory=GEOS5FP_directory,
+            MODISCI_directory=MODISCI_directory,
             time_UTC=time_UTC,
-            day_of_year=doy_solar,
-            hour_of_day=hour_of_day,
-            COT=COT,
-            AOT=AOT,
-            vapor_gccm=vapor_gccm,
-            ozone_cm=ozone_cm,
-            elevation_m=elevation_m,
-            SZA_deg=SZA_deg,
-            KG_climate=KG_climate,
-            GEOS5FP_connection=GEOS5FP_connection,
+            date_UTC=date_UTC,
+            geometry=geometry,
+            zero_COT_correction=zero_COT_correction,
+            sharpen_meteorology=sharpen_meteorology,
+            sharpen_soil_moisture=sharpen_soil_moisture,
+            upsampling=upsampling,
+            downsampling=downsampling
         )
-        
-        # Updated variable names to match new FLiESANN results dictionary
 
-        SWin_TOA_Wm2 = FLiES_results["SWin_TOA_Wm2"]        # Previously "Ra"
-        SWin_FLiES_ANN_raw = FLiES_results["SWin_Wm2"]      # Previously "Rg"
-        UV_Wm2 = FLiES_results["UV_Wm2"]              # Previously "UV"
-        PAR_Wm2 = FLiES_results["PAR_Wm2"]            # Previously "VIS"
-        NIR_Wm2 = FLiES_results["NIR_Wm2"]            # Previously "NIR"
-        PAR_diffuse_Wm2 = FLiES_results["PAR_diffuse_Wm2"] # Previously "VISdiff"
-        NIR_diffuse_Wm2 = FLiES_results["NIR_diffuse_Wm2"] # Previously "NIRdiff"
-        PAR_direct_Wm2 = FLiES_results["PAR_direct_Wm2"]  # Previously "VISdir"
-        NIR_direct_Wm2 = FLiES_results["NIR_direct_Wm2"]  # Previously "NIRdir"
-
-        albedo_NWP = GEOS5FP_connection.ALBEDO(time_UTC=time_UTC, geometry=geometry)
-        RVIS_NWP = GEOS5FP_connection.ALBVISDR(time_UTC=time_UTC, geometry=geometry)
-        albedo_visible = rt.clip(albedo * (RVIS_NWP / albedo_NWP), 0, 1)
-        check_distribution(albedo_visible, "albedo_visible")
-        RNIR_NWP = GEOS5FP_connection.ALBNIRDR(time_UTC=time_UTC, geometry=geometry)
-        albedo_NIR = rt.clip(albedo * (RNIR_NWP / albedo_NWP), 0, 1)
-        check_distribution(albedo_NIR, "albedo_NIR")
-        PAR_direct_Wm2 = PAR_direct_Wm2
-        check_distribution(PAR_direct_Wm2, "PAR_direct_Wm2")
-
-        coarse_geometry = geometry.rescale(GEOS_IN_SENTINEL_COARSE_CELL_SIZE)
-
-        # Use raw FLiES-ANN output directly without bias correction
-        SWin_Wm2 = SWin_FLiES_ANN_raw
-
-        check_distribution(SWin_Wm2, "SWin_FLiES_ANN", date_UTC=date_UTC, target=tile)
-
-        # Use FLiES-ANN solar radiation exclusively
-        SWin = SWin_Wm2
-        SWin = rt.where(np.isnan(ST_K), np.nan, SWin)
-
-        if np.all(np.isnan(SWin)) or np.all(SWin == 0):
-            raise BlankOutput(f"blank solar radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
-
-        # Sharpen meteorological variables if enabled.
-        if sharpen_meteorology:
-            try:
-                Ta_C, RH, Ta_C_smooth = sharpen_meteorology_data(
-                    ST_C=ST_C,
-                    NDVI=NDVI,
-                    albedo=albedo,
-                    geometry=geometry,
-                    coarse_geometry=coarse_geometry,
-                    time_UTC=time_UTC,
-                    date_UTC=date_UTC,
-                    tile=tile,
-                    orbit=orbit,
-                    scene=scene,
-                    upsampling=upsampling,
-                    downsampling=downsampling,
-                    GEOS5FP_connection=GEOS5FP_connection
-                )
-            except Exception as e:
-                logger.error(e)
-                logger.warning("unable to sharpen meteorology")
-                Ta_C = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-                Ta_C_smooth = Ta_C
-                RH = GEOS5FP_connection.RH(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-        else:
-            Ta_C = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-            Ta_C_smooth = Ta_C
-            RH = GEOS5FP_connection.RH(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-
-        # Sharpen soil moisture if enabled.
-        if sharpen_soil_moisture:
-            try:
-                SM = sharpen_soil_moisture_data(
-                    ST_C=ST_C,
-                    NDVI=NDVI,
-                    albedo=albedo,
-                    water_mask=water_mask,
-                    geometry=geometry,
-                    coarse_geometry=coarse_geometry,
-                    time_UTC=time_UTC,
-                    date_UTC=date_UTC,
-                    tile=tile,
-                    orbit=orbit,
-                    scene=scene,
-                    upsampling=upsampling,
-                    downsampling=downsampling,
-                    GEOS5FP_connection=GEOS5FP_connection
-                )
-            except Exception as e:
-                logger.error(e)
-                logger.warning("unable to sharpen soil moisture")
-                SM = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-        else:
-            SM = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-
-        # Calculate Saturated Vapor Pressure (SVP_Pa) and Actual Vapor Pressure (Ea_Pa, Ea_kPa).
-        SVP_Pa = 0.6108 * np.exp((17.27 * Ta_C) / (Ta_C + 237.3)) * 1000  # [Pa]
-        Ea_Pa = RH * SVP_Pa
-        Ea_kPa = Ea_Pa / 1000
-        Ta_K = Ta_C + 273.15
+        # Unpack results from read_ECOv003_inputs
+        metadata = inputs['metadata']
+        ST_K = inputs['ST_K']
+        ST_C = inputs['ST_C']
+        elevation_km = inputs['elevation_km']
+        emissivity = inputs['emissivity']
+        water_mask = inputs['water_mask']
+        cloud_mask = inputs['cloud_mask']
+        NDVI = inputs['NDVI']
+        albedo = inputs['albedo']
+        GEOS5FP_connection = inputs['GEOS5FP_connection']
+        MODISCI_connection = inputs['MODISCI_connection']
+        SZA_deg = inputs['SZA_deg']
+        AOT = inputs['AOT']
+        COT = inputs['COT']
+        vapor_gccm = inputs['vapor_gccm']
+        ozone_cm = inputs['ozone_cm']
+        hour_of_day = inputs['hour_of_day']
+        day_of_year = inputs['day_of_year']
+        KG_climate = inputs['KG_climate']
+        elevation_m = inputs['elevation_m']
+        FLiES_results = inputs['FLiES_results']
+        SWin_Wm2 = inputs['SWin_Wm2']
+        UV_Wm2 = inputs['UV_Wm2']
+        PAR_Wm2 = inputs['PAR_Wm2']
+        NIR_Wm2 = inputs['NIR_Wm2']
+        PAR_diffuse_Wm2 = inputs['PAR_diffuse_Wm2']
+        NIR_diffuse_Wm2 = inputs['NIR_diffuse_Wm2']
+        PAR_direct_Wm2 = inputs['PAR_direct_Wm2']
+        NIR_direct_Wm2 = inputs['NIR_direct_Wm2']
+        albedo_visible = inputs['albedo_visible']
+        albedo_NIR = inputs['albedo_NIR']
+        coarse_geometry = inputs['coarse_geometry']
+        SWin = inputs['SWin']
+        Ta_C = inputs['Ta_C']
+        Ta_C_smooth = inputs['Ta_C_smooth']
+        RH = inputs['RH']
+        SM = inputs['SM']
+        SVP_Pa = inputs['SVP_Pa']
+        Ea_Pa = inputs['Ea_Pa']
+        Ea_kPa = inputs['Ea_kPa']
+        Ta_K = inputs['Ta_K']
 
         logger.info(f"running Breathing Earth System Simulator for {cl.place(tile)} at {cl.time(time_UTC)} UTC")
 
