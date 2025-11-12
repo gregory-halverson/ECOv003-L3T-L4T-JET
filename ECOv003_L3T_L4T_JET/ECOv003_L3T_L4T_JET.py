@@ -569,6 +569,9 @@ def L3T_L4T_JET(
         LE_STIC_Wm2 = STIC_results["LE_Wm2"]
         check_distribution(LE_STIC_Wm2, "LE_STIC_Wm2", date_UTC=date_UTC, target=tile)
         
+        ET_daylight_STIC_kg = STIC_results["ET_daylight_kg"]
+        check_distribution(ET_daylight_STIC_kg, "ET_daylight_STIC_kg", date_UTC=date_UTC, target=tile)
+        
         LE_canopy_STIC_Wm2 = STIC_results["LE_canopy_Wm2"]
         check_distribution(LE_canopy_STIC_Wm2, "LE_canoy_STIC_Wm2", date_UTC=date_UTC, target=tile)
         
@@ -769,21 +772,45 @@ def L3T_L4T_JET(
         daylight_seconds = daylight_hours * 3600.0
         check_distribution(daylight_seconds, "daylight_seconds", date_UTC=date_UTC, target=tile)
 
-        # replace the daily ET calculations here with an aggregatation of the daylight upscaled values produced by the model packages
-        ET_daily_kg = np.clip(LE_daylight_Wm2 * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
-        check_distribution(ET_daily_kg, "ET_daily_kg", date_UTC=date_UTC, target=tile)
+        # # replace the daily ET calculations here with an aggregatation of the daylight upscaled values produced by the model packages
+        # ET_daylight_kg = np.clip(LE_daylight_Wm2 * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
+        # check_distribution(ET_daily_kg, "ET_daily_kg", date_UTC=date_UTC, target=tile)
 
-        ET_daylight_BESS_kg = np.clip(LE_daily_BESS * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
-        LE_daylight_STIC_Wm2 = rt.clip(EF_STIC * Rn_daylight_Wm2, 0, None)
-        ET_daylight_STIC_Wm2 = np.clip(LE_daylight_STIC_Wm2 * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
-        LE_daylight_PTJPLSM_Wm2 = rt.clip(EF_PTJPLSM * Rn_daylight_Wm2, 0, None)
-        ET_daylight_PTJPLSM_kg = np.clip(LE_daylight_PTJPLSM_Wm2 * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
-        LE_daylight_PMJPL_Wm2 = rt.clip(EF_PMJPL * Rn_daylight_Wm2, 0, None)
-        ET_daylight_PMJPL_kg = np.clip(LE_daylight_PMJPL_Wm2 * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
+        # ET_daylight_BESS_kg = np.clip(LE_daily_BESS * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
+        # LE_daylight_STIC_Wm2 = rt.clip(EF_STIC * Rn_daylight_Wm2, 0, None)
+        # ET_daylight_STIC_Wm2 = np.clip(LE_daylight_STIC_Wm2 * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
+        # LE_daylight_PTJPLSM_Wm2 = rt.clip(EF_PTJPLSM * Rn_daylight_Wm2, 0, None)
+        # ET_daylight_PTJPLSM_kg = np.clip(LE_daylight_PTJPLSM_Wm2 * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
+        # LE_daylight_PMJPL_Wm2 = rt.clip(EF_PMJPL * Rn_daylight_Wm2, 0, None)
+        # ET_daylight_PMJPL_kg = np.clip(LE_daylight_PMJPL_Wm2 * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
 
-        ETinstUncertainty = rt.Raster(
-            np.nanstd([np.array(LE_PTJPLSM_Wm2), np.array(LE_BESS_Wm2), np.array(LE_PMJPL_Wm2), np.array(LE_STIC_Wm2)], axis=0),
-            geometry=geometry).mask(~water_mask)
+        # ET_daylight_uncertainty = rt.Raster(
+        #     np.nanstd([np.array(LE_PTJPLSM_Wm2), np.array(LE_BESS_Wm2), np.array(LE_PMJPL_Wm2), np.array(LE_STIC_Wm2)], axis=0),
+        #     geometry=geometry).mask(~water_mask)
+        
+        ET_daylight_kg = np.nanmedian([
+            np.array(ET_daylight_PTJPLSM_kg),
+            np.array(ET_daylight_BESS_kg),
+            np.array(ET_daylight_PMJPL_kg),
+            np.array(ET_daylight_STIC_kg)
+        ], axis=0)
+        
+        if isinstance(geometry, RasterGeometry):
+            ET_daylight_kg = rt.Raster(ET_daylight_kg, geometry=geometry)
+        
+        # overlay water surface evaporation on top of daylight evapotranspiration aggregate
+        ET_daylight_kg = rt.where(np.isnan(ET_daylight_AquaSEBS_kg), ET_daylight_kg, ET_daylight_AquaSEBS_kg)
+        check_distribution(ET_daylight_kg, "ET_daylight_kg", date_UTC=date_UTC, target=tile)
+
+        ET_uncertainty = np.nanstd([
+            np.array(ET_daylight_PTJPLSM_kg),
+            np.array(ET_daylight_BESS_kg),
+            np.array(ET_daylight_PMJPL_kg),
+            np.array(ET_daylight_STIC_kg)
+        ], axis=0)
+        
+        if isinstance(geometry, RasterGeometry):
+            ET_uncertainty = rt.Raster(ET_uncertainty, geometry=geometry)
 
         GPP_inst_g_m2_s = GPP_inst_umol_m2_s / 1000000 * 12.011
         ET_canopy_inst_kg_m2_s = LE_canopy_PTJPLSM_Wm2 / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM
@@ -803,18 +830,20 @@ def L3T_L4T_JET(
             time_UTC=time_UTC,
             build=build,
             product_counter=product_counter,
-            # LE_PTJPLSM=ET_daily_kg_PTJPLSM,
-            LE_PTJPLSM=LE_PTJPLSM_Wm2, # fixing instantaneous latent heat flux layer
-            ET_PTJPLSM=ET_daylight_PTJPLSM_kg,
-            ET_STICJPL=ET_daylight_STIC_Wm2,
-            ET_BESSJPL=ET_daylight_BESS_kg,
-            ET_PMJPL=ET_daylight_PMJPL_kg,
-            ET_daily_kg=ET_daily_kg,
-            ETinstUncertainty=ETinstUncertainty,
-            PTJPLSMcanopy=LE_canopy_fraction_PTJPLSM,
-            STICJPLcanopy=LE_canopy_fraction_STIC,
-            PTJPLSMsoil=LE_soil_fraction_PTJPLSM,
-            PTJPLSMinterception=LE_interception_fraction_PTJPLSM,
+            LE_instantaneous_PTJPLSM_Wm2=LE_PTJPLSM_Wm2,
+            ET_daylight_PTJPLSM_kg=ET_daylight_PTJPLSM_kg,
+            LE_instantaneous_STICJPL_Wm2=LE_STIC_Wm2,
+            ET_daylight_STICJPL_kg=ET_daylight_STIC_kg,
+            LE_instantaneous_BESSJPL_Wm2=LE_BESS_Wm2,
+            ET_daylight_BESSJPL_kg=ET_daylight_BESS_kg,
+            LE_instantaneous_PMJPL_Wm2=LE_PMJPL_Wm2,
+            ET_daylight_PMJPL_kg=ET_daylight_PMJPL_kg,
+            ET_daylight_kg=ET_daylight_kg,
+            ET_daylight_uncertainty_kg=ET_uncertainty,
+            LE_canopy_fraction_PTJPLSM=LE_canopy_fraction_PTJPLSM,
+            LE_canopy_fraction_STIC=LE_canopy_fraction_STIC,
+            LE_soil_fraction_PTJPLSM=LE_soil_fraction_PTJPLSM,
+            LE_interception_fraction_PTJPLSM=LE_interception_fraction_PTJPLSM,
             water_mask=water_mask,
             cloud_mask=cloud_mask,
             metadata=metadata
