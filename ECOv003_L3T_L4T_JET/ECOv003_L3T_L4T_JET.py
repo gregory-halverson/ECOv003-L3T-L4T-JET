@@ -774,22 +774,6 @@ def L3T_L4T_JET(
         daylight_seconds = daylight_hours * 3600.0
         check_distribution(daylight_seconds, "daylight_seconds", date_UTC=date_UTC, target=tile)
 
-        # # replace the daily ET calculations here with an aggregatation of the daylight upscaled values produced by the model packages
-        # ET_daylight_kg = np.clip(LE_daylight_Wm2 * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
-        # check_distribution(ET_daily_kg, "ET_daily_kg", date_UTC=date_UTC, target=tile)
-
-        # ET_daylight_BESS_kg = np.clip(LE_daily_BESS * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
-        # LE_daylight_STIC_Wm2 = rt.clip(EF_STIC * Rn_daylight_Wm2, 0, None)
-        # ET_daylight_STIC_Wm2 = np.clip(LE_daylight_STIC_Wm2 * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
-        # LE_daylight_PTJPLSM_Wm2 = rt.clip(EF_PTJPLSM * Rn_daylight_Wm2, 0, None)
-        # ET_daylight_PTJPLSM_kg = np.clip(LE_daylight_PTJPLSM_Wm2 * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
-        # LE_daylight_PMJPL_Wm2 = rt.clip(EF_PMJPL * Rn_daylight_Wm2, 0, None)
-        # ET_daylight_PMJPL_kg = np.clip(LE_daylight_PMJPL_Wm2 * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
-
-        # ET_daylight_uncertainty = rt.Raster(
-        #     np.nanstd([np.array(LE_PTJPLSM_Wm2), np.array(LE_BESS_Wm2), np.array(LE_PMJPL_Wm2), np.array(LE_STIC_Wm2)], axis=0),
-        #     geometry=geometry).mask(~water_mask)
-        
         ET_daylight_kg = np.nanmedian([
             np.array(ET_daylight_PTJPLSM_kg),
             np.array(ET_daylight_BESS_kg),
