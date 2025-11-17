@@ -16,7 +16,7 @@ classifiers = [
 ]
 dependencies = [
     "AquaSEBS",
-    "BESS-JPL~=1.17.0",
+    "BESS-JPL~=1.19.0",
     "check-distribution~=1.0.1",
     "colored-logging~=1.0.1",
     "ECOv002-granules~=1.2.1",
