@@ -20,7 +20,7 @@ import colored_logging as cl  # Custom module for colored console logging.
 
 import rasters as rt  # Custom or external library for raster data processing.
 from rasters import Raster, RasterGrid, RasterGeometry  # Specific classes from the rasters library for handling raster data, grids, and geometries.
-from rasters import linear_downscale, bias_correct  # Functions for downscaling and bias correction of rasters.
+from rasters import linear_downscale  # Functions for downscaling of rasters.
 
 from check_distribution import check_distribution  # Custom module for checking and potentially visualizing data distributions.
 
@@ -32,7 +32,6 @@ from GEOS5FP import GEOS5FP, FailedGEOS5FPDownload  # Custom module for interact
 from sun_angles import calculate_SZA_from_DOY_and_hour  # Custom module for calculating Solar Zenith Angle (SZA).
 
 from MCD12C1_2019_v006 import load_MCD12C1_IGBP  # Custom module for loading MODIS Land Cover Type (IGBP classification) data.
-from FLiESLUT import process_FLiES_LUT_raster  # Custom module for processing FLiES Look-Up Table (LUT) rasters.
 from FLiESANN import FLiESANN  # Re-importing FLiESANN, potentially the main class.
 
 from MODISCI import MODISCI
@@ -40,8 +39,10 @@ from BESS_JPL import BESS_JPL  # Custom module for the BESS-JPL (Breathing Earth
 from PMJPL import PMJPL  # Custom module for the PMJPL (Penman-Monteith Jet Propulsion Laboratory) model.
 from STIC_JPL import STIC_JPL  # Custom module for the STIC-JPL (Surface Temperature Initiated Closure - Jet Propulsion Laboratory) model.
 from PTJPLSM import PTJPLSM  # Custom module for the PTJPLSM (Priestley-Taylor Jet Propulsion Laboratory - Soil Moisture) model.
-from verma_net_radiation import verma_net_radiation, daily_Rn_integration_verma  # Custom modules for net radiation calculation using Verma's model and daily integration.
+from verma_net_radiation import verma_net_radiation, daylight_Rn_integration_verma  # Custom modules for net radiation calculation using Verma's model and daily integration.
 from sun_angles import SHA_deg_from_DOY_lat, sunrise_from_SHA, daylight_from_SHA  # Additional solar angle calculations.
+
+from ECOv003_L3T_L4T_JET.write_ECOv003_products import write_ECOv003_products
 
 from ECOv003_granules import write_L3T_JET  # Functions for writing ECOSTRESS Level 3/4 products.
 from ECOv003_granules import write_L3T_ETAUX
@@ -73,24 +74,27 @@ from .exceptions import *
 
 from .version import __version__
 
+from .read_ECOv003_inputs import read_ECOv003_inputs
+from .read_ECOv003_configuration import read_ECOv003_configuration  # Module for reading ECOv003 input data.
+from .JET import JET
+
 logger = logging.getLogger(__name__)  # Get a logger instance for this module.
 
 def L3T_L4T_JET(
         runconfig_filename: str,
         upsampling: str = None,
         downsampling: str = None,
-        SWin_model_name: str = SWIN_MODEL_NAME,
         Rn_model_name: str = RN_MODEL_NAME,
         include_SEB_diagnostics: bool = INCLUDE_SEB_DIAGNOSTICS,
         include_JET_diagnostics: bool = INCLUDE_JET_DIAGNOSTICS,
-        bias_correct_FLiES_ANN: bool = BIAS_CORRECT_FLIES_ANN,
         zero_COT_correction: bool = ZERO_COT_CORRECTION,
         sharpen_meteorology: bool = SHARPEN_METEOROLOGY,
         sharpen_soil_moisture: bool = SHARPEN_SOIL_MOISTURE,
         strip_console: bool = STRIP_CONSOLE,
         save_intermediate: bool = SAVE_INTERMEDIATE,
         show_distribution: bool = SHOW_DISTRIBUTION,
-        floor_Topt: bool = FLOOR_TOPT) -> int:
+        floor_Topt: bool = FLOOR_TOPT,
+        overwrite: bool = False) -> int:
     """
     Processes ECOSTRESS L2T LSTE and L2T STARS granules to produce L3T and L4T JET products (ECOSTRESS Collection 3).
 
@@ -103,11 +107,9 @@ def L3T_L4T_JET(
         runconfig_filename: Path to the XML run configuration file.
         upsampling: Upsampling method for spatial resampling (e.g., 'average', 'linear'). Defaults to 'average'.
         downsampling: Downsampling method for spatial resampling (e.g., 'linear', 'average'). Defaults to 'linear'.
-        SWin_model_name: Model to use for incoming shortwave radiation ('GEOS5FP', 'FLiES-ANN', 'FLiES-LUT'). Defaults to SWIN_MODEL_NAME.
         Rn_model_name: Model to use for net radiation ('verma', 'BESS'). Defaults to RN_MODEL_NAME.
         include_SEB_diagnostics: Whether to include Surface Energy Balance diagnostics in the output. Defaults to INCLUDE_SEB_DIAGNOSTICS.
         include_JET_diagnostics: Whether to include JET diagnostics in the output. Defaults to INCLUDE_JET_DIAGNOSTICS.
-        bias_correct_FLiES_ANN: Whether to bias correct the FLiES-ANN shortwave radiation output. Defaults to BIAS_CORRECT_FLIES_ANN.
         zero_COT_correction: Whether to set Cloud Optical Thickness to zero for correction. Defaults to ZERO_COT_CORRECTION.
         sharpen_meteorology: Whether to sharpen meteorological variables using a regression model. Defaults to SHARPEN_METEOROLOGY.
         sharpen_soil_moisture: Whether to sharpen soil moisture using a regression model. Defaults to SHARPEN_SOIL_MOISTURE.
@@ -115,6 +117,7 @@ def L3T_L4T_JET(
         save_intermediate: Whether to save intermediate processing steps. Defaults to SAVE_INTERMEDIATE.
         show_distribution: Whether to show distribution plots of intermediate and final products. Defaults to SHOW_DISTRIBUTION.
         floor_Topt: Whether to floor the optimal temperature (Topt) in the models. Defaults to FLOOR_TOPT.
+        overwrite: Whether to overwrite existing output files. If False, skips processing if all output files exist. Defaults to False.
 
     Returns:
         An integer representing the exit code of the process.
@@ -128,726 +131,206 @@ def L3T_L4T_JET(
         downsampling = "linear"
 
     try:
-        runconfig = L3TL4TJETConfig(runconfig_filename)
-        working_directory = runconfig.working_directory
-        granule_ID = runconfig.granule_ID
-        log_filename = join(working_directory, "log", f"{granule_ID}.log")
-        cl.configure(filename=log_filename, strip_console=strip_console)
-        timer = TicToc()
-        timer.tic()
-        logger.info(f"started L3T L4T JET run at {cl.time(datetime.utcnow())} UTC")
-        logger.info(f"L3T_L4T_JET PGE ({cl.val(runconfig.PGE_version)})")
-        logger.info(f"L3T_L4T_JET run-config: {cl.file(runconfig_filename)}")
-
-        L3T_JET_granule_ID = runconfig.L3T_JET_granule_ID
-        logger.info(f"L3T JET granule ID: {cl.val(L3T_JET_granule_ID)}")
-
-        L3T_JET_directory = runconfig.L3T_JET_directory
-        logger.info(f"L3T JET granule directory: {cl.dir(L3T_JET_directory)}")
-        L3T_JET_zip_filename = runconfig.L3T_JET_zip_filename
-        logger.info(f"L3T JET zip file: {cl.file(L3T_JET_zip_filename)}")
-        L3T_JET_browse_filename = runconfig.L3T_JET_browse_filename
-        logger.info(f"L3T JET preview: {cl.file(L3T_JET_browse_filename)}")
-
-        L3T_ETAUX_directory = runconfig.L3T_ETAUX_directory
-        logger.info(f"L3T ETAUX granule directory: {cl.dir(L3T_ETAUX_directory)}")
-        L3T_ETAUX_zip_filename = runconfig.L3T_ETAUX_zip_filename
-        logger.info(f"L3T ETAUX zip file: {cl.file(L3T_ETAUX_zip_filename)}")
-        L3T_ETAUX_browse_filename = runconfig.L3T_ETAUX_browse_filename
-        logger.info(f"L3T ETAUX preview: {cl.file(L3T_ETAUX_browse_filename)}")
-
-        L4T_ESI_granule_ID = runconfig.L4T_ESI_granule_ID
-        logger.info(f"L4T ESI PT-JPL granule ID: {cl.val(L4T_ESI_granule_ID)}")
-        L4T_ESI_directory = runconfig.L4T_ESI_directory
-        logger.info(f"L4T ESI PT-JPL granule directory: {cl.dir(L4T_ESI_directory)}")
-        L4T_ESI_zip_filename = runconfig.L4T_ESI_zip_filename
-        logger.info(f"L4T ESI PT-JPL zip file: {cl.file(L4T_ESI_zip_filename)}")
-        L4T_ESI_browse_filename = runconfig.L4T_ESI_browse_filename
-        logger.info(f"L4T ESI PT-JPL preview: {cl.file(L4T_ESI_browse_filename)}")
-
-        L4T_WUE_granule_ID = runconfig.L4T_WUE_granule_ID
-        logger.info(f"L4T WUE granule ID: {cl.val(L4T_WUE_granule_ID)}")
-        L4T_WUE_directory = runconfig.L4T_WUE_directory
-        logger.info(f"L4T WUE granule directory: {cl.dir(L4T_WUE_directory)}")
-        L4T_WUE_zip_filename = runconfig.L4T_WUE_zip_filename
-        logger.info(f"L4T WUE zip file: {cl.file(L4T_WUE_zip_filename)}")
-        L4T_WUE_browse_filename = runconfig.L4T_WUE_browse_filename
-        logger.info(f"L4T WUE preview: {cl.file(L4T_WUE_browse_filename)}")
-
-        required_files = [
-            L3T_JET_zip_filename,
-            L3T_JET_browse_filename,
-            L3T_ETAUX_zip_filename,
-            L3T_ETAUX_browse_filename,
-            L4T_ESI_zip_filename,
-            L4T_ESI_browse_filename,
-            L4T_WUE_zip_filename,
-            L4T_WUE_browse_filename
-        ]
-
-        some_files_missing = False
-
-        for filename in required_files:
-            if exists(filename):
-                logger.info(f"found product file: {cl.file(filename)}")
-            else:
-                logger.info(f"product file not found: {cl.file(filename)}")
-                some_files_missing = True
-
-        if not some_files_missing:
-            logger.info("L3T_L4T_JET output already found")
-            return SUCCESS_EXIT_CODE
-
-        logger.info(f"working_directory: {cl.dir(working_directory)}")
-        output_directory = runconfig.output_directory
-        logger.info(f"output directory: {cl.dir(output_directory)}")
-        sources_directory = runconfig.sources_directory
-        logger.info(f"sources directory: {cl.dir(sources_directory)}")
-        GEOS5FP_directory = runconfig.GEOS5FP_directory
-        logger.info(f"GEOS-5 FP directory: {cl.dir(GEOS5FP_directory)}")
-        static_directory = runconfig.static_directory
-        logger.info(f"static directory: {cl.dir(static_directory)}")
-        GEDI_directory = runconfig.GEDI_directory
-        logger.info(f"GEDI directory: {cl.dir(GEDI_directory)}")
-        MODISCI_directory = runconfig.MODISCI_directory
-        logger.info(f"MODIS CI directory: {cl.dir(MODISCI_directory)}")
-        MCD12_directory = runconfig.MCD12_directory
-        logger.info(f"MCD12C1 IGBP directory: {cl.dir(MCD12_directory)}")
-        soil_grids_directory = runconfig.soil_grids_directory
-        logger.info(f"SoilGrids directory: {cl.dir(soil_grids_directory)}")
-        logger.info(f"log: {cl.file(log_filename)}")
-        orbit = runconfig.orbit
-        logger.info(f"orbit: {cl.val(orbit)}")
-        scene = runconfig.scene
-        logger.info(f"scene: {cl.val(scene)}")
-        tile = runconfig.tile
-        logger.info(f"tile: {cl.val(tile)}")
-        build = runconfig.build
-        logger.info(f"build: {cl.val(build)}")
-        product_counter = runconfig.product_counter
-        logger.info(f"product counter: {cl.val(product_counter)}")
-        L2T_LSTE_filename = runconfig.L2T_LSTE_filename
-        logger.info(f"L2T_LSTE file: {cl.file(L2T_LSTE_filename)}")
-        L2T_STARS_filename = runconfig.L2T_STARS_filename
-        logger.info(f"L2T_STARS file: {cl.file(L2T_STARS_filename)}")
-
-        if not exists(L2T_LSTE_filename):
-            raise InputFilesInaccessible(f"L2T LSTE file does not exist: {L2T_LSTE_filename}")
-
-        # Check the basename of the file to determine collection, not the full path
-        L2T_LSTE_basename = basename(L2T_LSTE_filename)
-        if "ECOv003" in L2T_LSTE_basename:
-            L2T_LSTE_granule = L2TLSTE(L2T_LSTE_filename)
-        elif "ECOv002" in L2T_LSTE_basename:
-            L2T_LSTE_granule = ECOv002L2TLSTE(L2T_LSTE_filename)
-        else:
-            raise ValueError(f"collection not recognized in L2T LSTE filename: {L2T_LSTE_filename}")
-
-        if not exists(L2T_STARS_filename):
-            raise InputFilesInaccessible(f"L2T STARS file does not exist: {L2T_STARS_filename}")
-
-        # Check the basename of the file to determine collection, not the full path
-        L2T_STARS_basename = basename(L2T_STARS_filename)
-        if "ECOv003" in L2T_STARS_basename:
-            L2T_STARS_granule = L2TSTARS(L2T_STARS_filename)
-        elif "ECOv002" in L2T_STARS_basename:
-            L2T_STARS_granule = ECOv002L2TSTARS(L2T_STARS_filename)
-        else:
-            raise ValueError(f"collection not recognized in L2T STARS filename: {L2T_STARS_filename}")
-
-        metadata = L2T_STARS_granule.metadata_dict
-        metadata["StandardMetadata"]["PGEVersion"] = __version__
-        metadata["StandardMetadata"]["PGEName"] = "L3T_L4T_JET"
-        metadata["StandardMetadata"]["ProcessingLevelID"] = "L3T"
-        metadata["StandardMetadata"]["SISName"] = "Level 3 Product Specification Document"
-        metadata["StandardMetadata"]["SISVersion"] = "Preliminary"
-        metadata["StandardMetadata"]["AuxiliaryInputPointer"] = "AuxiliaryNWP"
-
-        geometry = L2T_LSTE_granule.geometry
-        time_UTC = L2T_LSTE_granule.time_UTC
-        logger.info(f"overpass time: {cl.time(time_UTC)} UTC")
-        date_UTC = time_UTC.date()
-        logger.info(f"overpass date: {cl.time(date_UTC)} UTC")
-        time_solar = L2T_LSTE_granule.time_solar
-        logger.info(
-            f"orbit {cl.val(orbit)} scene {cl.val(scene)} tile {cl.place(tile)} overpass time: {cl.time(time_UTC)} UTC ({cl.time(time_solar)} solar)")
-        timestamp = f"{time_UTC:%Y%m%dT%H%M%S}"
-
-        hour_of_day = solar_hour_of_day_for_area(time_UTC=time_UTC, geometry=geometry)
-        day_of_year = solar_day_of_year_for_area(time_UTC=time_UTC, geometry=geometry)
-
-        logger.info("reading surface temperature from L2T LSTE product")
-        ST_K = L2T_LSTE_granule.ST_K
-        ST_C = ST_K - 273.15
-        check_distribution(ST_C, "ST_C", date_UTC=date_UTC, target=tile)
-
-        logger.info(f"reading elevation from L2T LSTE: {L2T_LSTE_granule.product_filename}")
-        elevation_km = L2T_LSTE_granule.elevation_km
-        check_distribution(elevation_km, "elevation_km", date_UTC=date_UTC, target=tile)
-
-        emissivity = L2T_LSTE_granule.emissivity
-        water_mask = L2T_LSTE_granule.water
-
-        logger.info("reading cloud mask from L2T LSTE product")
-        cloud_mask = L2T_LSTE_granule.cloud
-        check_distribution(cloud_mask, "cloud_mask", date_UTC=date_UTC, target=tile)
-
-        logger.info("reading NDVI from L2T STARS product")
-        NDVI = L2T_STARS_granule.NDVI
-        check_distribution(NDVI, "NDVI", date_UTC=date_UTC, target=tile)
-
-        logger.info("reading albedo from L2T STARS product")
-        albedo = L2T_STARS_granule.albedo
-        check_distribution(albedo, "albedo", date_UTC=date_UTC, target=tile)
-
-        percent_cloud = 100 * np.count_nonzero(cloud_mask) / cloud_mask.size
-        metadata["ProductMetadata"]["QAPercentCloudCover"] = percent_cloud
-
-        GEOS5FP_connection = GEOS5FP(
-            download_directory=GEOS5FP_directory
+        # Read and process configuration
+        config = read_ECOv003_configuration(
+            runconfig_filename=runconfig_filename,
+            strip_console=strip_console,
+            overwrite=overwrite
         )
 
-        MODISCI_connection = MODISCI(directory=MODISCI_directory)
+        # Check if we should exit early (output already exists and no overwrite)
+        if config['should_exit']:
+            return config['exit_code']
 
-        SZA = calculate_SZA_from_DOY_and_hour(
-            lat=geometry.lat,
-            lon=geometry.lon,
-            DOY=day_of_year,
-            hour=hour_of_day
+        # Unpack configuration variables
+        runconfig = config['runconfig']
+        timer = config['timer']
+        working_directory = config['working_directory']
+        granule_ID = config['granule_ID']
+        log_filename = config['log_filename']
+        L3T_JET_granule_ID = config['L3T_JET_granule_ID']
+        L3T_JET_directory = config['L3T_JET_directory']
+        L3T_JET_zip_filename = config['L3T_JET_zip_filename']
+        L3T_JET_browse_filename = config['L3T_JET_browse_filename']
+        L3T_ETAUX_directory = config['L3T_ETAUX_directory']
+        L3T_ETAUX_zip_filename = config['L3T_ETAUX_zip_filename']
+        L3T_ETAUX_browse_filename = config['L3T_ETAUX_browse_filename']
+        L4T_ESI_granule_ID = config['L4T_ESI_granule_ID']
+        L4T_ESI_directory = config['L4T_ESI_directory']
+        L4T_ESI_zip_filename = config['L4T_ESI_zip_filename']
+        L4T_ESI_browse_filename = config['L4T_ESI_browse_filename']
+        L4T_WUE_granule_ID = config['L4T_WUE_granule_ID']
+        L4T_WUE_directory = config['L4T_WUE_directory']
+        L4T_WUE_zip_filename = config['L4T_WUE_zip_filename']
+        L4T_WUE_browse_filename = config['L4T_WUE_browse_filename']
+        output_directory = config['output_directory']
+        sources_directory = config['sources_directory']
+        GEOS5FP_directory = config['GEOS5FP_directory']
+        static_directory = config['static_directory']
+        GEDI_directory = config['GEDI_directory']
+        MODISCI_directory = config['MODISCI_directory']
+        MCD12_directory = config['MCD12_directory']
+        soil_grids_directory = config['soil_grids_directory']
+        orbit = config['orbit']
+        scene = config['scene']
+        tile = config['tile']
+        build = config['build']
+        product_counter = config['product_counter']
+        L2T_LSTE_filename = config['L2T_LSTE_filename']
+        L2T_STARS_filename = config['L2T_STARS_filename']
+        L2T_LSTE_granule = config['L2T_LSTE_granule']
+        geometry = config['geometry']
+        time_UTC = config['time_UTC']
+        date_UTC = config['date_UTC']
+        timestamp = config['timestamp']
+
+        # Call read_ECOv003_inputs to process all input data
+        inputs = read_ECOv003_inputs(
+            L2T_LSTE_filename=L2T_LSTE_filename,
+            L2T_STARS_filename=L2T_STARS_filename,
+            orbit=orbit,
+            scene=scene,
+            tile=tile,
+            GEOS5FP_directory=GEOS5FP_directory,
+            MODISCI_directory=MODISCI_directory,
+            time_UTC=time_UTC,
+            date_UTC=date_UTC,
+            geometry=geometry,
+            zero_COT_correction=zero_COT_correction,
+            sharpen_meteorology=sharpen_meteorology,
+            sharpen_soil_moisture=sharpen_soil_moisture,
+            upsampling=upsampling,
+            downsampling=downsampling
         )
 
-        check_distribution(SZA, "SZA", date_UTC=date_UTC, target=tile)
+        # Unpack results from read_ECOv003_inputs
+        metadata = inputs['metadata']
+        ST_K = inputs['ST_K']
+        ST_C = inputs['ST_C']
+        elevation_km = inputs['elevation_km']
+        elevation_m = inputs['elevation_m']
+        emissivity = inputs['emissivity']
+        water_mask = inputs['water_mask']
+        cloud_mask = inputs['cloud_mask']
+        NDVI = inputs['NDVI']
+        albedo = inputs['albedo']
+        GEOS5FP_connection = inputs['GEOS5FP_connection']
+        MODISCI_connection = inputs['MODISCI_connection']
+        SZA_deg = inputs['SZA_deg']
+        AOT = inputs['AOT']
+        COT = inputs['COT']
+        vapor_gccm = inputs['vapor_gccm']
+        ozone_cm = inputs['ozone_cm']
+        hour_of_day = inputs['hour_of_day']
+        day_of_year = inputs['day_of_year']
+        time_solar = inputs['time_solar']
+        KG_climate = inputs['KG_climate']
+        coarse_geometry = inputs['coarse_geometry']
+        Ta_C = inputs['Ta_C']
+        Ta_C_smooth = inputs['Ta_C_smooth']
+        RH = inputs['RH']
+        SM = inputs['SM']
+        SVP_Pa = inputs['SVP_Pa']
+        Ea_Pa = inputs['Ea_Pa']
+        Ea_kPa = inputs['Ea_kPa']
+        Ta_K = inputs['Ta_K']
 
-        if np.all(SZA >= SZA_DEGREE_CUTOFF):
-            raise DaytimeFilter(f"solar zenith angle exceeds {SZA_DEGREE_CUTOFF} for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
-
-        logger.info("retrieving GEOS-5 FP aerosol optical thickness raster")
-        AOT = GEOS5FP_connection.AOT(time_UTC=time_UTC, geometry=geometry)
-        check_distribution(AOT, "AOT", date_UTC=date_UTC, target=tile)
-
-        logger.info("generating GEOS-5 FP cloud optical thickness raster")
-        COT = GEOS5FP_connection.COT(time_UTC=time_UTC, geometry=geometry)
-        check_distribution(COT, "COT", date_UTC=date_UTC, target=tile)
-
-        logger.info("generating GEOS5-FP water vapor raster in grams per square centimeter")
-        vapor_gccm = GEOS5FP_connection.vapor_gccm(time_UTC=time_UTC, geometry=geometry)
-        check_distribution(vapor_gccm, "vapor_gccm", date_UTC=date_UTC, target=tile)
-
-        logger.info("generating GEOS5-FP ozone raster in grams per square centimeter")
-        ozone_cm = GEOS5FP_connection.ozone_cm(time_UTC=time_UTC, geometry=geometry)
-        check_distribution(ozone_cm, "ozone_cm", date_UTC=date_UTC, target=tile)
-
-        logger.info(f"running Forest Light Environmental Simulator for {cl.place(tile)} at {cl.time(time_UTC)} UTC")
-
-        doy_solar = time_solar.timetuple().tm_yday
-        KG_climate = load_koppen_geiger(albedo.geometry)
-
-        if zero_COT_correction:
-            COT = COT * 0.0
-
-        FLiES_results = FLiESANN(
+        # Replace the science code with a call to the JET function
+        results = JET(
             albedo=albedo,
             geometry=geometry,
             time_UTC=time_UTC,
-            day_of_year=doy_solar,
+            day_of_year=day_of_year,
             hour_of_day=hour_of_day,
             COT=COT,
             AOT=AOT,
             vapor_gccm=vapor_gccm,
             ozone_cm=ozone_cm,
-            elevation_km=elevation_km,
-            SZA=SZA,
+            elevation_m=elevation_m,
+            SZA_deg=SZA_deg,
             KG_climate=KG_climate,
-            GEOS5FP_connection=GEOS5FP_connection,
-        )
-
-        Ra = FLiES_results["Ra"]
-        SWin_FLiES_ANN_raw = FLiES_results["Rg"]
-        UV = FLiES_results["UV"]
-        VIS = FLiES_results["VIS"]
-        NIR = FLiES_results["NIR"]
-        VISdiff = FLiES_results["VISdiff"]
-        NIRdiff = FLiES_results["NIRdiff"]
-        VISdir = FLiES_results["VISdir"]
-        NIRdir = FLiES_results["NIRdir"]
-
-        albedo_NWP = GEOS5FP_connection.ALBEDO(time_UTC=time_UTC, geometry=geometry)
-        RVIS_NWP = GEOS5FP_connection.ALBVISDR(time_UTC=time_UTC, geometry=geometry)
-        albedo_visible = rt.clip(albedo * (RVIS_NWP / albedo_NWP), 0, 1)
-        check_distribution(albedo_visible, "RVIS")
-        RNIR_NWP = GEOS5FP_connection.ALBNIRDR(time_UTC=time_UTC, geometry=geometry)
-        albedo_NIR = rt.clip(albedo * (RNIR_NWP / albedo_NWP), 0, 1)
-        check_distribution(albedo_NIR, "RNIR")
-        PARDir = VISdir
-        check_distribution(PARDir, "PARDir")
-
-        SWin_FLiES_LUT= process_FLiES_LUT_raster(
-            geometry=geometry,
-            time_UTC=time_UTC,
-            cloud_mask=cloud_mask,
-            COT=COT,
-            koppen_geiger=KG_climate,
-            albedo=albedo,
-            SZA=SZA,
-            GEOS5FP_connection=GEOS5FP_connection
-        )
-
-        coarse_geometry = geometry.rescale(GEOS_IN_SENTINEL_COARSE_CELL_SIZE)
-
-        SWin_coarse = GEOS5FP_connection.SWin(
-            time_UTC=time_UTC,
-            geometry=coarse_geometry,
-            resampling=downsampling
-        )
-
-        if bias_correct_FLiES_ANN:
-            SWin_FLiES_ANN = bias_correct(
-                coarse_image=SWin_coarse,
-                fine_image=SWin_FLiES_ANN_raw,
-                upsampling=upsampling,
-                downsampling=downsampling
-            )
-        else:
-            SWin_FLiES_ANN = SWin_FLiES_ANN_raw
-
-        check_distribution(SWin_FLiES_ANN, "SWin_FLiES_ANN", date_UTC=date_UTC, target=tile)
-
-        SWin_GEOS5FP = GEOS5FP_connection.SWin(
-            time_UTC=time_UTC,
-            geometry=geometry,
-            resampling=downsampling
-        )
-
-        check_distribution(SWin_GEOS5FP, "SWin_GEOS5FP", date_UTC=date_UTC, target=tile)
-
-        if SWin_model_name == "GEOS5FP":
-            SWin = SWin_GEOS5FP
-        elif SWin_model_name == "FLiES-ANN":
-            SWin = SWin_FLiES_ANN
-        elif SWin_model_name == "FLiES-LUT":
-            SWin = SWin_FLiES_LUT
-        else:
-            raise ValueError(f"unrecognized solar radiation model: {SWin_model_name}")
-
-        SWin = rt.where(np.isnan(ST_K), np.nan, SWin)
-
-        if np.all(np.isnan(SWin)) or np.all(SWin == 0):
-            raise BlankOutput(f"blank solar radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
-
-        # Sharpen meteorological variables if enabled.
-        if sharpen_meteorology:
-            try:
-                Ta_C, RH, Ta_C_smooth = sharpen_meteorology_data(
-                    ST_C=ST_C,
-                    NDVI=NDVI,
-                    albedo=albedo,
-                    geometry=geometry,
-                    coarse_geometry=coarse_geometry,
-                    time_UTC=time_UTC,
-                    date_UTC=date_UTC,
-                    tile=tile,
-                    orbit=orbit,
-                    scene=scene,
-                    upsampling=upsampling,
-                    downsampling=downsampling,
-                    GEOS5FP_connection=GEOS5FP_connection
-                )
-            except Exception as e:
-                logger.error(e)
-                logger.warning("unable to sharpen meteorology")
-                Ta_C = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-                Ta_C_smooth = Ta_C
-                RH = GEOS5FP_connection.RH(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-        else:
-            Ta_C = GEOS5FP_connection.Ta_C(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-            Ta_C_smooth = Ta_C
-            RH = GEOS5FP_connection.RH(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-
-        # Sharpen soil moisture if enabled.
-        if sharpen_soil_moisture:
-            try:
-                SM = sharpen_soil_moisture_data(
-                    ST_C=ST_C,
-                    NDVI=NDVI,
-                    albedo=albedo,
-                    water_mask=water_mask,
-                    geometry=geometry,
-                    coarse_geometry=coarse_geometry,
-                    time_UTC=time_UTC,
-                    date_UTC=date_UTC,
-                    tile=tile,
-                    orbit=orbit,
-                    scene=scene,
-                    upsampling=upsampling,
-                    downsampling=downsampling,
-                    GEOS5FP_connection=GEOS5FP_connection
-                )
-            except Exception as e:
-                logger.error(e)
-                logger.warning("unable to sharpen soil moisture")
-                SM = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-        else:
-            SM = GEOS5FP_connection.SM(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-
-        # Calculate Saturated Vapor Pressure (SVP_Pa) and Actual Vapor Pressure (Ea_Pa, Ea_kPa).
-        SVP_Pa = 0.6108 * np.exp((17.27 * Ta_C) / (Ta_C + 237.3)) * 1000  # [Pa]
-        Ea_Pa = RH * SVP_Pa
-        Ea_kPa = Ea_Pa / 1000
-        Ta_K = Ta_C + 273.15
-
-        logger.info(f"running Breathing Earth System Simulator for {cl.place(tile)} at {cl.time(time_UTC)} UTC")
-
-        BESS_results = BESS_JPL(
-            ST_C=ST_C,
-            NDVI=NDVI,
-            albedo=albedo,
-            elevation_km=elevation_km,
-            geometry=geometry,
-            time_UTC=time_UTC,
-            hour_of_day=hour_of_day,
-            day_of_year=day_of_year,
             GEOS5FP_connection=GEOS5FP_connection,
             MODISCI_connection=MODISCI_connection,
             Ta_C=Ta_C,
             RH=RH,
-            Rg=SWin_FLiES_ANN,
-            VISdiff=VISdiff,
-            VISdir=VISdir,
-            NIRdiff=NIRdiff,
-            NIRdir=NIRdir,
-            UV=UV,
-            albedo_visible=albedo_visible,
-            albedo_NIR=albedo_NIR,
-            vapor_gccm=vapor_gccm,
-            ozone_cm=ozone_cm,
-            KG_climate=KG_climate,
-            SZA=SZA,
-            GEDI_download_directory=GEDI_directory
-        )
-
-        Rn_BESS = BESS_results["Rn"]
-        G_BESS = BESS_results["G"]
-        check_distribution(Rn_BESS, "Rn_BESS", date_UTC=date_UTC, target=tile)
-        
-        LE_BESS = BESS_results["LE"]
-
-        ## an need to revise evaporative fraction to take soil heat flux into account
-        EF_BESS = rt.where((LE_BESS == 0) | ((Rn_BESS - G_BESS) == 0), 0, LE_BESS / (Rn_BESS - G_BESS))
-        
-        Rn_daily_BESS = daily_Rn_integration_verma(
-            Rn=Rn_BESS,
-            hour_of_day=hour_of_day,
-            DOY=day_of_year,
-            lat=geometry.lat,
-        )
-
-        LE_daily_BESS = rt.clip(EF_BESS * Rn_daily_BESS, 0, None)
-
-        if water_mask is not None:
-            LE_BESS = rt.where(water_mask, np.nan, LE_BESS)
-
-        check_distribution(LE_BESS, "LE_BESS", date_UTC=date_UTC, target=tile)
-        
-        GPP_inst_umol_m2_s = BESS_results["GPP"]
-        
-        if water_mask is not None:
-            GPP_inst_umol_m2_s = rt.where(water_mask, np.nan, GPP_inst_umol_m2_s)
-
-        check_distribution(GPP_inst_umol_m2_s, "GPP", date_UTC=date_UTC, target=tile)
-
-        if np.all(np.isnan(GPP_inst_umol_m2_s)):
-            raise BlankOutput(f"blank GPP output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
-
-        NWP_filenames = sorted([posixpath.basename(filename) for filename in GEOS5FP_connection.filenames])
-        AuxiliaryNWP = ",".join(NWP_filenames)
-        metadata["ProductMetadata"]["AuxiliaryNWP"] = AuxiliaryNWP
-
-        verma_results = verma_net_radiation(
-            SWin=SWin,
-            albedo=albedo,
             ST_C=ST_C,
-            emissivity=emissivity,
-            Ta_C=Ta_C,
-            RH=RH
-        )
-
-        Rn_verma = verma_results["Rn"]
-
-        if Rn_model_name == "verma":
-            Rn = Rn_verma
-        elif Rn_model_name == "BESS":
-            Rn = Rn_BESS
-        else:
-            raise ValueError(f"unrecognized net radiation model: {Rn_model_name}")
-
-        if np.all(np.isnan(Rn)) or np.all(Rn == 0):
-            raise BlankOutput(f"blank net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
-
-        STIC_results = STIC_JPL(
-            geometry=geometry,
-            time_UTC=time_UTC,
-            Rn_Wm2=Rn,
-            RH=RH,
-            Ta_C=Ta_C_smooth,
-            ST_C=ST_C,
-            albedo=albedo,
-            emissivity=emissivity,
             NDVI=NDVI,
-            max_iterations=3
-        )
-
-        LE_STIC = STIC_results["LE"]
-        LEt_STIC = STIC_results["LEt"]
-        G_STIC = STIC_results["G"]
-
-        STICJPLcanopy = rt.clip(rt.where((LEt_STIC == 0) | (LE_STIC == 0), 0, LEt_STIC / LE_STIC), 0, 1)
-
-        ## FIXME need to revise evaporative fraction to take soil heat flux into account
-        EF_STIC = rt.where((LE_STIC == 0) | ((Rn - G_STIC) == 0), 0, LE_STIC / (Rn - G_STIC))
-
-        PTJPLSM_results = PTJPLSM(
-            geometry=geometry,
-            time_UTC=time_UTC,
-            ST_C=ST_C,
             emissivity=emissivity,
-            NDVI=NDVI,
-            albedo=albedo,
-            Rn_Wm2=Rn,
-            Ta_C=Ta_C,
-            RH=RH,
             soil_moisture=SM,
-            field_capacity_directory=soil_grids_directory,
-            wilting_point_directory=soil_grids_directory,
-            canopy_height_directory=GEDI_directory
+            soil_grids_directory=soil_grids_directory,
+            GEDI_directory=GEDI_directory,
+            water_mask=water_mask,
+            Rn_model_name=Rn_model_name,
+            downsampling=downsampling,
+            orbit=orbit,
+            scene=scene,
+            tile=tile,
+            date_UTC=date_UTC
         )
 
-        LE_PTJPLSM = rt.clip(PTJPLSM_results["LE"], 0, None)
-        G_PTJPLSM = PTJPLSM_results["G"]
-
-        EF_PTJPLSM = rt.where((LE_PTJPLSM == 0) | ((Rn - G_PTJPLSM) == 0), 0, LE_PTJPLSM / (Rn - G_PTJPLSM))
-
-        if np.all(np.isnan(LE_PTJPLSM)):
-            raise BlankOutput(
-                f"blank PT-JPL-SM instantaneous ET output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
-
-        if np.all(np.isnan(LE_PTJPLSM)):
-            raise BlankOutput(
-                f"blank daily ET output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
-
-        LE_canopy_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["LE_canopy"], 0, None)
-
-        PTJPLSMcanopy = rt.clip(LE_canopy_PTJPLSM_Wm2 / LE_PTJPLSM, 0, 1)
-
-        if water_mask is not None:
-            PTJPLSMcanopy = rt.where(water_mask, np.nan, PTJPLSMcanopy)
-        
-        LE_soil_PTJPLSM = rt.clip(PTJPLSM_results["LE_soil"], 0, None)
-
-        PTJPLSMsoil = rt.clip(LE_soil_PTJPLSM / LE_PTJPLSM, 0, 1)
-
-        if water_mask is not None:
-            PTJPLSMsoil = rt.where(water_mask, np.nan, PTJPLSMsoil)
-        
-        LE_interception_PTJPLSM = rt.clip(PTJPLSM_results["LE_interception"], 0, None)
-
-        PTJPLSMinterception = rt.clip(LE_interception_PTJPLSM / LE_PTJPLSM, 0, 1)
-
-        if water_mask is not None:
-            PTJPLSMinterception = rt.where(water_mask, np.nan, PTJPLSMinterception)
-        
-        PET_PTJPLSM = rt.clip(PTJPLSM_results["PET"], 0, None)
-
-        ESI_PTJPLSM = rt.clip(LE_PTJPLSM / PET_PTJPLSM, 0, 1)
-
-        if water_mask is not None:
-            ESI_PTJPLSM = rt.where(water_mask, np.nan, ESI_PTJPLSM)
-
-        if np.all(np.isnan(ESI_PTJPLSM)):
-            raise BlankOutput(f"blank ESI output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
-
-        PMJPL_results = PMJPL(
-            geometry=geometry,
-            time_UTC=time_UTC,
-            ST_C=ST_C,
-            emissivity=emissivity,
-            NDVI=NDVI,
-            albedo=albedo,
-            Ta_C=Ta_C,
-            RH=RH,
-            elevation_km=elevation_km,
-            Rn=Rn,
-            GEOS5FP_connection=GEOS5FP_connection,
-        )
-
-        LE_PMJPL = PMJPL_results["LE"]
-        G_PMJPL = PMJPL_results["G"]
-
-        ETinst = rt.Raster(
-            np.nanmedian([np.array(LE_PTJPLSM), np.array(LE_BESS), np.array(LE_PMJPL), np.array(LE_STIC)], axis=0),
-            geometry=geometry)
-
-        windspeed_mps = GEOS5FP_connection.wind_speed(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-        SWnet = SWin * (1 - albedo)
-        Rn_Wm2 = Rn
-        SWin_Wm2 = SWin
-
-        # Adding debugging statements for input rasters before the AquaSEBS call
-        logger.info("checking input distributions for AquaSEBS")
-        check_distribution(ST_C, "ST_C", date_UTC=date_UTC, target=tile)
-        check_distribution(emissivity, "emissivity", date_UTC=date_UTC, target=tile)
-        check_distribution(albedo, "albedo", date_UTC=date_UTC, target=tile)
-        check_distribution(Ta_C, "Ta_C", date_UTC=date_UTC, target=tile)
-        check_distribution(RH, "RH", date_UTC=date_UTC, target=tile)
-        check_distribution(windspeed_mps, "windspeed_mps", date_UTC=date_UTC, target=tile)
-        check_distribution(SWnet, "SWnet", date_UTC=date_UTC, target=tile)
-        check_distribution(Rn_Wm2, "Rn_Wm2", date_UTC=date_UTC, target=tile)
-        check_distribution(SWin_Wm2, "SWin_Wm2", date_UTC=date_UTC, target=tile)
-
-        AquaSEBS_results = AquaSEBS(
-            WST_C=ST_C,
-            emissivity=emissivity,
-            albedo=albedo,
-            Ta_C=Ta_C,
-            RH=RH,
-            windspeed_mps=windspeed_mps,
-            SWnet=SWnet,
-            Rn_Wm2=Rn_Wm2,
-            SWin_Wm2=SWin_Wm2,
-            geometry=geometry,
-            time_UTC=time_UTC,
-            water=water_mask,
-            GEOS5FP_connection=GEOS5FP_connection
-        )
-
-        for key, value in AquaSEBS_results.items():
-            check_distribution(value, key)
-
-        LE_AquaSEBS = AquaSEBS_results["LE_Wm2"]
-        ETinst = rt.where(water_mask, LE_AquaSEBS, ETinst)
-        
-        ## FIXME need to revise evaporative fraction to take soil heat flux into account
-        EF_PMJPL = rt.where((LE_PMJPL == 0) | ((Rn - G_PMJPL) == 0), 0, LE_PMJPL / (Rn - G_PMJPL))
-
-        ## FIXME need to revise evaporative fraction to take soil heat flux into account
-        EF = rt.where((ETinst == 0) | (Rn == 0), 0, ETinst / Rn)
-
-        SHA = SHA_deg_from_DOY_lat(day_of_year, geometry.lat)
-        sunrise_hour = sunrise_from_SHA(SHA)
-        daylight_hours = daylight_from_SHA(SHA)
-
-        Rn_daily = daily_Rn_integration_verma(
-            Rn=Rn,
-            hour_of_day=hour_of_day,
-            DOY=day_of_year,
-            lat=geometry.lat,
-        )
-
-        Rn_daily = rt.clip(Rn_daily, 0, None)
-        LE_daily = rt.clip(EF * Rn_daily, 0, None)
-
-        daylight_seconds = daylight_hours * 3600.0
-
-        ET_daily_kg = np.clip(LE_daily * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
-
-        ET_daily_kg_BESS = np.clip(LE_daily_BESS * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
-        LE_daily_STIC = rt.clip(EF_STIC * Rn_daily, 0, None)
-        ET_daily_kg_STIC = np.clip(LE_daily_STIC * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
-        LE_daily_PTJPLSM = rt.clip(EF_PTJPLSM * Rn_daily, 0, None)
-        ET_daily_kg_PTJPLSM = np.clip(LE_daily_PTJPLSM * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
-        LE_daily_PMJPL = rt.clip(EF_PMJPL * Rn_daily, 0, None)
-        ET_daily_kg_PMJPL = np.clip(LE_daily_PMJPL * daylight_seconds / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM, 0, None)
-
-        ETinstUncertainty = rt.Raster(
-            np.nanstd([np.array(LE_PTJPLSM), np.array(LE_BESS), np.array(LE_PMJPL), np.array(LE_STIC)], axis=0),
-            geometry=geometry).mask(~water_mask)
-
-        GPP_inst_g_m2_s = GPP_inst_umol_m2_s / 1000000 * 12.011
-        ETt_inst_kg_m2_s = LE_canopy_PTJPLSM_Wm2 / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM
-        WUE = GPP_inst_g_m2_s / ETt_inst_kg_m2_s
-        WUE = rt.where(np.isinf(WUE), np.nan, WUE)
-        WUE = rt.clip(WUE, 0, 10)
+        # Extract all variables from the results dictionary
+        SWin_TOA_Wm2 = results["SWin_TOA_Wm2"]
+        SWin_FLiES_ANN_raw = results["SWin_FLiES_ANN_raw"]
+        UV_Wm2 = results["UV_Wm2"]
+        PAR_Wm2 = results["PAR_Wm2"]
+        NIR_Wm2 = results["NIR_Wm2"]
+        PAR_diffuse_Wm2 = results["PAR_diffuse_Wm2"]
+        NIR_diffuse_Wm2 = results["NIR_diffuse_Wm2"]
+        PAR_direct_Wm2 = results["PAR_direct_Wm2"]
+        NIR_direct_Wm2 = results["NIR_direct_Wm2"]
+        LE_PTJPLSM_Wm2 = results["LE_PTJPLSM_Wm2"]
+        ET_daylight_PTJPLSM_kg = results["ET_daylight_PTJPLSM_kg"]
+        LE_STIC_Wm2 = results["LE_STIC_Wm2"]
+        ET_daylight_STIC_kg = results["ET_daylight_STIC_kg"]
+        LE_BESS_Wm2 = results["LE_BESS_Wm2"]
+        ET_daylight_BESS_kg = results["ET_daylight_BESS_kg"]
+        LE_PMJPL_Wm2 = results["LE_PMJPL_Wm2"]
+        ET_daylight_PMJPL_kg = results["ET_daylight_PMJPL_kg"]
+        ET_daylight_kg = results["ET_daylight_kg"]
+        ET_uncertainty = results["ET_uncertainty"]
+        LE_canopy_fraction_PTJPLSM = results["LE_canopy_fraction_PTJPLSM"]
+        LE_canopy_fraction_STIC = results["LE_canopy_fraction_STIC"]
+        LE_soil_fraction_PTJPLSM = results["LE_soil_fraction_PTJPLSM"]
+        LE_interception_fraction_PTJPLSM = results["LE_interception_fraction_PTJPLSM"]
+        Rn_Wm2 = results["Rn_Wm2"]
+        SWin = results["SWin_Wm2"]
+        ESI_PTJPLSM = results["ESI_PTJPLSM"]
+        PET_instantaneous_PTJPLSM_Wm2 = results["PET_instantaneous_PTJPLSM_Wm2"]
+        WUE = results["WUE"]
+        GPP_inst_g_m2_s = results["GPP_inst_g_m2_s"]
+        AuxiliaryNWP = results["AuxiliaryNWP"]
 
         metadata["StandardMetadata"]["CollectionLabel"] = "ECOv003"
+        metadata["ProductMetadata"]["AuxiliaryNWP"] = AuxiliaryNWP
 
-        write_L3T_JET(
-            L3T_JET_zip_filename=L3T_JET_zip_filename,
-            L3T_JET_browse_filename=L3T_JET_browse_filename,
-            L3T_JET_directory=L3T_JET_directory,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            time_UTC=time_UTC,
-            build=build,
-            product_counter=product_counter,
-            # LE_PTJPLSM=ET_daily_kg_PTJPLSM,
-            LE_PTJPLSM=LE_PTJPLSM, # fixing instantaneous latent heat flux layer
-            ET_PTJPLSM=ET_daily_kg_PTJPLSM,
-            ET_STICJPL=ET_daily_kg_STIC,
-            ET_BESSJPL=ET_daily_kg_BESS,
-            ET_PMJPL=ET_daily_kg_PMJPL,
-            ET_daily_kg=ET_daily_kg,
-            ETinstUncertainty=ETinstUncertainty,
-            PTJPLSMcanopy=PTJPLSMcanopy,
-            STICJPLcanopy=STICJPLcanopy,
-            PTJPLSMsoil=PTJPLSMsoil,
-            PTJPLSMinterception=PTJPLSMinterception,
+        write_ECOv003_products(
+            runconfig=runconfig,
+            metadata=metadata,
+            LE_PTJPLSM_Wm2=LE_PTJPLSM_Wm2,
+            ET_daylight_PTJPLSM_kg=ET_daylight_PTJPLSM_kg,
+            LE_STIC_Wm2=LE_STIC_Wm2,
+            ET_daylight_STIC_kg=ET_daylight_STIC_kg,
+            LE_BESS_Wm2=LE_BESS_Wm2,
+            ET_daylight_BESS_kg=ET_daylight_BESS_kg,
+            LE_PMJPL_Wm2=LE_PMJPL_Wm2,
+            ET_daylight_PMJPL_kg=ET_daylight_PMJPL_kg,
+            ET_daylight_kg=ET_daylight_kg,
+            ET_uncertainty=ET_uncertainty,
+            LE_canopy_fraction_PTJPLSM=LE_canopy_fraction_PTJPLSM,
+            LE_canopy_fraction_STIC=LE_canopy_fraction_STIC,
+            LE_soil_fraction_PTJPLSM=LE_soil_fraction_PTJPLSM,
+            LE_interception_fraction_PTJPLSM=LE_interception_fraction_PTJPLSM,
             water_mask=water_mask,
             cloud_mask=cloud_mask,
-            metadata=metadata
-        )
-
-        write_L3T_ETAUX(
-            L3T_ETAUX_zip_filename=L3T_ETAUX_zip_filename,
-            L3T_ETAUX_browse_filename=L3T_ETAUX_browse_filename,
-            L3T_ETAUX_directory=L3T_ETAUX_directory,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            time_UTC=time_UTC,
-            build=build,
-            product_counter=product_counter,
             Ta_C=Ta_C,
             RH=RH,
-            Rn=Rn,
-            Rg=SWin,
+            Rn_Wm2=Rn_Wm2,
+            SWin=SWin,
             SM=SM,
-            water_mask=water_mask,
-            cloud_mask=cloud_mask,
-            metadata=metadata
-        )
-
-        write_L4T_ESI(
-            L4T_ESI_zip_filename=L4T_ESI_zip_filename,
-            L4T_ESI_browse_filename=L4T_ESI_browse_filename,
-            L4T_ESI_directory=L4T_ESI_directory,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            time_UTC=time_UTC,
-            build=build,
-            product_counter=product_counter,
-            ESI=ESI_PTJPLSM,
-            PET=PET_PTJPLSM,
-            water_mask=water_mask,
-            cloud_mask=cloud_mask,
-            metadata=metadata
-        )
-
-        write_L4T_WUE(
-            L4T_WUE_zip_filename=L4T_WUE_zip_filename,
-            L4T_WUE_browse_filename=L4T_WUE_browse_filename,
-            L4T_WUE_directory=L4T_WUE_directory,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            time_UTC=time_UTC,
-            build=build,
-            product_counter=product_counter,
+            ESI_PTJPLSM=ESI_PTJPLSM,
+            PET_instantaneous_PTJPLSM_Wm2=PET_instantaneous_PTJPLSM_Wm2,
             WUE=WUE,
-            GPP=GPP_inst_g_m2_s,
-            water_mask=water_mask,
-            cloud_mask=cloud_mask,
-            metadata=metadata
+            GPP_inst_g_m2_s=GPP_inst_g_m2_s
         )
 
         logger.info(f"finished L3T L4T JET run in {cl.time(timer.tocvalue())} seconds")
@@ -879,7 +362,11 @@ def main(argv=sys.argv):
     """
     if len(argv) == 1 or "--version" in argv:
         print(f"L3T/L4T JET PGE ({__version__})")
-        print(f"usage: ECOv003-L3T-L4T-JET RunConfig.xml")
+        print(f"usage: ECOv003-L3T-L4T-JET RunConfig.xml [--overwrite] [--strip-console] [--save-intermediate] [--show-distribution]")
+        print(f"  --overwrite: Overwrite existing output files if they exist")
+        print(f"  --strip-console: Strip console output from logger")
+        print(f"  --save-intermediate: Save intermediate processing steps")
+        print(f"  --show-distribution: Show distribution plots")
 
         if "--version" in argv:
             return SUCCESS_EXIT_CODE
@@ -889,13 +376,15 @@ def main(argv=sys.argv):
     strip_console = "--strip-console" in argv
     save_intermediate = "--save-intermediate" in argv
     show_distribution = "--show-distribution" in argv
+    overwrite = "--overwrite" in argv
     runconfig_filename = str(argv[1])
 
     exit_code = L3T_L4T_JET(
         runconfig_filename=runconfig_filename,
         strip_console=strip_console,
         save_intermediate=save_intermediate,
-        show_distribution=show_distribution
+        show_distribution=show_distribution,
+        overwrite=overwrite
     )
 
     logger.info(f"L3T/L4T JET exit code: {exit_code}")
