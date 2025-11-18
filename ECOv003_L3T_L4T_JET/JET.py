@@ -23,7 +23,6 @@ from PTJPLSM import PTJPLSM
 from STIC_JPL import STIC_JPL
 from FLiESANN import FLiESANN
 from verma_net_radiation import verma_net_radiation, daylight_Rn_integration_verma
-from sun_angles import SHA_deg_from_DOY_lat, sunrise_from_SHA, daylight_from_SHA
 from check_distribution import check_distribution
 
 from .constants import LATENT_VAPORIZATION_JOULES_PER_KILOGRAM
