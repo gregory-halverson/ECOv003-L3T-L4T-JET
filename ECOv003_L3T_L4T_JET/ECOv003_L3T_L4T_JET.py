@@ -17,6 +17,7 @@ from .read_ECOv003_inputs import read_ECOv003_inputs
 from .read_ECOv003_configuration import read_ECOv003_configuration
 from .JET import JET
 from .process_JET_table import process_JET_table
+from .generate_L3T_L4T_JET_runconfig import generate_L3T_L4T_JET_runconfig
 
 logger = logging.getLogger(__name__)  # Get a logger instance for this module.
 
