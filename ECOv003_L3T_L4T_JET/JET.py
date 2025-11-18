@@ -23,7 +23,6 @@ from PTJPLSM import PTJPLSM
 from STIC_JPL import STIC_JPL
 from FLiESANN import FLiESANN
 from verma_net_radiation import verma_net_radiation, daylight_Rn_integration_verma
-from sun_angles import SHA_deg_from_DOY_lat, sunrise_from_SHA, daylight_from_SHA
 from check_distribution import check_distribution
 
 from .constants import LATENT_VAPORIZATION_JOULES_PER_KILOGRAM
@@ -49,13 +48,13 @@ def JET(
         Ta_C: Union[Raster, np.ndarray, float],
         RH: Union[Raster, np.ndarray, float],
         soil_moisture: Union[Raster, np.ndarray, float],
-        water_mask: Union[Raster, np.ndarray, bool],
-        GEOS5FP_connection: GEOS5FPConnection,
         MODISCI_connection: MODISCI,
         soil_grids_directory: str,
         GEDI_directory: str,
         Rn_model_name: str,
-        downsampling: str) -> Dict[str, Union[Raster, np.ndarray]]:
+        downsampling: str,
+        GEOS5FP_connection: GEOS5FPConnection = None,
+        water_mask: Union[Raster, np.ndarray, bool] = None) -> Dict[str, Union[Raster, np.ndarray]]:
     """
     Main science function for JET (JPL Evapotranspiration Ensemble).
     
@@ -101,6 +100,10 @@ def JET(
     Raises:
         BlankOutput: If critical output variables are all NaN or zero
     """
+        # Create GEOS5FP connection if not provided
+    if GEOS5FP_connection is None:
+        GEOS5FP_connection = GEOS5FPConnection()
+    
     # Run FLiES-ANN
     logger.info(f"running Forest Light Environmental Simulator at {time_UTC} UTC")
     

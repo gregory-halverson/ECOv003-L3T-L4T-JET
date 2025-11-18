@@ -1,82 +1,23 @@
-import logging  # Used for logging messages and tracking execution.
-import posixpath  # For manipulating POSIX-style paths (e.g., for file operations).
-import shutil  # For high-level file operations, like zipping directories.
-import socket  # For network-related operations, potentially for checking server reachability.
-import sys  # Provides access to system-specific parameters and functions, used for command-line arguments and exit.
-import warnings  # For issuing warnings.
-from datetime import datetime  # For working with dates and times.
-from os import makedirs  # For creating directories.
-from os.path import join, abspath, dirname, expanduser, exists, basename  # For path manipulation (joining, absolute paths, directory names, user home, existence check, base name).
-from shutil import which  # For finding the path to an executable.
-from uuid import uuid4  # For generating unique identifiers.
-from pytictoc import TicToc  # A simple timer for measuring code execution time.
-import numpy as np  # Fundamental package for numerical computation, especially with arrays.
-import pandas as pd  # For data manipulation and analysis, especially with tabular data (DataFrames).
-import sklearn  # Scikit-learn, a machine learning library.
-import sklearn.linear_model  # Specifically for linear regression models.
-from dateutil import parser  # For parsing dates and times from various formats.
-from AquaSEBS import AquaSEBS
-import colored_logging as cl  # Custom module for colored console logging.
+import logging
+import sys
+import colored_logging as cl
 
-import rasters as rt  # Custom or external library for raster data processing.
-from rasters import Raster, RasterGrid, RasterGeometry  # Specific classes from the rasters library for handling raster data, grids, and geometries.
-from rasters import linear_downscale  # Functions for downscaling of rasters.
-
-from check_distribution import check_distribution  # Custom module for checking and potentially visualizing data distributions.
-
-from solar_apparent_time import UTC_offset_hours_for_area, solar_hour_of_day_for_area, solar_day_of_year_for_area  # Custom modules for solar time calculations.
-
-from koppengeiger import load_koppen_geiger  # Custom module for loading Köppen-Geiger climate data.
-import FLiESANN  # Custom module for the FLiES-ANN (Forest Light Environmental Simulator - Artificial Neural Network) model.
-from GEOS5FP import GEOS5FP, FailedGEOS5FPDownload  # Custom module for interacting with GEOS-5 FP atmospheric data, including an exception for download failures.
-from sun_angles import calculate_SZA_from_DOY_and_hour  # Custom module for calculating Solar Zenith Angle (SZA).
-
-from MCD12C1_2019_v006 import load_MCD12C1_IGBP  # Custom module for loading MODIS Land Cover Type (IGBP classification) data.
-from FLiESANN import FLiESANN  # Re-importing FLiESANN, potentially the main class.
-
-from MODISCI import MODISCI
-from BESS_JPL import BESS_JPL  # Custom module for the BESS-JPL (Breathing Earth System Simulator - Jet Propulsion Laboratory) model.
-from PMJPL import PMJPL  # Custom module for the PMJPL (Penman-Monteith Jet Propulsion Laboratory) model.
-from STIC_JPL import STIC_JPL  # Custom module for the STIC-JPL (Surface Temperature Initiated Closure - Jet Propulsion Laboratory) model.
-from PTJPLSM import PTJPLSM  # Custom module for the PTJPLSM (Priestley-Taylor Jet Propulsion Laboratory - Soil Moisture) model.
-from verma_net_radiation import verma_net_radiation, daylight_Rn_integration_verma  # Custom modules for net radiation calculation using Verma's model and daily integration.
-from sun_angles import SHA_deg_from_DOY_lat, sunrise_from_SHA, daylight_from_SHA  # Additional solar angle calculations.
+from GEOS5FP import FailedGEOS5FPDownload
 
 from ECOv003_L3T_L4T_JET.write_ECOv003_products import write_ECOv003_products
 
-from ECOv003_granules import write_L3T_JET  # Functions for writing ECOSTRESS Level 3/4 products.
-from ECOv003_granules import write_L3T_ETAUX
-from ECOv003_granules import write_L4T_ESI
-from ECOv003_granules import write_L4T_WUE
+from ECOv003_exit_codes import *
 
-from ECOv003_granules import L2TLSTE, L2TSTARS, L3TJET, L3TSM, L3TSEB, L3TMET, L4TESI, L4TWUE  # Product classes or constants from ECOv003_granules.
-
-from ECOv002_granules import L2TLSTE as ECOv002L2TLSTE  # Importing L2TLSTE from ECOv002_granules with an alias to avoid naming conflicts.
-from ECOv002_granules import L2TSTARS as ECOv002L2TSTARS  # Importing L2TSTARS from ECOv002_granules with an alias to avoid naming conflicts.
-
-from ECOv003_granules import ET_COLORMAP, SM_COLORMAP, WATER_COLORMAP, CLOUD_COLORMAP, RH_COLORMAP, GPP_COLORMAP  # Colormaps for visualization.
-
-from ECOv003_exit_codes import * # Import all custom exit codes.
-
-from .version import __version__  # Import the package version.
-from .constants import * # Import all constants used in the package.
-from .runconfig import read_runconfig, ECOSTRESSRunConfig  # Modules for reading and handling run configuration.
-
-from .generate_L3T_L4T_JET_runconfig import generate_L3T_L4T_JET_runconfig  # Module for generating run configuration files.
-from .L3TL4TJETConfig import L3TL4TJETConfig  # Specific run configuration class for L3T/L4T JET.
-
-from .NDVI_to_FVC import NDVI_to_FVC  # Module for converting NDVI to Fractional Vegetation Cover.
-
-from .sharpen_meteorology_data import sharpen_meteorology_data  # Module for sharpening meteorological data.
-from .sharpen_soil_moisture_data import sharpen_soil_moisture_data  # Module for sharpening soil moisture data.
+from .version import __version__
+from .constants import *
 
 from .exceptions import *
 
-from .version import __version__
-
 from .read_ECOv003_inputs import read_ECOv003_inputs
-from .read_ECOv003_configuration import read_ECOv003_configuration  # Module for reading ECOv003 input data.
+from .read_ECOv003_configuration import read_ECOv003_configuration
 from .JET import JET
+from .process_JET_table import process_JET_table
+from .generate_L3T_L4T_JET_runconfig import generate_L3T_L4T_JET_runconfig
 
 logger = logging.getLogger(__name__)  # Get a logger instance for this module.
 

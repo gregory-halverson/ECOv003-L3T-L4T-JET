@@ -14,5 +14,5 @@ class DaytimeFilter(Exception):
 class BlankOutput(Exception):
     pass
 
-# Import BlankOutputError from check_distribution for compatibility
-from check_distribution import BlankOutputError
+class BlankOutputError(Exception):
+    pass
