@@ -1,5 +1,7 @@
 from os.path import join, dirname, abspath
 
+UPSCALE_TO_DAYLIGHT = True
+
 # constant latent heat of vaporization for water: the number of joules of energy it takes to evaporate one kilogram
 LATENT_VAPORIZATION_JOULES_PER_KILOGRAM = 2450000.0
 

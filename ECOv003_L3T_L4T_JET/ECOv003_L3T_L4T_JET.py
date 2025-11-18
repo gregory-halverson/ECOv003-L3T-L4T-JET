@@ -16,6 +16,7 @@ from .exceptions import *
 from .read_ECOv003_inputs import read_ECOv003_inputs
 from .read_ECOv003_configuration import read_ECOv003_configuration
 from .JET import JET
+from .process_JET_table import process_JET_table
 
 logger = logging.getLogger(__name__)  # Get a logger instance for this module.
 

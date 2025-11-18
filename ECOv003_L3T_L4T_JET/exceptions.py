@@ -13,3 +13,6 @@ class DaytimeFilter(Exception):
 # Custom exception for when output data is blank
 class BlankOutput(Exception):
     pass
+
+class BlankOutputError(Exception):
+    pass
