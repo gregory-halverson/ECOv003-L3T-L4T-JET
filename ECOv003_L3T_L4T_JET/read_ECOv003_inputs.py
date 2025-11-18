@@ -9,14 +9,13 @@ moisture data.
 
 import logging
 from datetime import datetime
-from os.path import exists, basename
+from os.path import basename
 
 import numpy as np
 import rasters as rt
-from rasters import Raster, RasterGrid, RasterGeometry
+from rasters import Raster, RasterGeometry
 
 import colored_logging as cl
-from check_distribution import check_distribution
 from solar_apparent_time import solar_hour_of_day_for_area, solar_day_of_year_for_area
 from koppengeiger import load_koppen_geiger
 from FLiESANN import FLiESANN

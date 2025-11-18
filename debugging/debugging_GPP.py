@@ -13,7 +13,6 @@ Requirements:
 Update the working and static directory paths as needed for your environment.
 """
 
-import numpy as np
 import logging
 import os
 from ECOv002_CMR import download_ECOSTRESS_granule

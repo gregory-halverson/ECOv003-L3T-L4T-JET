@@ -13,6 +13,3 @@ class DaytimeFilter(Exception):
 # Custom exception for when output data is blank
 class BlankOutput(Exception):
     pass
-
-# Import BlankOutputError from check_distribution for compatibility
-from check_distribution import BlankOutputError
