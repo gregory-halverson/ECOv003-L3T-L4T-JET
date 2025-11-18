@@ -229,7 +229,7 @@ def L3T_L4T_JET(
         Ta_C = inputs['Ta_C']
         Ta_C_smooth = inputs['Ta_C_smooth']
         RH = inputs['RH']
-        SM = inputs['SM']
+        soil_moisture = inputs['SM']
         SVP_Pa = inputs['SVP_Pa']
         Ea_Pa = inputs['Ea_Pa']
         Ea_kPa = inputs['Ea_kPa']
@@ -243,8 +243,6 @@ def L3T_L4T_JET(
             albedo=albedo,
             geometry=geometry,
             time_UTC=time_UTC,
-            day_of_year=day_of_year,
-            hour_of_day=hour_of_day,
             COT=COT,
             AOT=AOT,
             vapor_gccm=vapor_gccm,
@@ -252,20 +250,16 @@ def L3T_L4T_JET(
             elevation_m=elevation_m,
             SZA_deg=SZA_deg,
             KG_climate=KG_climate,
-            GEOS5FP_connection=GEOS5FP_connection,
-            MODISCI_connection=MODISCI_connection,
             Ta_C=Ta_C,
             RH=RH,
-            soil_moisture=SM,
-            soil_grids_directory=soil_grids_directory,
-            GEDI_directory=GEDI_directory,
+            soil_moisture=soil_moisture,
             water_mask=water_mask,
             Rn_model_name=Rn_model_name,
+            GEOS5FP_connection=GEOS5FP_connection,
+            MODISCI_connection=MODISCI_connection,
+            soil_grids_directory=soil_grids_directory,
+            GEDI_directory=GEDI_directory,
             downsampling=downsampling,
-            orbit=orbit,
-            scene=scene,
-            tile=tile,
-            date_UTC=date_UTC
         )
 
         # Extract all variables from the results dictionary
@@ -326,7 +320,7 @@ def L3T_L4T_JET(
             RH=RH,
             Rn_Wm2=Rn_Wm2,
             SWin=SWin,
-            SM=SM,
+            SM=soil_moisture,
             ESI_PTJPLSM=ESI_PTJPLSM,
             PET_instantaneous_PTJPLSM_Wm2=PET_instantaneous_PTJPLSM_Wm2,
             WUE=WUE,

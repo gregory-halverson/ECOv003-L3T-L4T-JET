@@ -39,7 +39,6 @@ def JET(
         albedo: Union[Raster, np.ndarray, float],
         geometry: RasterGeometry,
         time_UTC: datetime,
-        hour_of_day: Union[np.ndarray, int],
         COT: Union[Raster, np.ndarray, float],
         AOT: Union[Raster, np.ndarray, float],
         vapor_gccm: Union[Raster, np.ndarray, float],
@@ -47,23 +46,18 @@ def JET(
         elevation_m: Union[Raster, np.ndarray, float],
         SZA_deg: Union[Raster, np.ndarray, float],
         KG_climate: Union[Raster, np.ndarray, str],
-        GEOS5FP_connection: GEOS5FPConnection,
-        MODISCI_connection: MODISCI,
         Ta_C: Union[Raster, np.ndarray, float],
         RH: Union[Raster, np.ndarray, float],
         soil_moisture: Union[Raster, np.ndarray, float],
         water_mask: Union[Raster, np.ndarray, bool],
+        GEOS5FP_connection: GEOS5FPConnection,
+        MODISCI_connection: MODISCI,
         soil_grids_directory: str,
         GEDI_directory: str,
         Rn_model_name: str,
-        downsampling: str,
-        day_of_year: int,
-        date_UTC: str,
-        tile: str,
-        orbit: str,
-        scene: str) -> Dict[str, Union[Raster, np.ndarray]]:
+        downsampling: str) -> Dict[str, Union[Raster, np.ndarray]]:
     """
-    Main science function for JET (Joint Evapotranspiration).
+    Main science function for JET (JPL Evapotranspiration Ensemble).
     
     This function orchestrates the calculation of evapotranspiration using multiple models
     including FLiES-ANN for solar radiation, BESS-JPL for GPP and ET, STIC-JPL for ET partitioning,
@@ -108,7 +102,7 @@ def JET(
         BlankOutput: If critical output variables are all NaN or zero
     """
     # Run FLiES-ANN
-    logger.info(f"running Forest Light Environmental Simulator for {tile} at {time_UTC} UTC")
+    logger.info(f"running Forest Light Environmental Simulator at {time_UTC} UTC")
     
     FLiES_results = FLiESANN(
         albedo=albedo,
@@ -147,7 +141,7 @@ def JET(
 
     # Use raw FLiES-ANN output directly without bias correction
     SWin_Wm2 = SWin_FLiES_ANN_raw
-    check_distribution(SWin_Wm2, "SWin_FLiES_ANN", date_UTC=date_UTC, target=tile)
+    check_distribution(SWin_Wm2, "SWin_FLiES_ANN")
 
     # Use FLiES-ANN solar radiation exclusively
     SWin = SWin_Wm2
@@ -156,9 +150,9 @@ def JET(
     # Check for blank output
     if np.all(np.isnan(SWin)) or np.all(SWin == 0):
         raise BlankOutput(
-            f"blank solar radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
+            f"blank solar radiation output at {time_UTC} UTC")
 
-    logger.info(f"running Breathing Earth System Simulator for {tile} at {time_UTC} UTC")
+    logger.info(f"running Breathing Earth System Simulator at {time_UTC} UTC")
 
     BESS_results = BESS_JPL(
         ST_C=ST_C,
@@ -167,8 +161,6 @@ def JET(
         elevation_m=elevation_m,
         geometry=geometry,
         time_UTC=time_UTC,
-        hour_of_day=hour_of_day,
-        day_of_year=day_of_year,
         GEOS5FP_connection=GEOS5FP_connection,
         MODISCI_connection=MODISCI_connection,
         Ta_C=Ta_C,
@@ -190,12 +182,12 @@ def JET(
     )
 
     Rn_BESS_Wm2 = BESS_results["Rn_Wm2"]
-    check_distribution(Rn_BESS_Wm2, "Rn_BESS_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(Rn_BESS_Wm2, "Rn_BESS_Wm2")
     G_BESS_Wm2 = BESS_results["G_Wm2"]
-    check_distribution(Rn_BESS_Wm2, "Rn_BESS_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(Rn_BESS_Wm2, "Rn_BESS_Wm2")
     
     LE_BESS_Wm2 = BESS_results["LE_Wm2"]
-    check_distribution(LE_BESS_Wm2, "LE_BESS_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(LE_BESS_Wm2, "LE_BESS_Wm2")
     
     # FIXME BESS needs to generate ET_daylight_kg
     ET_daylight_BESS_kg = BESS_results["ET_daylight_kg"]
@@ -214,17 +206,17 @@ def JET(
     if water_mask is not None:
         LE_BESS_Wm2 = rt.where(water_mask, np.nan, LE_BESS_Wm2)
 
-    check_distribution(LE_BESS_Wm2, "LE_BESS_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(LE_BESS_Wm2, "LE_BESS_Wm2")
     
     GPP_inst_umol_m2_s = BESS_results["GPP"]
     
     if water_mask is not None:
         GPP_inst_umol_m2_s = rt.where(water_mask, np.nan, GPP_inst_umol_m2_s)
 
-    check_distribution(GPP_inst_umol_m2_s, "GPP_inst_umol_m2_s", date_UTC=date_UTC, target=tile)
+    check_distribution(GPP_inst_umol_m2_s, "GPP_inst_umol_m2_s")
 
     if np.all(np.isnan(GPP_inst_umol_m2_s)):
-        raise BlankOutput(f"blank GPP output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
+        raise BlankOutput(f"blank GPP output at {time_UTC} UTC")
 
     NWP_filenames = sorted([posixpath.basename(filename) for filename in GEOS5FP_connection.filenames])
     AuxiliaryNWP = ",".join(NWP_filenames)
@@ -249,7 +241,7 @@ def JET(
         raise ValueError(f"unrecognized net radiation model: {Rn_model_name}")
 
     if np.all(np.isnan(Rn_Wm2)) or np.all(Rn_Wm2 == 0):
-        raise BlankOutput(f"blank net radiation output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
+        raise BlankOutput(f"blank net radiation output at {time_UTC} UTC")
 
     STIC_results = STIC_JPL(
         geometry=geometry,
@@ -266,19 +258,19 @@ def JET(
     )
 
     LE_STIC_Wm2 = STIC_results["LE_Wm2"]
-    check_distribution(LE_STIC_Wm2, "LE_STIC_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(LE_STIC_Wm2, "LE_STIC_Wm2")
     
     ET_daylight_STIC_kg = STIC_results["ET_daylight_kg"]
-    check_distribution(ET_daylight_STIC_kg, "ET_daylight_STIC_kg", date_UTC=date_UTC, target=tile)
+    check_distribution(ET_daylight_STIC_kg, "ET_daylight_STIC_kg")
     
     LE_canopy_STIC_Wm2 = STIC_results["LE_canopy_Wm2"]
-    check_distribution(LE_canopy_STIC_Wm2, "LE_canoy_STIC_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(LE_canopy_STIC_Wm2, "LE_canoy_STIC_Wm2")
     
     G_STIC_Wm2 = STIC_results["G_Wm2"]
-    check_distribution(G_STIC_Wm2, "G_STIC_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(G_STIC_Wm2, "G_STIC_Wm2")
 
     LE_canopy_fraction_STIC = rt.clip(rt.where((LE_canopy_STIC_Wm2 == 0) | (LE_STIC_Wm2 == 0), 0, LE_canopy_STIC_Wm2 / LE_STIC_Wm2), 0, 1)
-    check_distribution(LE_canopy_fraction_STIC, "LE_canopy_fraction_STIC", date_UTC=date_UTC, target=tile)
+    check_distribution(LE_canopy_fraction_STIC, "LE_canopy_fraction_STIC")
 
     ## FIXME need to revise evaporative fraction to take soil heat flux into account
     EF_STIC = rt.where((LE_STIC_Wm2 == 0) | ((Rn_Wm2 - G_STIC_Wm2) == 0), 0, LE_STIC_Wm2 / (Rn_Wm2 - G_STIC_Wm2))
@@ -301,66 +293,66 @@ def JET(
     )
 
     LE_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["LE_Wm2"], 0, None)
-    check_distribution(LE_PTJPLSM_Wm2, "LE_PTJPLSM_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(LE_PTJPLSM_Wm2, "LE_PTJPLSM_Wm2")
     
     ET_daylight_PTJPLSM_kg = PTJPLSM_results["ET_daylight_kg"]
-    check_distribution(ET_daylight_PTJPLSM_kg, "ET_daylight_PTJPLSM_kg", date_UTC=date_UTC, target=tile)
+    check_distribution(ET_daylight_PTJPLSM_kg, "ET_daylight_PTJPLSM_kg")
     
     G_PTJPLSM = PTJPLSM_results["G_Wm2"]
-    check_distribution(G_PTJPLSM, "G_PTJPLSM", date_UTC=date_UTC, target=tile)
+    check_distribution(G_PTJPLSM, "G_PTJPLSM")
 
     EF_PTJPLSM = rt.where((LE_PTJPLSM_Wm2 == 0) | ((Rn_Wm2 - G_PTJPLSM) == 0), 0, LE_PTJPLSM_Wm2 / (Rn_Wm2 - G_PTJPLSM))
-    check_distribution(EF_PTJPLSM, "EF_PTJPLSM", date_UTC=date_UTC, target=tile)
+    check_distribution(EF_PTJPLSM, "EF_PTJPLSM")
 
     if np.all(np.isnan(LE_PTJPLSM_Wm2)):
         raise BlankOutput(
-            f"blank PT-JPL-SM instantaneous ET output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
+            f"blank PT-JPL-SM instantaneous ET output for at {time_UTC} UTC")
 
     if np.all(np.isnan(LE_PTJPLSM_Wm2)):
         raise BlankOutput(
-            f"blank daily ET output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
+            f"blank daily ET output for at {time_UTC} UTC")
 
     LE_canopy_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["LE_canopy_Wm2"], 0, None)
-    check_distribution(LE_canopy_PTJPLSM_Wm2, "LE_canopy_PTJPLSM_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(LE_canopy_PTJPLSM_Wm2, "LE_canopy_PTJPLSM_Wm2")
 
     LE_canopy_fraction_PTJPLSM = rt.clip(LE_canopy_PTJPLSM_Wm2 / LE_PTJPLSM_Wm2, 0, 1)
-    check_distribution(LE_canopy_fraction_PTJPLSM, "LE_canopy_fraction_PTJPLSM", date_UTC=date_UTC, target=tile)
+    check_distribution(LE_canopy_fraction_PTJPLSM, "LE_canopy_fraction_PTJPLSM")
 
     if water_mask is not None:
         LE_canopy_fraction_PTJPLSM = rt.where(water_mask, np.nan, LE_canopy_fraction_PTJPLSM)
     
     LE_soil_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["LE_soil_Wm2"], 0, None)
-    check_distribution(LE_soil_PTJPLSM_Wm2, "LE_soil_PTJPLSM_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(LE_soil_PTJPLSM_Wm2, "LE_soil_PTJPLSM_Wm2")
 
     LE_soil_fraction_PTJPLSM = rt.clip(LE_soil_PTJPLSM_Wm2 / LE_PTJPLSM_Wm2, 0, 1)
     
     if water_mask is not None:
         LE_soil_fraction_PTJPLSM = rt.where(water_mask, np.nan, LE_soil_fraction_PTJPLSM)
     
-    check_distribution(LE_soil_fraction_PTJPLSM, "LE_soil_fraction_PTJPLSM", date_UTC=date_UTC, target=tile)
+    check_distribution(LE_soil_fraction_PTJPLSM, "LE_soil_fraction_PTJPLSM")
     
     LE_interception_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["LE_interception_Wm2"], 0, None)
-    check_distribution(LE_interception_PTJPLSM_Wm2, "LE_interception_PTJPLSM_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(LE_interception_PTJPLSM_Wm2, "LE_interception_PTJPLSM_Wm2")
 
     LE_interception_fraction_PTJPLSM = rt.clip(LE_interception_PTJPLSM_Wm2 / LE_PTJPLSM_Wm2, 0, 1)
     
     if water_mask is not None:
         LE_interception_fraction_PTJPLSM = rt.where(water_mask, np.nan, LE_interception_fraction_PTJPLSM)
     
-    check_distribution(LE_interception_fraction_PTJPLSM, "LE_interception_fraction_PTJPLSM", date_UTC=date_UTC, target=tile)
+    check_distribution(LE_interception_fraction_PTJPLSM, "LE_interception_fraction_PTJPLSM")
     
     PET_instantaneous_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["PET_Wm2"], 0, None)
-    check_distribution(PET_instantaneous_PTJPLSM_Wm2, "PET_instantaneous_PTJPLSM_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(PET_instantaneous_PTJPLSM_Wm2, "PET_instantaneous_PTJPLSM_Wm2")
 
     ESI_PTJPLSM = rt.clip(LE_PTJPLSM_Wm2 / PET_instantaneous_PTJPLSM_Wm2, 0, 1)
 
     if water_mask is not None:
         ESI_PTJPLSM = rt.where(water_mask, np.nan, ESI_PTJPLSM)
 
-    check_distribution(ESI_PTJPLSM, "ESI_PTJPLSM", date_UTC=date_UTC, target=tile)
+    check_distribution(ESI_PTJPLSM, "ESI_PTJPLSM")
 
     if np.all(np.isnan(ESI_PTJPLSM)):
-        raise BlankOutput(f"blank ESI output for orbit {orbit} scene {scene} tile {tile} at {time_UTC} UTC")
+        raise BlankOutput(f"blank ESI output for at {time_UTC} UTC")
 
     # TODO update PM-JPL to take elevation in meters so all models use the same units
 
@@ -382,13 +374,13 @@ def JET(
     )
 
     LE_PMJPL_Wm2 = PMJPL_results["LE_Wm2"]
-    check_distribution(LE_PMJPL_Wm2, "LE_PMJPL_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(LE_PMJPL_Wm2, "LE_PMJPL_Wm2")
     
     ET_daylight_PMJPL_kg = PMJPL_results["ET_daylight_kg"]
-    check_distribution(ET_daylight_PMJPL_kg, "ET_daylight_PMJ", date_UTC=date_UTC, target=tile)
+    check_distribution(ET_daylight_PMJPL_kg, "ET_daylight_PMJ")
     
     G_PMJPL_Wm2 = PMJPL_results["G_Wm2"]
-    check_distribution(G_PMJPL_Wm2, "G_PMJPL_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(G_PMJPL_Wm2, "G_PMJPL_Wm2")
 
     # FIXME get rid of the instantaneous latent heat flux aggregation
     LE_instantaneous_Wm2 = rt.Raster(
@@ -396,22 +388,22 @@ def JET(
         geometry=geometry)
 
     windspeed_mps = GEOS5FP_connection.wind_speed(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-    check_distribution(windspeed_mps, "windspeed_mps", date_UTC=date_UTC, target=tile)
+    check_distribution(windspeed_mps, "windspeed_mps")
     
     SWnet_Wm2 = SWin_Wm2 * (1 - albedo)
-    check_distribution(SWnet_Wm2, "SWnet_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(SWnet_Wm2, "SWnet_Wm2")
 
     # Adding debugging statements for input rasters before the AquaSEBS call
     logger.info("checking input distributions for AquaSEBS")
-    check_distribution(ST_C, "ST_C", date_UTC=date_UTC, target=tile)
-    check_distribution(emissivity, "emissivity", date_UTC=date_UTC, target=tile)
-    check_distribution(albedo, "albedo", date_UTC=date_UTC, target=tile)
-    check_distribution(Ta_C, "Ta_C", date_UTC=date_UTC, target=tile)
-    check_distribution(RH, "RH", date_UTC=date_UTC, target=tile)
-    check_distribution(windspeed_mps, "windspeed_mps", date_UTC=date_UTC, target=tile)
-    check_distribution(SWnet_Wm2, "SWnet", date_UTC=date_UTC, target=tile)
-    check_distribution(Rn_Wm2, "Rn_Wm2", date_UTC=date_UTC, target=tile)
-    check_distribution(SWin_Wm2, "SWin_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(ST_C, "ST_C")
+    check_distribution(emissivity, "emissivity")
+    check_distribution(albedo, "albedo")
+    check_distribution(Ta_C, "Ta_C")
+    check_distribution(RH, "RH")
+    check_distribution(windspeed_mps, "windspeed_mps")
+    check_distribution(SWnet_Wm2, "SWnet")
+    check_distribution(Rn_Wm2, "Rn_Wm2")
+    check_distribution(SWin_Wm2, "SWin_Wm2")
 
     # FIXME AquaSEBS need to do daylight upscaling
     AquaSEBS_results = AquaSEBS(
@@ -437,43 +429,13 @@ def JET(
     # FIXME need to revise how the water surface evaporation is inserted into the JET product
 
     LE_AquaSEBS_Wm2 = AquaSEBS_results["LE_Wm2"]
-    check_distribution(LE_AquaSEBS_Wm2, "LE_AquaSEBS_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(LE_AquaSEBS_Wm2, "LE_AquaSEBS_Wm2")
     
     LE_instantaneous_Wm2 = rt.where(water_mask, LE_AquaSEBS_Wm2, LE_instantaneous_Wm2)
-    check_distribution(LE_instantaneous_Wm2, "LE_instantaneous_Wm2", date_UTC=date_UTC, target=tile)
+    check_distribution(LE_instantaneous_Wm2, "LE_instantaneous_Wm2")
     
     ET_daylight_AquaSEBS_kg = AquaSEBS_results["ET_daylight_kg"]
-    check_distribution(ET_daylight_AquaSEBS_kg, "ET_daylight_AquaSEBS_kg", date_UTC=date_UTC, target=tile)
-    
-    ## FIXME need to revise evaporative fraction to take soil heat flux into account
-    EF_PMJPL = rt.where((LE_PMJPL_Wm2 == 0) | ((Rn_Wm2 - G_PMJPL_Wm2) == 0), 0, LE_PMJPL_Wm2 / (Rn_Wm2 - G_PMJPL_Wm2))
-    check_distribution(EF_PMJPL, "EF_PMJPL", date_UTC=date_UTC, target=tile)
-
-    ## FIXME need to revise evaporative fraction to take soil heat flux into account
-    EF = rt.where((LE_instantaneous_Wm2 == 0) | (Rn_Wm2 == 0), 0, LE_instantaneous_Wm2 / Rn_Wm2)
-    check_distribution(EF, "EF", date_UTC=date_UTC, target=tile)
-
-    SHA_deg = SHA_deg_from_DOY_lat(day_of_year, geometry.lat)
-    check_distribution(SHA_deg, "SHA_deg", date_UTC=date_UTC, target=tile)
-    sunrise_hour = sunrise_from_SHA(SHA_deg)
-    check_distribution(sunrise_hour, "sunrise_hour", date_UTC=date_UTC, target=tile)
-    daylight_hours = daylight_from_SHA(SHA_deg)
-    check_distribution(daylight_hours, "daylight_hours", date_UTC=date_UTC, target=tile)
-
-    Rn_daylight_Wm2 = daylight_Rn_integration_verma(
-        Rn_Wm2=Rn_Wm2,
-        time_UTC=time_UTC,
-        geometry=geometry
-    )
-
-    Rn_daylight_Wm2 = rt.clip(Rn_daylight_Wm2, 0, None)
-    check_distribution(Rn_daylight_Wm2, "Rn_daylight_Wm2", date_UTC=date_UTC, target=tile)
-    
-    LE_daylight_Wm2 = rt.clip(EF * Rn_daylight_Wm2, 0, None)
-    check_distribution(LE_daylight_Wm2, "LE_daylight_Wm2", date_UTC=date_UTC, target=tile)
-
-    daylight_seconds = daylight_hours * 3600.0
-    check_distribution(daylight_seconds, "daylight_seconds", date_UTC=date_UTC, target=tile)
+    check_distribution(ET_daylight_AquaSEBS_kg, "ET_daylight_AquaSEBS_kg")
 
     ET_daylight_kg = np.nanmedian([
         np.array(ET_daylight_PTJPLSM_kg),
@@ -487,7 +449,7 @@ def JET(
     
     # overlay water surface evaporation on top of daylight evapotranspiration aggregate
     ET_daylight_kg = rt.where(np.isnan(ET_daylight_AquaSEBS_kg), ET_daylight_kg, ET_daylight_AquaSEBS_kg)
-    check_distribution(ET_daylight_kg, "ET_daylight_kg", date_UTC=date_UTC, target=tile)
+    check_distribution(ET_daylight_kg, "ET_daylight_kg")
 
     ET_uncertainty = np.nanstd([
         np.array(ET_daylight_PTJPLSM_kg),
@@ -551,14 +513,6 @@ def JET(
         'SWnet_Wm2': SWnet_Wm2,
         'LE_AquaSEBS_Wm2': LE_AquaSEBS_Wm2,
         'ET_daylight_AquaSEBS_kg': ET_daylight_AquaSEBS_kg,
-        'EF_PMJPL': EF_PMJPL,
-        'EF': EF,
-        'SHA_deg': SHA_deg,
-        'sunrise_hour': sunrise_hour,
-        'daylight_hours': daylight_hours,
-        'Rn_daylight_Wm2': Rn_daylight_Wm2,
-        'LE_daylight_Wm2': LE_daylight_Wm2,
-        'daylight_seconds': daylight_seconds,
         'ET_daylight_kg': ET_daylight_kg,
         'ET_uncertainty': ET_uncertainty,
         'GPP_inst_g_m2_s': GPP_inst_g_m2_s,
