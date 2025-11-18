@@ -177,6 +177,7 @@ class L3TL4TJETConfig(ECOSTRESSRunConfig):
             self.orbit = orbit
             self.scene = scene
             self.tile = tile
+            self.time_UTC = time_UTC
             self.build = build
             self.product_counter = product_counter
             self.granule_ID = granule_ID

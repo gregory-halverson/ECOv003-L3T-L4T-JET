@@ -10,14 +10,14 @@ from datetime import datetime
 from os.path import exists, basename
 
 import colored_logging as cl
-from TicToc import TicToc
+from pytictoc import TicToc
 
 from ECOv003_granules import L2TLSTE
 from ECOv002_granules import L2TLSTE as ECOv002L2TLSTE
+from ECOv003_exit_codes import SUCCESS_EXIT_CODE
 
 from .L3TL4TJETConfig import L3TL4TJETConfig
 from .exceptions import InputFilesInaccessible
-from .constants import SUCCESS_EXIT_CODE
 
 logger = logging.getLogger(__name__)
 
