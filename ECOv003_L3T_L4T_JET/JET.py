@@ -13,6 +13,9 @@ import numpy as np
 import rasters as rt
 from rasters import Raster, RasterGeometry
 
+from GEOS5FP import GEOS5FPConnection
+from MODISCI import MODISCI
+
 from AquaSEBS import AquaSEBS
 from BESS_JPL import BESS_JPL
 from PMJPL import PMJPL
@@ -30,6 +33,9 @@ logger = logging.getLogger(__name__)
 
 
 def JET(
+        ST_C: Union[Raster, np.ndarray, float],
+        emissivity: Union[Raster, np.ndarray, float],
+        NDVI: Union[Raster, np.ndarray, float],
         albedo: Union[Raster, np.ndarray, float],
         geometry: RasterGeometry,
         time_UTC: datetime,
@@ -41,13 +47,10 @@ def JET(
         elevation_m: Union[Raster, np.ndarray, float],
         SZA_deg: Union[Raster, np.ndarray, float],
         KG_climate: Union[Raster, np.ndarray, str],
-        GEOS5FP_connection: object,
-        MODISCI_connection: object,
+        GEOS5FP_connection: GEOS5FPConnection,
+        MODISCI_connection: MODISCI,
         Ta_C: Union[Raster, np.ndarray, float],
         RH: Union[Raster, np.ndarray, float],
-        ST_C: Union[Raster, np.ndarray, float],
-        NDVI: Union[Raster, np.ndarray, float],
-        emissivity: Union[Raster, np.ndarray, float],
         soil_moisture: Union[Raster, np.ndarray, float],
         water_mask: Union[Raster, np.ndarray, bool],
         soil_grids_directory: str,

@@ -237,6 +237,9 @@ def L3T_L4T_JET(
 
         # Replace the science code with a call to the JET function
         results = JET(
+            ST_C=ST_C,
+            NDVI=NDVI,
+            emissivity=emissivity,
             albedo=albedo,
             geometry=geometry,
             time_UTC=time_UTC,
@@ -253,9 +256,6 @@ def L3T_L4T_JET(
             MODISCI_connection=MODISCI_connection,
             Ta_C=Ta_C,
             RH=RH,
-            ST_C=ST_C,
-            NDVI=NDVI,
-            emissivity=emissivity,
             soil_moisture=SM,
             soil_grids_directory=soil_grids_directory,
             GEDI_directory=GEDI_directory,
