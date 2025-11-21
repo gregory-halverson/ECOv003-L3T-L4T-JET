@@ -30,7 +30,7 @@ dependencies = [
     "NASADEM~=1.4.0",
     "numpy",
     "pandas",
-    "PM-JPL~=1.7.0",
+    "PM-JPL~=1.8.0",
     "PTJPLSM~=1.9.0",
     "python-dateutil",
     "pytictoc",

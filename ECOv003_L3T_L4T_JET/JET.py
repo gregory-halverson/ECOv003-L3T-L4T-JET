@@ -258,6 +258,7 @@ def JET(
     )
 
     LE_STIC_Wm2 = STIC_results["LE_Wm2"]
+    LE_STIC_Wm2 = rt.where(water_mask, np.nan, LE_STIC_Wm2)
     check_distribution(LE_STIC_Wm2, "LE_STIC_Wm2")
     
     ET_daylight_STIC_kg = STIC_results["ET_daylight_kg"]
@@ -367,7 +368,7 @@ def JET(
         albedo=albedo,
         Ta_C=Ta_C,
         RH=RH,
-        elevation_km=elevation_km,
+        elevation_m=elevation_m,
         Rn_Wm2=Rn_Wm2,
         GEOS5FP_connection=GEOS5FP_connection,
         upscale_to_daylight=True
