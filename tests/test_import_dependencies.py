@@ -7,7 +7,6 @@ dependencies = [
     "colored_logging",
     "ECOv002_granules",
     "FLiESANN",
-    "FLiESLUT",
     "GEOS5FP",
     "koppengeiger",
     "MCD12C1_2019_v006",

@@ -1,7 +1,8 @@
-# Define the package name and environment name
+# Define the package name, environment name, and Python version
 PACKAGE_NAME = ECOv003-L3T-L4T-JET
 ENVIRONMENT_NAME = $(PACKAGE_NAME)
 DOCKER_IMAGE_NAME = $(shell echo $(PACKAGE_NAME) | tr '[:upper:]' '[:lower:]')
+PYTHON_VERSION = $(if $(PYTHON),$(PYTHON),3.12)
 
 # Clean up build artifacts and temporary files
 clean:
@@ -59,10 +60,10 @@ reinstall:
 	# Install the package
 	make install
 
-# Create a new Conda environment with Python 3.11
+# Create a new Conda environment with the specified Python version
 environment:
 	# Create a Conda environment with the specified name and Python version
-	mamba create -y -n $(ENVIRONMENT_NAME) -c conda-forge python=3.11
+	mamba create -y -n $(ENVIRONMENT_NAME) -c conda-forge python=$(PYTHON_VERSION)
 
 # Remove the Conda environment
 remove-environment:
