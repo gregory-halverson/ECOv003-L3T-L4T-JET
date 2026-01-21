@@ -54,7 +54,8 @@ def JET(
         Rn_model_name: str,
         downsampling: str,
         GEOS5FP_connection: GEOS5FPConnection = None,
-        water_mask: Union[Raster, np.ndarray, bool] = None) -> Dict[str, Union[Raster, np.ndarray]]:
+        water_mask: Union[Raster, np.ndarray, bool] = None,
+        offline_mode: bool = False) -> Dict[str, Union[Raster, np.ndarray]]:
     """
     Main science function for JET (JPL Evapotranspiration Ensemble).
     
@@ -119,6 +120,7 @@ def JET(
         SZA_deg=SZA_deg,
         KG_climate=KG_climate,
         GEOS5FP_connection=GEOS5FP_connection,
+        offline_mode=offline_mode
     )
     
     # Extract FLiES-ANN results with updated variable names
@@ -181,7 +183,8 @@ def JET(
         KG_climate=KG_climate,
         SZA_deg=SZA_deg,
         GEDI_download_directory=GEDI_directory,
-        upscale_to_daylight=True
+        upscale_to_daylight=True,
+        offline_mode=offline_mode
     )
 
     Rn_BESS_Wm2 = BESS_results["Rn_Wm2"]
@@ -224,14 +227,14 @@ def JET(
     NWP_filenames = sorted([posixpath.basename(filename) for filename in GEOS5FP_connection.filenames])
     AuxiliaryNWP = ",".join(NWP_filenames)
     
-
     verma_results = verma_net_radiation(
         SWin_Wm2=SWin_Wm2,
         albedo=albedo,
         ST_C=ST_C,
         emissivity=emissivity,
         Ta_C=Ta_C,
-        RH=RH
+        RH=RH,
+        offline_mode=offline_mode
     )
 
     Rn_verma_Wm2 = verma_results["Rn_Wm2"]
@@ -257,7 +260,8 @@ def JET(
         emissivity=emissivity,
         NDVI=NDVI,
         max_iterations=3,
-        upscale_to_daylight=True
+        upscale_to_daylight=True,
+        offline_mode=offline_mode
     )
 
     LE_STIC_Wm2 = STIC_results["LE_Wm2"]
@@ -292,7 +296,8 @@ def JET(
         field_capacity_directory=soil_grids_directory,
         wilting_point_directory=soil_grids_directory,
         canopy_height_directory=GEDI_directory,
-        upscale_to_daylight=True
+        upscale_to_daylight=True,
+        offline_mode=offline_mode
     )
 
     LE_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["LE_Wm2"], 0, None)
@@ -373,7 +378,8 @@ def JET(
         elevation_km=elevation_km,
         Rn_Wm2=Rn_Wm2,
         GEOS5FP_connection=GEOS5FP_connection,
-        upscale_to_daylight=True
+        upscale_to_daylight=True,
+        offline_mode=offline_mode
     )
 
     LE_PMJPL_Wm2 = PMJPL_results["LE_Wm2"]
@@ -423,7 +429,8 @@ def JET(
         time_UTC=time_UTC,
         water=water_mask,
         GEOS5FP_connection=GEOS5FP_connection,
-        upscale_to_daylight=True
+        upscale_to_daylight=True,
+        offline_mode=offline_mode
     )
 
     for key, value in AquaSEBS_results.items():

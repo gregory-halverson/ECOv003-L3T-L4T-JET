@@ -16,7 +16,7 @@ classifiers = [
 ]
 dependencies = [
     "AquaSEBS~=1.1.0",
-    "BESS-JPL~=1.22.0",
+    "BESS-JPL~=1.25.0",
     "check-distribution",
     "colored-logging~=1.0.1",
     "ECOv002-granules~=1.2.1",
@@ -27,15 +27,15 @@ dependencies = [
     "koppengeiger~=1.1.0",
     "numpy~=1.26.0",
     "pandas~=2.3.0",
-    "PM-JPL~=1.7.0",
-    "PTJPLSM~=1.9.0",
+    "PM-JPL~=1.9.0",
+    "PTJPLSM~=1.10.0",
     "python-dateutil~=2.9.0",
     "pytictoc~=1.5.0",
     "rasters~=1.14.0",
     "rasterio~=1.4.0",
     "scikit-learn~=1.7.0",
     "solar-apparent-time~=1.5.0",
-    "STIC-JPL~=1.4.0",
+    "STIC-JPL~=1.6.0",
     "sun-angles~=1.7.0",
     "untangle~=1.2.0",
     "verma-net-radiation~=1.9.0"
