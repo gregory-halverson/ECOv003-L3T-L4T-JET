@@ -19,12 +19,14 @@ dependencies = [
     "BESS-JPL~=1.27.0",
     "check-distribution",
     "colored-logging~=1.0.1",
+    "ECOv002-calval-tables",
     "ECOv002-granules~=1.2.1",
     "ECOv003-exit-codes~=1.1.0",
     "ECOv003-granules~=1.13.1",
     "FLiESANN",
     "GEOS5FP",
     "koppengeiger~=1.1.0",
+    "monte-carlo-sensitivity",
     "numpy~=1.26.0",
     "pandas~=2.3.0",
     "PM-JPL~=1.11.0",
@@ -68,5 +70,7 @@ ECOv003-L3T-L4T-JET = "ECOv003_L3T_L4T_JET.ECOv003_L3T_L4T_JET:main"
 [tool.pytest.ini_options]
 filterwarnings = [
     "ignore:numpy.ndarray size changed:RuntimeWarning",
-    "ignore:The 'shapely.geos' module is deprecated:DeprecationWarning"
+    "ignore:The 'shapely.geos' module is deprecated:DeprecationWarning",
+    # Suppress warnings from external daylight_evapotranspiration library
+    "ignore:invalid value encountered in divide:RuntimeWarning:daylight_evapotranspiration"
 ]

@@ -377,11 +377,14 @@ def JET(
     G_STIC_Wm2 = STIC_results["G_Wm2"]
     check_distribution(G_STIC_Wm2, "G_STIC_Wm2")
 
-    LE_canopy_fraction_STIC = rt.clip(rt.where((LE_canopy_STIC_Wm2 == 0) | (LE_STIC_Wm2 == 0), 0, LE_canopy_STIC_Wm2 / LE_STIC_Wm2), 0, 1)
+    # Suppress expected divide warnings - rt.where handles the division safely
+    with np.errstate(divide='ignore', invalid='ignore'):
+        LE_canopy_fraction_STIC = rt.clip(rt.where((LE_canopy_STIC_Wm2 == 0) | (LE_STIC_Wm2 == 0), 0, LE_canopy_STIC_Wm2 / LE_STIC_Wm2), 0, 1)
     check_distribution(LE_canopy_fraction_STIC, "LE_canopy_fraction_STIC")
 
     ## FIXME need to revise evaporative fraction to take soil heat flux into account
-    EF_STIC = rt.where((LE_STIC_Wm2 == 0) | ((Rn_Wm2 - G_STIC_Wm2) == 0), 0, LE_STIC_Wm2 / (Rn_Wm2 - G_STIC_Wm2))
+    with np.errstate(divide='ignore', invalid='ignore'):
+        EF_STIC = rt.where((LE_STIC_Wm2 == 0) | ((Rn_Wm2 - G_STIC_Wm2) == 0), 0, LE_STIC_Wm2 / (Rn_Wm2 - G_STIC_Wm2))
 
     PTJPLSM_results = PTJPLSM(
         geometry=geometry,
@@ -415,7 +418,8 @@ def JET(
     G_PTJPLSM = PTJPLSM_results["G_Wm2"]
     check_distribution(G_PTJPLSM, "G_PTJPLSM")
 
-    EF_PTJPLSM = rt.where((LE_PTJPLSM_Wm2 == 0) | ((Rn_Wm2 - G_PTJPLSM) == 0), 0, LE_PTJPLSM_Wm2 / (Rn_Wm2 - G_PTJPLSM))
+    with np.errstate(divide='ignore', invalid='ignore'):
+        EF_PTJPLSM = rt.where((LE_PTJPLSM_Wm2 == 0) | ((Rn_Wm2 - G_PTJPLSM) == 0), 0, LE_PTJPLSM_Wm2 / (Rn_Wm2 - G_PTJPLSM))
     check_distribution(EF_PTJPLSM, "EF_PTJPLSM")
 
     if np.all(np.isnan(LE_PTJPLSM_Wm2)):
@@ -429,7 +433,8 @@ def JET(
     LE_canopy_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["LE_canopy_Wm2"], 0, None)
     check_distribution(LE_canopy_PTJPLSM_Wm2, "LE_canopy_PTJPLSM_Wm2")
 
-    LE_canopy_fraction_PTJPLSM = rt.clip(LE_canopy_PTJPLSM_Wm2 / LE_PTJPLSM_Wm2, 0, 1)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        LE_canopy_fraction_PTJPLSM = rt.clip(LE_canopy_PTJPLSM_Wm2 / LE_PTJPLSM_Wm2, 0, 1)
     check_distribution(LE_canopy_fraction_PTJPLSM, "LE_canopy_fraction_PTJPLSM")
 
     if water_mask is not None:
@@ -438,7 +443,8 @@ def JET(
     LE_soil_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["LE_soil_Wm2"], 0, None)
     check_distribution(LE_soil_PTJPLSM_Wm2, "LE_soil_PTJPLSM_Wm2")
 
-    LE_soil_fraction_PTJPLSM = rt.clip(LE_soil_PTJPLSM_Wm2 / LE_PTJPLSM_Wm2, 0, 1)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        LE_soil_fraction_PTJPLSM = rt.clip(LE_soil_PTJPLSM_Wm2 / LE_PTJPLSM_Wm2, 0, 1)
     
     if water_mask is not None:
         LE_soil_fraction_PTJPLSM = rt.where(water_mask, np.nan, LE_soil_fraction_PTJPLSM)
@@ -448,7 +454,8 @@ def JET(
     LE_interception_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["LE_interception_Wm2"], 0, None)
     check_distribution(LE_interception_PTJPLSM_Wm2, "LE_interception_PTJPLSM_Wm2")
 
-    LE_interception_fraction_PTJPLSM = rt.clip(LE_interception_PTJPLSM_Wm2 / LE_PTJPLSM_Wm2, 0, 1)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        LE_interception_fraction_PTJPLSM = rt.clip(LE_interception_PTJPLSM_Wm2 / LE_PTJPLSM_Wm2, 0, 1)
     
     if water_mask is not None:
         LE_interception_fraction_PTJPLSM = rt.where(water_mask, np.nan, LE_interception_fraction_PTJPLSM)
@@ -458,7 +465,8 @@ def JET(
     PET_instantaneous_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["PET_Wm2"], 0, None)
     check_distribution(PET_instantaneous_PTJPLSM_Wm2, "PET_instantaneous_PTJPLSM_Wm2")
 
-    ESI_PTJPLSM = rt.clip(LE_PTJPLSM_Wm2 / PET_instantaneous_PTJPLSM_Wm2, 0, 1)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        ESI_PTJPLSM = rt.clip(LE_PTJPLSM_Wm2 / PET_instantaneous_PTJPLSM_Wm2, 0, 1)
 
     if water_mask is not None:
         ESI_PTJPLSM = rt.where(water_mask, np.nan, ESI_PTJPLSM)
@@ -585,7 +593,8 @@ def JET(
 
     GPP_inst_g_m2_s = GPP_inst_umol_m2_s / 1000000 * 12.011
     ET_canopy_inst_kg_m2_s = LE_canopy_PTJPLSM_Wm2 / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM
-    WUE = GPP_inst_g_m2_s / ET_canopy_inst_kg_m2_s
+    with np.errstate(divide='ignore', invalid='ignore'):
+        WUE = GPP_inst_g_m2_s / ET_canopy_inst_kg_m2_s
     WUE = rt.where(np.isinf(WUE), np.nan, WUE)
     WUE = rt.clip(WUE, 0, 10)
 

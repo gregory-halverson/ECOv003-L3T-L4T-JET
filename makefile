@@ -1,5 +1,6 @@
 # Define the package name, environment name, and Python version
 PACKAGE_NAME = ECOv003-L3T-L4T-JET
+MODULE_NAME = $(subst -,_,$(PACKAGE_NAME))
 ENVIRONMENT_NAME = $(PACKAGE_NAME)
 DOCKER_IMAGE_NAME = $(shell echo $(PACKAGE_NAME) | tr '[:upper:]' '[:lower:]')
 PYTHON_VERSION = $(if $(PYTHON),$(PYTHON),3.12)
@@ -21,8 +22,13 @@ clean:
 
 # Run tests using pytest
 test:
-	# Execute all tests with pytest
-	pytest
+	# Execute all tests with pytest in verbose mode
+	pytest -vv
+
+# Verify the package installation and functionality
+verify:
+	# Run verification checks
+	python -c "from $(MODULE_NAME).verify import verify; exit(0 if verify() else 1)"
 
 # Build the Python package
 build:
@@ -64,6 +70,21 @@ reinstall:
 environment:
 	# Create a Conda environment with the specified name and Python version
 	mamba create -y -n $(ENVIRONMENT_NAME) -c conda-forge python=$(PYTHON_VERSION)
+
+# Generate input dataset
+generate-input-dataset:
+	# Generate input dataset using the package's generator
+	python -c "from $(MODULE_NAME).generate_input_dataset import generate_input_dataset; generate_input_dataset()"
+
+# Generate output dataset
+generate-output-dataset:
+	# Generate output dataset using the package's generator
+	python -c "from $(MODULE_NAME).generate_output_dataset import main; main()"
+
+# Generate GEOS5FP inputs
+generate-GEOS5FP-inputs:
+	# Generate GEOS5FP inputs using the package's generator
+	python -c "from $(MODULE_NAME).generate_GEOS5FP_inputs import generate_GEOS5FP_inputs; generate_GEOS5FP_inputs()"
 
 # Remove the Conda environment
 remove-environment:

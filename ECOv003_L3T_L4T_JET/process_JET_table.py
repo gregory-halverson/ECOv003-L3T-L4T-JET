@@ -164,7 +164,15 @@ def process_JET_table(
     fAPARmax = np.array([parse_value(v) for v in input_df.fAPARmax]).astype(np.float64) if "fAPARmax" in input_df else None
     field_capacity = np.array([parse_value(v) for v in input_df.field_capacity]).astype(np.float64) if "field_capacity" in input_df else None
     wilting_point = np.array([parse_value(v) for v in input_df.wilting_point]).astype(np.float64) if "wilting_point" in input_df else None
-    IGBP = np.array(input_df.IGBP).astype(np.int8) if "IGBP" in input_df else None
+    
+    # Handle NaN values before casting to int8
+    if "IGBP" in input_df:
+        igbp_array = np.array(input_df.IGBP)
+        with np.errstate(invalid='ignore'):
+            IGBP = igbp_array.astype(np.int8)
+    else:
+        IGBP = None
+    
     canopy_height_meters = np.array(input_df.canopy_height_meters).astype(np.float64) if "canopy_height_meters" in input_df else None
     NDVI_minimum = np.array(input_df.NDVI_minimum).astype(np.float64) if "NDVI_minimum" in input_df else None
     NDVI_maximum = np.array(input_df.NDVI_maximum).astype(np.float64) if "NDVI_maximum" in input_df else None
@@ -208,7 +216,8 @@ def process_JET_table(
     logger.info("completed extracting geometry from PT-JPL-SM input table")
 
     logger.info("started extracting time from PT-JPL-SM input table")
-    time_UTC = pd.to_datetime(input_df.time_UTC).tolist()
+    # Parse datetime with mixed format support (pandas 2.0+)
+    time_UTC = pd.to_datetime(input_df.time_UTC, format='mixed').tolist()
     logger.info("completed extracting time from PT-JPL-SM input table")
 
     results = JET(
