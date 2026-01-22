@@ -25,8 +25,8 @@ from FLiESANN import FLiESANN
 from verma_net_radiation import verma_net_radiation, daylight_Rn_integration_verma
 from check_distribution import check_distribution
 
-from .constants import LATENT_VAPORIZATION_JOULES_PER_KILOGRAM
-from .exceptions import BlankOutput
+from .constants import *
+from .exceptions import *
 
 logger = logging.getLogger(__name__)
 
@@ -38,24 +38,50 @@ def JET(
         albedo: Union[Raster, np.ndarray, float],
         geometry: RasterGeometry,
         time_UTC: datetime,
-        COT: Union[Raster, np.ndarray, float],
-        AOT: Union[Raster, np.ndarray, float],
-        vapor_gccm: Union[Raster, np.ndarray, float],
-        ozone_cm: Union[Raster, np.ndarray, float],
-        elevation_m: Union[Raster, np.ndarray, float],
-        SZA_deg: Union[Raster, np.ndarray, float],
-        KG_climate: Union[Raster, np.ndarray, str],
-        Ta_C: Union[Raster, np.ndarray, float],
-        RH: Union[Raster, np.ndarray, float],
-        soil_moisture: Union[Raster, np.ndarray, float],
-        MODISCI_connection: MODISCI,
-        soil_grids_directory: str,
-        GEDI_directory: str,
-        Rn_model_name: str,
-        downsampling: str,
+        COT: Union[Raster, np.ndarray, float] = None,
+        AOT: Union[Raster, np.ndarray, float] = None,
+        vapor_gccm: Union[Raster, np.ndarray, float] = None,
+        ozone_cm: Union[Raster, np.ndarray, float] = None,
+        elevation_m: Union[Raster, np.ndarray, float] = None,
+        SZA_deg: Union[Raster, np.ndarray, float] = None,
+        KG_climate: Union[Raster, np.ndarray, str] = None,
+        Ta_C: Union[Raster, np.ndarray, float] = None,
+        Tmin_C: Union[Raster, np.ndarray, float] = None,
+        RH: Union[Raster, np.ndarray, float] = None,
+        soil_moisture: Union[Raster, np.ndarray, float] = None,
+        PAR_albedo: Union[Raster, np.ndarray, float] = None,
+        NIR_albedo: Union[Raster, np.ndarray, float] = None,
+        Topt_C: Union[Raster, np.ndarray, float] = None,
+        fAPARmax: Union[Raster, np.ndarray, float] = None,
+        field_capacity: Union[Raster, np.ndarray, float] = None,
+        wilting_point: Union[Raster, np.ndarray, float] = None,
+        IGBP: Union[Raster, np.ndarray, int] = None,
+        canopy_height_meters: Union[Raster, np.ndarray, float] = None,
+        NDVI_minimum: Union[Raster, np.ndarray, float] = None,
+        NDVI_maximum: Union[Raster, np.ndarray, float] = None,
+        Ca: Union[Raster, np.ndarray, float] = None,
+        CI: Union[Raster, np.ndarray, float] = None,
+        wind_speed_mps: Union[Raster, np.ndarray, float] = None,
+        canopy_temperature_C: Union[Raster, np.ndarray] = None, # canopy temperature in Celsius (initialized to surface temperature if left as None)
+        soil_temperature_C: Union[Raster, np.ndarray] = None, # soil temperature in Celsius (initialized to surface temperature if left as None)
+        C4_fraction: Union[Raster, np.ndarray] = None,  # fraction of C4 plants
+        carbon_uptake_efficiency: Union[Raster, np.ndarray] = None,  # intrinsic quantum efficiency for carbon uptake
+        kn: np.ndarray = None,
+        ball_berry_intercept_C3: np.ndarray = None,  # Ball-Berry intercept for C3 plants
+        ball_berry_intercept_C4: Union[np.ndarray, float] = BALL_BERRY_INTERCEPT_C4, # Ball-Berry intercept for C4 plants
+        ball_berry_slope_C3: np.ndarray = None,  # Ball-Berry slope for C3 plants
+        ball_berry_slope_C4: np.ndarray = None,  # Ball-Berry slope for C4 plants
+        peakVCmax_C3_μmolm2s1: np.ndarray = None,  # peak maximum carboxylation rate for C3 plants
+        peakVCmax_C4_μmolm2s1: np.ndarray = None,  # peak maximum carboxylation rate for C4 plants
+        MODISCI_connection: MODISCI = None,
+        soil_grids_directory: str = None,
+        GEDI_directory: str = None,
+        Rn_model_name: str = None,
+        downsampling: str = None,
         GEOS5FP_connection: GEOS5FPConnection = None,
         water_mask: Union[Raster, np.ndarray, bool] = None,
-        offline_mode: bool = False) -> Dict[str, Union[Raster, np.ndarray]]:
+        offline_mode: bool = False,
+        include_water_surface: bool = True) -> Dict[str, Union[Raster, np.ndarray]]:
     """
     Main science function for JET (JPL Evapotranspiration Ensemble).
     
@@ -101,7 +127,51 @@ def JET(
     Raises:
         BlankOutput: If critical output variables are all NaN or zero
     """
-        # Create GEOS5FP connection if not provided
+    if offline_mode:
+        offline_vars = []
+        
+        if AOT is None:
+            offline_vars.append('AOT')
+            
+        if COT is None:
+            offline_vars.append('COT')
+            
+        if Ca is None:
+            Ca = 400
+
+        if NIR_albedo is None:
+            offline_vars.append('NIR_albedo')
+            
+        if PAR_albedo is None:
+            offline_vars.append('PAR_albedo')
+            
+        if RH is None:
+            offline_vars.append('RH')
+        
+        if soil_moisture is None:
+            offline_vars.append('soil_moisture')
+        
+        if Ta_C is None:
+            offline_vars.append('Ta_C')
+        
+        if Tmin_C is None:
+            offline_vars.append('Tmin_C')
+        
+        if ozone_cm is None:
+            offline_vars.append('ozone_cm')
+        
+        if vapor_gccm is None:
+            offline_vars.append('vapor_gccm')
+        
+        if wind_speed_mps is None:
+            offline_vars.append('wind_speed_mps')
+            
+        if offline_vars:
+            raise MissingOfflineParameter(f"in offline mode, the following parameters must be provided: {', '.join(offline_vars)}")
+    
+    processing_as_raster = isinstance(ST_C, Raster)
+    
+    # Create GEOS5FP connection if not provided
     if GEOS5FP_connection is None:
         GEOS5FP_connection = GEOS5FPConnection()
     
@@ -134,14 +204,26 @@ def JET(
     PAR_direct_Wm2 = FLiES_results["PAR_direct_Wm2"]
     NIR_direct_Wm2 = FLiES_results["NIR_direct_Wm2"]
 
-    # Calculate partitioned albedo
-    albedo_NWP = GEOS5FP_connection.ALBEDO(time_UTC=time_UTC, geometry=geometry)
-    RVIS_NWP = GEOS5FP_connection.ALBVISDR(time_UTC=time_UTC, geometry=geometry)
-    albedo_visible = rt.clip(albedo * (RVIS_NWP / albedo_NWP), 0, 1)
-    check_distribution(albedo_visible, "albedo_visible")
-    RNIR_NWP = GEOS5FP_connection.ALBNIRDR(time_UTC=time_UTC, geometry=geometry)
-    albedo_NIR = rt.clip(albedo * (RNIR_NWP / albedo_NWP), 0, 1)
-    check_distribution(albedo_NIR, "albedo_NIR")
+    if PAR_albedo is None:
+        if offline_mode:
+            raise MissingOfflineParameter("PAR_albedo must be provided in offline mode")
+        
+        # Calculate PAR albedo
+        albedo_NWP = GEOS5FP_connection.ALBEDO(time_UTC=time_UTC, geometry=geometry)
+        RVIS_NWP = GEOS5FP_connection.ALBVISDR(time_UTC=time_UTC, geometry=geometry)
+        PAR_albedo = rt.clip(albedo * (RVIS_NWP / albedo_NWP), 0, 1)
+    
+    check_distribution(PAR_albedo, "PAR_albedo")
+    
+    if NIR_albedo is None:
+        if offline_mode:
+            raise MissingOfflineParameter("NIR_albedo must be provided in offline mode")
+        
+        RNIR_NWP = GEOS5FP_connection.ALBNIRDR(time_UTC=time_UTC, geometry=geometry)
+        NIR_albedo = rt.clip(albedo * (RNIR_NWP / albedo_NWP), 0, 1)
+        
+    check_distribution(NIR_albedo, "NIR_albedo")
+    
     check_distribution(PAR_direct_Wm2, "PAR_direct_Wm2")
 
     # Use raw FLiES-ANN output directly without bias correction
@@ -170,18 +252,37 @@ def JET(
         MODISCI_connection=MODISCI_connection,
         Ta_C=Ta_C,
         RH=RH,
+        COT=COT,
+        AOT=AOT,
         SWin_Wm2=SWin_Wm2,
         PAR_diffuse_Wm2=PAR_diffuse_Wm2,
         PAR_direct_Wm2=PAR_direct_Wm2,
         NIR_diffuse_Wm2=NIR_diffuse_Wm2,
         NIR_direct_Wm2=NIR_direct_Wm2,
         UV_Wm2=UV_Wm2,
-        albedo_visible=albedo_visible,
-        albedo_NIR=albedo_NIR,
+        PAR_albedo=PAR_albedo,
+        NIR_albedo=NIR_albedo,
         vapor_gccm=vapor_gccm,
         ozone_cm=ozone_cm,
         KG_climate=KG_climate,
+        canopy_height_meters=canopy_height_meters,
+        NDVI_minimum=NDVI_minimum,
+        NDVI_maximum=NDVI_maximum,
+        Ca=Ca,
+        wind_speed_mps=wind_speed_mps,
         SZA_deg=SZA_deg,
+        canopy_temperature_C=canopy_temperature_C,
+        soil_temperature_C=soil_temperature_C,
+        C4_fraction=C4_fraction,
+        carbon_uptake_efficiency=carbon_uptake_efficiency,
+        kn=kn,
+        ball_berry_intercept_C3=ball_berry_intercept_C3,
+        ball_berry_intercept_C4=ball_berry_intercept_C4,
+        ball_berry_slope_C3=ball_berry_slope_C3,
+        ball_berry_slope_C4=ball_berry_slope_C4,
+        peakVCmax_C3_μmolm2s1=peakVCmax_C3_μmolm2s1,
+        peakVCmax_C4_μmolm2s1=peakVCmax_C4_μmolm2s1,
+        CI=CI,
         GEDI_download_directory=GEDI_directory,
         upscale_to_daylight=True,
         offline_mode=offline_mode
@@ -293,8 +394,13 @@ def JET(
         Ta_C=Ta_C,
         RH=RH,
         soil_moisture=soil_moisture,
+        Topt_C=Topt_C,
+        fAPARmax=fAPARmax,
+        field_capacity=field_capacity,
         field_capacity_directory=soil_grids_directory,
+        wilting_point=wilting_point,
         wilting_point_directory=soil_grids_directory,
+        canopy_height_meters=canopy_height_meters,
         canopy_height_directory=GEDI_directory,
         upscale_to_daylight=True,
         offline_mode=offline_mode
@@ -362,10 +468,6 @@ def JET(
     if np.all(np.isnan(ESI_PTJPLSM)):
         raise BlankOutput(f"blank ESI output for at {time_UTC} UTC")
 
-    # TODO update PM-JPL to take elevation in meters so all models use the same units
-
-    elevation_km = elevation_m / 1000.0
-
     PMJPL_results = PMJPL(
         geometry=geometry,
         time_UTC=time_UTC,
@@ -374,8 +476,10 @@ def JET(
         NDVI=NDVI,
         albedo=albedo,
         Ta_C=Ta_C,
+        Tmin_C=Tmin_C,
         RH=RH,
-        elevation_km=elevation_km,
+        elevation_m=elevation_m,
+        IGBP=IGBP,
         Rn_Wm2=Rn_Wm2,
         GEOS5FP_connection=GEOS5FP_connection,
         upscale_to_daylight=True,
@@ -391,61 +495,67 @@ def JET(
     G_PMJPL_Wm2 = PMJPL_results["G_Wm2"]
     check_distribution(G_PMJPL_Wm2, "G_PMJPL_Wm2")
 
-    # FIXME get rid of the instantaneous latent heat flux aggregation
-    LE_instantaneous_Wm2 = rt.Raster(
-        np.nanmedian([np.array(LE_PTJPLSM_Wm2), np.array(LE_BESS_Wm2), np.array(LE_PMJPL_Wm2), np.array(LE_STIC_Wm2)], axis=0),
-        geometry=geometry)
-
-    windspeed_mps = GEOS5FP_connection.wind_speed(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
-    check_distribution(windspeed_mps, "windspeed_mps")
+    LE_instantaneous_Wm2 = np.nanmedian([np.array(LE_PTJPLSM_Wm2), np.array(LE_BESS_Wm2), np.array(LE_PMJPL_Wm2), np.array(LE_STIC_Wm2)], axis=0)
     
-    SWnet_Wm2 = SWin_Wm2 * (1 - albedo)
-    check_distribution(SWnet_Wm2, "SWnet_Wm2")
+    if processing_as_raster:
+        LE_instantaneous_Wm2 = rt.Raster(LE_instantaneous_Wm2, geometry=geometry)
 
-    # Adding debugging statements for input rasters before the AquaSEBS call
-    logger.info("checking input distributions for AquaSEBS")
-    check_distribution(ST_C, "ST_C")
-    check_distribution(emissivity, "emissivity")
-    check_distribution(albedo, "albedo")
-    check_distribution(Ta_C, "Ta_C")
-    check_distribution(RH, "RH")
-    check_distribution(windspeed_mps, "windspeed_mps")
-    check_distribution(SWnet_Wm2, "SWnet")
-    check_distribution(Rn_Wm2, "Rn_Wm2")
-    check_distribution(SWin_Wm2, "SWin_Wm2")
+    if include_water_surface:
+        if wind_speed_mps is None:
+            if offline_mode:
+                raise MissingOfflineParameter("wind_speed_mps must be provided in offline mode")
+            
+            wind_speed_mps = GEOS5FP_connection.wind_speed(time_UTC=time_UTC, geometry=geometry, resampling=downsampling)
+        
+        check_distribution(wind_speed_mps, "wind_speed_mps")
+        
+        SWnet_Wm2 = SWin_Wm2 * (1 - albedo)
+        check_distribution(SWnet_Wm2, "SWnet_Wm2")
 
-    # FIXME AquaSEBS need to do daylight upscaling
-    AquaSEBS_results = AquaSEBS(
-        WST_C=ST_C,
-        emissivity=emissivity,
-        albedo=albedo,
-        Ta_C=Ta_C,
-        RH=RH,
-        windspeed_mps=windspeed_mps,
-        SWnet=SWnet_Wm2,
-        Rn_Wm2=Rn_Wm2,
-        SWin_Wm2=SWin_Wm2,
-        geometry=geometry,
-        time_UTC=time_UTC,
-        water=water_mask,
-        GEOS5FP_connection=GEOS5FP_connection,
-        upscale_to_daylight=True,
-        offline_mode=offline_mode
-    )
+        # Adding debugging statements for input rasters before the AquaSEBS call
+        logger.info("checking input distributions for AquaSEBS")
+        check_distribution(ST_C, "ST_C")
+        check_distribution(emissivity, "emissivity")
+        check_distribution(albedo, "albedo")
+        check_distribution(Ta_C, "Ta_C")
+        check_distribution(RH, "RH")
+        check_distribution(wind_speed_mps, "windspeed_mps")
+        check_distribution(SWnet_Wm2, "SWnet")
+        check_distribution(Rn_Wm2, "Rn_Wm2")
+        check_distribution(SWin_Wm2, "SWin_Wm2")
 
-    for key, value in AquaSEBS_results.items():
-        check_distribution(value, key)
+        # FIXME AquaSEBS need to do daylight upscaling
+        AquaSEBS_results = AquaSEBS(
+            WST_C=ST_C,
+            emissivity=emissivity,
+            albedo=albedo,
+            Ta_C=Ta_C,
+            RH=RH,
+            windspeed_mps=wind_speed_mps,
+            SWnet=SWnet_Wm2,
+            Rn_Wm2=Rn_Wm2,
+            SWin_Wm2=SWin_Wm2,
+            geometry=geometry,
+            time_UTC=time_UTC,
+            water=water_mask,
+            GEOS5FP_connection=GEOS5FP_connection,
+            upscale_to_daylight=True,
+            offline_mode=offline_mode
+        )
 
-    # FIXME need to revise how the water surface evaporation is inserted into the JET product
+        for key, value in AquaSEBS_results.items():
+            check_distribution(value, key)
 
-    LE_AquaSEBS_Wm2 = AquaSEBS_results["LE_Wm2"]
-    check_distribution(LE_AquaSEBS_Wm2, "LE_AquaSEBS_Wm2")
-    
-    LE_instantaneous_Wm2 = rt.where(water_mask, LE_AquaSEBS_Wm2, LE_instantaneous_Wm2)
-    check_distribution(LE_instantaneous_Wm2, "LE_instantaneous_Wm2")
-    
-    ET_daylight_AquaSEBS_kg = AquaSEBS_results["ET_daylight_kg"]
-    check_distribution(ET_daylight_AquaSEBS_kg, "ET_daylight_AquaSEBS_kg")
+        # FIXME need to revise how the water surface evaporation is inserted into the JET product
+
+        LE_AquaSEBS_Wm2 = AquaSEBS_results["LE_Wm2"]
+        check_distribution(LE_AquaSEBS_Wm2, "LE_AquaSEBS_Wm2")
+        
+        LE_instantaneous_Wm2 = rt.where(water_mask, LE_AquaSEBS_Wm2, LE_instantaneous_Wm2)
+        check_distribution(LE_instantaneous_Wm2, "LE_instantaneous_Wm2")
+        
+        ET_daylight_AquaSEBS_kg = AquaSEBS_results["ET_daylight_kg"]
+        check_distribution(ET_daylight_AquaSEBS_kg, "ET_daylight_AquaSEBS_kg")
 
     ET_daylight_kg = np.nanmedian([
         np.array(ET_daylight_PTJPLSM_kg),
@@ -457,8 +567,10 @@ def JET(
     if isinstance(geometry, RasterGeometry):
         ET_daylight_kg = rt.Raster(ET_daylight_kg, geometry=geometry)
     
-    # overlay water surface evaporation on top of daylight evapotranspiration aggregate
-    ET_daylight_kg = rt.where(np.isnan(ET_daylight_AquaSEBS_kg), ET_daylight_kg, ET_daylight_AquaSEBS_kg)
+    if include_water_surface:
+        # overlay water surface evaporation on top of daylight evapotranspiration aggregate
+        ET_daylight_kg = rt.where(np.isnan(ET_daylight_AquaSEBS_kg), ET_daylight_kg, ET_daylight_AquaSEBS_kg)
+        
     check_distribution(ET_daylight_kg, "ET_daylight_kg")
 
     ET_uncertainty = np.nanstd([
@@ -519,10 +631,7 @@ def JET(
         'ET_daylight_PMJPL_kg': ET_daylight_PMJPL_kg,
         'G_PMJPL_Wm2': G_PMJPL_Wm2,
         'LE_instantaneous_Wm2': LE_instantaneous_Wm2,
-        'windspeed_mps': windspeed_mps,
-        'SWnet_Wm2': SWnet_Wm2,
-        'LE_AquaSEBS_Wm2': LE_AquaSEBS_Wm2,
-        'ET_daylight_AquaSEBS_kg': ET_daylight_AquaSEBS_kg,
+        'wind_speed_mps': wind_speed_mps,
         'ET_daylight_kg': ET_daylight_kg,
         'ET_uncertainty': ET_uncertainty,
         'GPP_inst_g_m2_s': GPP_inst_g_m2_s,
@@ -530,5 +639,12 @@ def JET(
         'WUE': WUE,
         'AuxiliaryNWP': AuxiliaryNWP
     }
+    
+    if include_water_surface:
+        results.update({
+            'LE_AquaSEBS_Wm2': LE_AquaSEBS_Wm2,
+            'ET_daylight_AquaSEBS_kg': ET_daylight_AquaSEBS_kg,
+            'SWnet_Wm2': SWnet_Wm2
+        })
 
     return results

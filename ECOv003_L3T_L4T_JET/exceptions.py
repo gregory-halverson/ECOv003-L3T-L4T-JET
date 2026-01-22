@@ -16,3 +16,6 @@ class BlankOutput(Exception):
 
 class BlankOutputError(Exception):
     pass
+
+class MissingOfflineParameter(Exception):
+    pass

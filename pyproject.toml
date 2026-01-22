@@ -15,8 +15,8 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "AquaSEBS~=1.1.0",
-    "BESS-JPL~=1.25.0",
+    "AquaSEBS~=1.3.0",
+    "BESS-JPL~=1.27.0",
     "check-distribution",
     "colored-logging~=1.0.1",
     "ECOv002-granules~=1.2.1",
@@ -27,7 +27,7 @@ dependencies = [
     "koppengeiger~=1.1.0",
     "numpy~=1.26.0",
     "pandas~=2.3.0",
-    "PM-JPL~=1.9.0",
+    "PM-JPL~=1.11.0",
     "PTJPLSM~=1.10.0",
     "python-dateutil~=2.9.0",
     "pytictoc~=1.5.0",
@@ -38,7 +38,7 @@ dependencies = [
     "STIC-JPL~=1.6.0",
     "sun-angles~=1.7.0",
     "untangle~=1.2.0",
-    "verma-net-radiation~=1.9.0"
+    "verma-net-radiation~=1.11.0"
 ]
 
 requires-python = ">=3.10"

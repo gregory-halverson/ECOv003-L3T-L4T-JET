@@ -1,5 +1,19 @@
 from os.path import join, dirname, abspath
 
+from FLiESANN import GEOS5FP_INPUTS as FLiESANN_GEOS5FP_INPUTS
+from BESS_JPL import GEOS5FP_INPUTS as BESS_JPL_GEOS5FP_INPUTS
+from verma_net_radiation import GEOS5FP_INPUTS as VERMA_GEOS5FP_INPUTS
+from PTJPLSM import GEOS5FP_INPUTS as PTJPLSM_GEOS5FP_INPUTS
+from PMJPL import GEOS5FP_INPUTS as PMJPL_GEOS5FP_INPUTS
+from STIC_JPL import GEOS5FP_INPUTS as STIC_JPL_GEOS5FP_INPUTS
+from AquaSEBS import GEOS5FP_INPUTS as AquaSEBS_GEOS5FP_INPUTS
+
+from BESS_JPL import BALL_BERRY_INTERCEPT_C4
+
+GEOS5FP_INPUTS = set(FLiESANN_GEOS5FP_INPUTS + BESS_JPL_GEOS5FP_INPUTS + VERMA_GEOS5FP_INPUTS +
+                     PTJPLSM_GEOS5FP_INPUTS + PMJPL_GEOS5FP_INPUTS + STIC_JPL_GEOS5FP_INPUTS +
+                     AquaSEBS_GEOS5FP_INPUTS)
+
 UPSCALE_TO_DAYLIGHT = True
 
 # constant latent heat of vaporization for water: the number of joules of energy it takes to evaporate one kilogram
