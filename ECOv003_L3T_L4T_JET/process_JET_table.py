@@ -30,7 +30,9 @@ def process_JET_table(
         soil_grids_directory: str = None,
         GEDI_directory: str = None,
         Rn_model_name: str = "verma",
-        downsampling: str = "average"
+        downsampling: str = "average",
+        offline_mode: bool = False,
+        include_water_surface: bool = False
         ) -> DataFrame:
     """
     Processes an input DataFrame to prepare all required variables for the JET model ensemble,
@@ -113,6 +115,8 @@ def process_JET_table(
 
     # Handle air temperature column name differences (Ta_C or Ta)
     Ta_C = np.array(input_df.Ta_C).astype(np.float64)
+    
+    Tmin_C = np.array(input_df.Tmin_C).astype(np.float64)
 
     # Extract and typecast relative humidity, soil moisture, net radiation, Topt, and fAPARmax
     RH = np.array(input_df.RH).astype(np.float64)
@@ -128,14 +132,50 @@ def process_JET_table(
                 return float(val)
         return float(val)
     
-    COT = np.array([parse_value(v) for v in input_df.COT]).astype(np.float64)
-    AOT = np.array([parse_value(v) for v in input_df.AOT]).astype(np.float64)
-    vapor_gccm = np.array([parse_value(v) for v in input_df.vapor_gccm]).astype(np.float64)
-    ozone_cm = np.array([parse_value(v) for v in input_df.ozone_cm]).astype(np.float64)
-    elevation_m = np.array([parse_value(v) for v in input_df.elevation_m]).astype(np.float64)
-    SZA_deg = np.array([parse_value(v) for v in input_df.SZA_deg]).astype(np.float64)
-    KG_climate = np.array([parse_value(v) for v in input_df.KG_climate]).astype(np.float64)
+    # Extract optional atmospheric and environmental variables (default to None if not present)
+    COT = np.array([parse_value(v) for v in input_df.COT]).astype(np.float64) if "COT" in input_df else None
+    AOT = np.array([parse_value(v) for v in input_df.AOT]).astype(np.float64) if "AOT" in input_df else None
+    vapor_gccm = np.array([parse_value(v) for v in input_df.vapor_gccm]).astype(np.float64) if "vapor_gccm" in input_df else None
+    ozone_cm = np.array([parse_value(v) for v in input_df.ozone_cm]).astype(np.float64) if "ozone_cm" in input_df else None
+    elevation_m = np.array([parse_value(v) for v in input_df.elevation_m]).astype(np.float64) if "elevation_m" in input_df else None
+    SZA_deg = np.array([parse_value(v) for v in input_df.SZA_deg]).astype(np.float64) if "SZA_deg" in input_df else None
+    KG_climate = np.array([parse_value(v) for v in input_df.KG_climate]).astype(np.float64) if "KG_climate" in input_df else None
+    Ca = np.array([parse_value(v) for v in input_df.Ca]).astype(np.float64) if "Ca" in input_df else None
+    PAR_albedo = np.array([parse_value(v) for v in input_df.PAR_albedo]).astype(np.float64) if "PAR_albedo" in input_df else None 
+    NIR_albedo = np.array([parse_value(v) for v in input_df.NIR_albedo]).astype(np.float64) if "NIR_albedo" in input_df else None
+    water_mask = np.array(input_df.water_mask).astype(bool) if "water_mask" in input_df else None    
+    wind_speed_mps = np.array([parse_value(v) for v in input_df.wind_speed_mps]).astype(np.float64) if "wind_speed_mps" in input_df else None
+    CI = np.array([parse_value(v) for v in input_df.CI]).astype(np.float64) if "CI" in input_df else None
+    canopy_temperature_C = np.array([parse_value(v) for v in input_df.canopy_temperature_C]).astype(np.float64) if "canopy_temperature_C" in input_df else None
+    soil_temperature_C = np.array([parse_value(v) for v in input_df.soil_temperature_C]).astype(np.float64) if "soil_temperature_C" in input_df else None
+    C4_fraction = np.array([parse_value(v) for v in input_df.C4_fraction]).astype(np.float64) if "C4_fraction" in input_df else None
+    carbon_uptake_efficiency = np.array([parse_value(v) for v in input_df.carbon_uptake_efficiency]).astype(np.float64) if "carbon_uptake_efficiency" in input_df else None
+    kn = np.array([parse_value(v) for v in input_df.kn]).astype(np.float64) if "kn" in input_df else None
+    ball_berry_intercept_C3 = np.array([parse_value(v) for v in input_df.ball_berry_intercept_C3]).astype(np.float64) if "ball_berry_intercept_C3" in input_df else None
+    ball_berry_intercept_C4 = np.array([parse_value(v) for v in input_df.ball_berry_intercept_C4]).astype(np.float64) if "ball_berry_intercept_C4" in input_df else None
+    ball_berry_slope_C3 = np.array([parse_value(v) for v in input_df.ball_berry_slope_C3]).astype(np.float64) if "ball_berry_slope_C3" in input_df else None                          
+    ball_berry_slope_C4 = np.array([parse_value(v) for v in input_df.ball_berry_slope_C4]).astype(np.float64) if "ball_berry_slope_C4" in input_df else None
     
+    peakVCmax_C3_μmolm2s1 = np.array([parse_value(v) for v in (input_df.peakVCmax_C3_μmolm2s1 if "peakVCmax_C3_μmolm2s1" in input_df else input_df.peakVCmax_C3)]).astype(np.float64) if ("peakVCmax_C3_μmolm2s1" in input_df or "peakVCmax_C3" in input_df) else None
+    
+    peakVCmax_C4_μmolm2s1 = np.array([parse_value(v) for v in (input_df.peakVCmax_C4_μmolm2s1 if "peakVCmax_C4_μmolm2s1" in input_df else input_df.peakVCmax_C4)]).astype(np.float64) if ("peakVCmax_C4_μmolm2s1" in input_df or "peakVCmax_C4" in input_df) else None
+    
+    Topt_C = np.array([parse_value(v) for v in input_df.Topt_C]).astype(np.float64) if "Topt_C" in input_df else None
+    fAPARmax = np.array([parse_value(v) for v in input_df.fAPARmax]).astype(np.float64) if "fAPARmax" in input_df else None
+    field_capacity = np.array([parse_value(v) for v in input_df.field_capacity]).astype(np.float64) if "field_capacity" in input_df else None
+    wilting_point = np.array([parse_value(v) for v in input_df.wilting_point]).astype(np.float64) if "wilting_point" in input_df else None
+    
+    # Handle NaN values before casting to int8
+    if "IGBP" in input_df:
+        igbp_array = np.array(input_df.IGBP)
+        with np.errstate(invalid='ignore'):
+            IGBP = igbp_array.astype(np.int8)
+    else:
+        IGBP = None
+    
+    canopy_height_meters = np.array(input_df.canopy_height_meters).astype(np.float64) if "canopy_height_meters" in input_df else None
+    NDVI_minimum = np.array(input_df.NDVI_minimum).astype(np.float64) if "NDVI_minimum" in input_df else None
+    NDVI_maximum = np.array(input_df.NDVI_maximum).astype(np.float64) if "NDVI_maximum" in input_df else None
 
     def ensure_geometry(df):
         if "geometry" in df:
@@ -176,7 +216,8 @@ def process_JET_table(
     logger.info("completed extracting geometry from PT-JPL-SM input table")
 
     logger.info("started extracting time from PT-JPL-SM input table")
-    time_UTC = pd.to_datetime(input_df.time_UTC).tolist()
+    # Parse datetime with mixed format support (pandas 2.0+)
+    time_UTC = pd.to_datetime(input_df.time_UTC, format='mixed').tolist()
     logger.info("completed extracting time from PT-JPL-SM input table")
 
     results = JET(
@@ -194,14 +235,42 @@ def process_JET_table(
         SZA_deg=SZA_deg,
         KG_climate=KG_climate,
         Ta_C=Ta_C,
+        Tmin_C=Tmin_C,
         RH=RH,
         soil_moisture=soil_moisture,
+        PAR_albedo=PAR_albedo,
+        NIR_albedo=NIR_albedo,
+        Topt_C=Topt_C,
+        fAPARmax=fAPARmax,
+        field_capacity=field_capacity,
+        wilting_point=wilting_point,
+        IGBP=IGBP,
+        canopy_height_meters=canopy_height_meters,
+        Ca=Ca,
+        CI=CI,
+        wind_speed_mps=wind_speed_mps,
+        canopy_temperature_C=canopy_temperature_C,
+        NDVI_minimum=NDVI_minimum,
+        NDVI_maximum=NDVI_maximum,
+        soil_temperature_C=soil_temperature_C,
+        C4_fraction=C4_fraction,
+        carbon_uptake_efficiency=carbon_uptake_efficiency,
+        kn=kn,
+        ball_berry_intercept_C3=ball_berry_intercept_C3,
+        ball_berry_intercept_C4=ball_berry_intercept_C4,
+        ball_berry_slope_C3=ball_berry_slope_C3,
+        ball_berry_slope_C4=ball_berry_slope_C4,
+        peakVCmax_C3_μmolm2s1=peakVCmax_C3_μmolm2s1,
+        peakVCmax_C4_μmolm2s1=peakVCmax_C4_μmolm2s1,
+        water_mask=water_mask,
         GEOS5FP_connection=GEOS5FP_connection,
         MODISCI_connection=MODISCI_connection,
         soil_grids_directory=soil_grids_directory,
         GEDI_directory=GEDI_directory,
         Rn_model_name=Rn_model_name,
-        downsampling=downsampling
+        downsampling=downsampling,
+        offline_mode=offline_mode,
+        include_water_surface=include_water_surface
     )
 
     output_df = input_df.copy()

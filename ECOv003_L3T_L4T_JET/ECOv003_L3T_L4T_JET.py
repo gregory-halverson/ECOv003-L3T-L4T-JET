@@ -19,6 +19,8 @@ from .JET import JET
 from .process_JET_table import process_JET_table
 from .generate_L3T_L4T_JET_runconfig import generate_L3T_L4T_JET_runconfig
 
+from .verify import verify
+
 logger = logging.getLogger(__name__)  # Get a logger instance for this module.
 
 def L3T_L4T_JET(
