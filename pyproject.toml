@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ECOv003-L3T-L4T-JET"
-version = "1.14.0"
+version = "1.15.0"
 description = "ECOSTRESS Collection 3 JPL Evapotranspiration (JET) Product Generating Executable (PGE)"
 readme = "README.md"
 authors = [
@@ -18,7 +18,7 @@ dependencies = [
     "AquaSEBS~=1.3.0",
     "BESS-JPL~=1.27.0",
     "check-distribution",
-    "colored-logging~=1.0.1",
+    "colored-logging~=1.1.0",
     "ECOv002-calval-tables",
     "ECOv002-granules~=1.2.1",
     "ECOv003-exit-codes~=1.1.0",
@@ -27,19 +27,19 @@ dependencies = [
     "GEOS5FP",
     "koppengeiger~=1.1.0",
     "monte-carlo-sensitivity",
-    "numpy~=1.26.0",
-    "pandas~=2.3.0",
+    "numpy~=1.26.4",
+    "pandas~=2.2.3",
     "PM-JPL~=1.11.0",
     "PTJPLSM~=1.10.0",
     "python-dateutil~=2.9.0",
-    "pytictoc~=1.5.0",
-    "rasters~=1.14.0",
-    "rasterio~=1.4.0",
-    "scikit-learn~=1.7.0",
-    "solar-apparent-time~=1.5.0",
+    "pytictoc~=1.5.3",
+    "rasters~=1.17.1",
+    "rasterio~=1.3.11",
+    "scikit-learn~=1.7.2",
+    "solar-apparent-time~=1.5.4",
     "STIC-JPL~=1.6.0",
     "sun-angles~=1.7.0",
-    "untangle~=1.2.0",
+    "untangle~=1.2.1",
     "verma-net-radiation~=1.11.0"
 ]
 
