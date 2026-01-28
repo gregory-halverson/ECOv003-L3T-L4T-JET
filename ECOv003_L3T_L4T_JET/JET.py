@@ -7,6 +7,7 @@ evapotranspiration using multiple models (FLiES-ANN, BESS-JPL, STIC-JPL, PTJPLSM
 
 import logging
 import posixpath
+import warnings
 from datetime import datetime
 from typing import Union, Dict
 import numpy as np
@@ -22,6 +23,7 @@ from PMJPL import PMJPL
 from PTJPLSM import PTJPLSM
 from STIC_JPL import STIC_JPL
 from FLiESANN import FLiESANN
+from SEBAL_soil_heat_flux import calculate_SEBAL_soil_heat_flux
 from verma_net_radiation import verma_net_radiation, daylight_Rn_integration_verma
 from check_distribution import check_distribution
 
@@ -386,6 +388,14 @@ def JET(
     with np.errstate(divide='ignore', invalid='ignore'):
         EF_STIC = rt.where((LE_STIC_Wm2 == 0) | ((Rn_Wm2 - G_STIC_Wm2) == 0), 0, LE_STIC_Wm2 / (Rn_Wm2 - G_STIC_Wm2))
 
+
+    G_SEBAL_Wm2 = calculate_SEBAL_soil_heat_flux(
+        Rn=Rn_Wm2,
+        ST_C=ST_C,
+        NDVI=NDVI,
+        albedo=albedo
+    )
+
     PTJPLSM_results = PTJPLSM(
         geometry=geometry,
         time_UTC=time_UTC,
@@ -393,6 +403,7 @@ def JET(
         emissivity=emissivity,
         NDVI=NDVI,
         albedo=albedo,
+        G_Wm2=G_SEBAL_Wm2,
         Rn_Wm2=Rn_Wm2,
         Ta_C=Ta_C,
         RH=RH,
@@ -489,6 +500,7 @@ def JET(
         elevation_m=elevation_m,
         IGBP=IGBP,
         Rn_Wm2=Rn_Wm2,
+        G_Wm2=G_SEBAL_Wm2,
         GEOS5FP_connection=GEOS5FP_connection,
         upscale_to_daylight=True,
         offline_mode=offline_mode
@@ -498,12 +510,20 @@ def JET(
     check_distribution(LE_PMJPL_Wm2, "LE_PMJPL_Wm2")
     
     ET_daylight_PMJPL_kg = PMJPL_results["ET_daylight_kg"]
-    check_distribution(ET_daylight_PMJPL_kg, "ET_daylight_PMJ")
+    check_distribution(ET_daylight_PMJPL_kg, "ET_daylight_PMJPL_kg")
     
     G_PMJPL_Wm2 = PMJPL_results["G_Wm2"]
     check_distribution(G_PMJPL_Wm2, "G_PMJPL_Wm2")
-
-    LE_instantaneous_Wm2 = np.nanmedian([np.array(LE_PTJPLSM_Wm2), np.array(LE_BESS_Wm2), np.array(LE_PMJPL_Wm2), np.array(LE_STIC_Wm2)], axis=0)
+    
+    # Suppress expected RuntimeWarning for all-NaN slices in median calculations
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', r'All-NaN (slice|axis) encountered')
+        G_Wm2 = np.nanmedian([np.array(G_BESS_Wm2), np.array(G_STIC_Wm2), np.array(G_SEBAL_Wm2)], axis=0)
+        LE_instantaneous_Wm2 = np.nanmedian([np.array(LE_PTJPLSM_Wm2), np.array(LE_BESS_Wm2), np.array(LE_PMJPL_Wm2), np.array(LE_STIC_Wm2)], axis=0)
+    
+    LE_Wm2 = LE_instantaneous_Wm2
+    
+    H_Wm2 = Rn_Wm2 - G_Wm2 - LE_Wm2 
     
     if processing_as_raster:
         LE_instantaneous_Wm2 = rt.Raster(LE_instantaneous_Wm2, geometry=geometry)
@@ -565,12 +585,15 @@ def JET(
         ET_daylight_AquaSEBS_kg = AquaSEBS_results["ET_daylight_kg"]
         check_distribution(ET_daylight_AquaSEBS_kg, "ET_daylight_AquaSEBS_kg")
 
-    ET_daylight_kg = np.nanmedian([
-        np.array(ET_daylight_PTJPLSM_kg),
-        np.array(ET_daylight_BESS_kg),
-        np.array(ET_daylight_PMJPL_kg),
-        np.array(ET_daylight_STIC_kg)
-    ], axis=0)
+    # Suppress expected RuntimeWarning for all-NaN slices in median calculation
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', r'All-NaN (slice|axis) encountered')
+        ET_daylight_kg = np.nanmedian([
+            np.array(ET_daylight_PTJPLSM_kg),
+            np.array(ET_daylight_BESS_kg),
+            np.array(ET_daylight_PMJPL_kg),
+            np.array(ET_daylight_STIC_kg)
+        ], axis=0)
     
     if isinstance(geometry, RasterGeometry):
         ET_daylight_kg = rt.Raster(ET_daylight_kg, geometry=geometry)
@@ -581,12 +604,15 @@ def JET(
         
     check_distribution(ET_daylight_kg, "ET_daylight_kg")
 
-    ET_uncertainty = np.nanstd([
-        np.array(ET_daylight_PTJPLSM_kg),
-        np.array(ET_daylight_BESS_kg),
-        np.array(ET_daylight_PMJPL_kg),
-        np.array(ET_daylight_STIC_kg)
-    ], axis=0)
+    # Suppress expected RuntimeWarning for all-NaN slices in uncertainty calculation
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', r'All-NaN (slice|axis) encountered')
+        ET_uncertainty = np.nanstd([
+            np.array(ET_daylight_PTJPLSM_kg),
+            np.array(ET_daylight_BESS_kg),
+            np.array(ET_daylight_PMJPL_kg),
+            np.array(ET_daylight_STIC_kg)
+        ], axis=0)
     
     if isinstance(geometry, RasterGeometry):
         ET_uncertainty = rt.Raster(ET_uncertainty, geometry=geometry)
@@ -628,6 +654,8 @@ def JET(
         'ET_daylight_PTJPLSM_kg': ET_daylight_PTJPLSM_kg,
         'G_PTJPLSM': G_PTJPLSM,
         'EF_PTJPLSM': EF_PTJPLSM,
+        'LE_Wm2': LE_Wm2,
+        'H_Wm2': H_Wm2,
         'LE_canopy_PTJPLSM_Wm2': LE_canopy_PTJPLSM_Wm2,
         'LE_canopy_fraction_PTJPLSM': LE_canopy_fraction_PTJPLSM,
         'LE_soil_PTJPLSM_Wm2': LE_soil_PTJPLSM_Wm2,
@@ -639,6 +667,7 @@ def JET(
         'LE_PMJPL_Wm2': LE_PMJPL_Wm2,
         'ET_daylight_PMJPL_kg': ET_daylight_PMJPL_kg,
         'G_PMJPL_Wm2': G_PMJPL_Wm2,
+        'G_Wm2': G_Wm2,
         'LE_instantaneous_Wm2': LE_instantaneous_Wm2,
         'wind_speed_mps': wind_speed_mps,
         'ET_daylight_kg': ET_daylight_kg,
