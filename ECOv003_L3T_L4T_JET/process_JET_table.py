@@ -167,9 +167,10 @@ def process_JET_table(
     
     # Handle NaN values before casting to int8
     if "IGBP" in input_df:
-        igbp_array = np.array(input_df.IGBP)
-        with np.errstate(invalid='ignore'):
-            IGBP = igbp_array.astype(np.int8)
+        # First convert to float64 to handle NaN properly
+        igbp_array = np.array(input_df.IGBP, dtype=np.float64)
+        # Replace NaN with -1 (invalid IGBP code) before converting to int8
+        IGBP = np.where(np.isnan(igbp_array), -1, igbp_array).astype(np.int8)
     else:
         IGBP = None
     
