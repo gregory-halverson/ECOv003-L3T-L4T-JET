@@ -26,7 +26,7 @@ dependencies = [
     "FLiESANN",
     "GEOS5FP",
     "koppengeiger~=1.1.0",
-    "monte-carlo-sensitivity",
+    "monte-carlo-sensitivity>=1.9.1",
     "numpy~=1.26.4",
     "pandas~=2.2.3",
     "PM-JPL~=1.11.0",
