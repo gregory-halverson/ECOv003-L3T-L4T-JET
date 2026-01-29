@@ -666,13 +666,8 @@ def JET(
     ET_canopy_inst_kg_m2_s = LE_canopy_PTJPLSM_Wm2 / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM
     with np.errstate(divide='ignore', invalid='ignore', over='ignore'):
         WUE = np.divide(GPP_inst_g_m2_s, ET_canopy_inst_kg_m2_s)
-    # Treat near-zero or invalid denominators as missing to avoid overflow artifacts
-    WUE = rt.where(
-        np.isnan(ET_canopy_inst_kg_m2_s) | (np.abs(ET_canopy_inst_kg_m2_s) < 1e-12),
-        np.nan,
-        WUE
-    )
-    WUE = rt.where(np.isinf(WUE), np.nan, WUE)
+    # Mask cases with no canopy latent energy (undefined WUE), then cap large ratios
+    WUE = rt.where(np.isnan(LE_canopy_PTJPLSM_Wm2) | (LE_canopy_PTJPLSM_Wm2 <= 0), np.nan, WUE)
     WUE = rt.clip(WUE, 0, 10)
 
     results = {
