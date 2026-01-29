@@ -1,8 +1,8 @@
 """
-Module: process_PTJPLSM_table.py
+Module: process_JET_table.py
 
-This module provides a function to process input data for the PT-JPL-SM (Priestley-Taylor Jet Propulsion Laboratory Soil Moisture) model.
-It prepares the required variables from a pandas DataFrame, handles missing or alternative column names, computes derived variables as needed, and runs the PTJPLSM model to generate output variables, which are appended to the input DataFrame.
+This module provides a function to process input data for the JET (JPL Evapotranspiration Ensemble) model.
+It prepares the required variables from a pandas DataFrame, handles missing or alternative column names, computes derived variables as needed, and runs the JET ensemble to generate output variables, which are appended to the input DataFrame.
 """
 import logging
 
@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import DataFrame
 from shapely.geometry import Point
 from dateutil import parser
+from pytictoc import TicToc
 
 from rasters import MultiPoint, WGS84
 from SEBAL_soil_heat_flux import calculate_SEBAL_soil_heat_flux
@@ -62,7 +63,7 @@ def process_JET_table(
     The function will attempt to load or compute any missing optional variables using spatial context if possible.
 
     Returns:
-        DataFrame: The input DataFrame with PT-JPL-SM model outputs added as columns. Output columns include:
+        DataFrame: The input DataFrame with JET model outputs added as columns. Output columns include:
             - 'G': Soil heat flux
             - 'Rn_soil': Net radiation of the soil
             - 'LE_soil': Soil evaporation
@@ -86,7 +87,7 @@ def process_JET_table(
         # from verma_net_radiation import verma_net_radiation_table
         # df = verma_net_radiation_table(df)
 
-        # Process the table and run the PT-JPL-SM model
+        # Process the table and run the JET model
         output_df = process_PTJPLSM_table(df)
 
         # The output DataFrame will have new columns: 'G', 'Rn_soil', 'LE_soil', 'Rn_canopy', 'PET',
@@ -100,7 +101,9 @@ def process_JET_table(
         - All input columns should be numeric and of compatible shape.
         - This function is suitable for batch-processing site-level or point data tables for ET partitioning and for use in sensitivity analysis workflows.
     """
-    logger.info("starting PT-JPL-SM table processing")
+    logger.info("starting JET table processing")
+    timer = TicToc()
+    timer.tic()
 
     # Extract and typecast surface temperature (ST_C) and NDVI
     ST_C = np.array(input_df.ST_C).astype(np.float64)
@@ -167,9 +170,10 @@ def process_JET_table(
     
     # Handle NaN values before casting to int8
     if "IGBP" in input_df:
-        igbp_array = np.array(input_df.IGBP)
-        with np.errstate(invalid='ignore'):
-            IGBP = igbp_array.astype(np.int8)
+        # First convert to float64 to handle NaN properly
+        igbp_array = np.array(input_df.IGBP, dtype=np.float64)
+        # Replace NaN with -1 (invalid IGBP code) before converting to int8
+        IGBP = np.where(np.isnan(igbp_array), -1, igbp_array).astype(np.int8)
     else:
         IGBP = None
     
@@ -197,7 +201,9 @@ def process_JET_table(
 
     input_df = ensure_geometry(input_df)
 
-    logger.info("started extracting geometry from PT-JPL-SM input table")
+    logger.info("started extracting geometry from JET input table")
+    geometry_timer = TicToc()
+    geometry_timer.tic()
 
     if "geometry" in input_df:
         # Convert Point objects to coordinate tuples for MultiPoint
@@ -213,12 +219,16 @@ def process_JET_table(
     else:
         raise KeyError("Input DataFrame must contain either 'geometry' or both 'lat' and 'lon' columns.")
 
-    logger.info("completed extracting geometry from PT-JPL-SM input table")
+    geometry_elapsed = geometry_timer.tocvalue()
+    logger.info(f"completed extracting geometry from JET input table ({geometry_elapsed:.3f} seconds)")
 
-    logger.info("started extracting time from PT-JPL-SM input table")
+    logger.info("started extracting time from JET input table")
+    time_timer = TicToc()
+    time_timer.tic()
     # Parse datetime with mixed format support (pandas 2.0+)
     time_UTC = pd.to_datetime(input_df.time_UTC, format='mixed').tolist()
-    logger.info("completed extracting time from PT-JPL-SM input table")
+    time_elapsed = time_timer.tocvalue()
+    logger.info(f"completed extracting time from JET input table ({time_elapsed:.3f} seconds)")
 
     results = JET(
         ST_C=ST_C,
@@ -277,6 +287,7 @@ def process_JET_table(
     for key, value in results.items():
         output_df[key] = value
 
-    logger.info("PT-JPL-SM table processing complete")
+    total_elapsed = timer.tocvalue()
+    logger.info(f"JET table processing complete ({total_elapsed:.3f} seconds)")
 
     return output_df

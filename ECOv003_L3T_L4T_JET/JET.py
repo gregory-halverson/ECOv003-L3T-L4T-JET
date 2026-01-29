@@ -7,11 +7,13 @@ evapotranspiration using multiple models (FLiES-ANN, BESS-JPL, STIC-JPL, PTJPLSM
 
 import logging
 import posixpath
+import warnings
 from datetime import datetime
 from typing import Union, Dict
 import numpy as np
 import rasters as rt
 from rasters import Raster, RasterGeometry
+from pytictoc import TicToc
 
 from GEOS5FP import GEOS5FPConnection
 from MODISCI import MODISCI
@@ -22,6 +24,7 @@ from PMJPL import PMJPL
 from PTJPLSM import PTJPLSM
 from STIC_JPL import STIC_JPL
 from FLiESANN import FLiESANN
+from SEBAL_soil_heat_flux import calculate_SEBAL_soil_heat_flux
 from verma_net_radiation import verma_net_radiation, daylight_Rn_integration_verma
 from check_distribution import check_distribution
 
@@ -176,7 +179,10 @@ def JET(
         GEOS5FP_connection = GEOS5FPConnection()
     
     # Run FLiES-ANN
-    logger.info(f"running Forest Light Environmental Simulator at {time_UTC} UTC")
+    logger.info(f"running Forest Light Environmental Simulator")
+    
+    timer_flies = TicToc()
+    timer_flies.tic()
     
     FLiES_results = FLiESANN(
         albedo=albedo,
@@ -192,6 +198,9 @@ def JET(
         GEOS5FP_connection=GEOS5FP_connection,
         offline_mode=offline_mode
     )
+    
+    elapsed_time = timer_flies.tocvalue()
+    logger.info(f"completed processing FLiES-ANN in {elapsed_time:.2f} seconds")
     
     # Extract FLiES-ANN results with updated variable names
     SWin_TOA_Wm2 = FLiES_results["SWin_TOA_Wm2"]
@@ -237,10 +246,13 @@ def JET(
     # Check for blank output
     if np.all(np.isnan(SWin)) or np.all(SWin == 0):
         raise BlankOutput(
-            f"blank solar radiation output at {time_UTC} UTC")
+            f"blank solar radiation output")
 
-    logger.info(f"running Breathing Earth System Simulator at {time_UTC} UTC")
+    logger.info(f"running Breathing Earth System Simulator")
 
+    timer_bess = TicToc()
+    timer_bess.tic()
+    
     BESS_results = BESS_JPL(
         ST_C=ST_C,
         NDVI=NDVI,
@@ -287,6 +299,9 @@ def JET(
         upscale_to_daylight=True,
         offline_mode=offline_mode
     )
+    
+    elapsed_time = timer_bess.tocvalue()
+    logger.info(f"completed processing BESS-JPL in {elapsed_time:.2f} seconds")
 
     Rn_BESS_Wm2 = BESS_results["Rn_Wm2"]
     check_distribution(Rn_BESS_Wm2, "Rn_BESS_Wm2")
@@ -323,7 +338,7 @@ def JET(
     check_distribution(GPP_inst_umol_m2_s, "GPP_inst_umol_m2_s")
 
     if np.all(np.isnan(GPP_inst_umol_m2_s)):
-        raise BlankOutput(f"blank GPP output at {time_UTC} UTC")
+        raise BlankOutput(f"blank GPP output")
 
     NWP_filenames = sorted([posixpath.basename(filename) for filename in GEOS5FP_connection.filenames])
     AuxiliaryNWP = ",".join(NWP_filenames)
@@ -348,8 +363,13 @@ def JET(
         raise ValueError(f"unrecognized net radiation model: {Rn_model_name}")
 
     if np.all(np.isnan(Rn_Wm2)) or np.all(Rn_Wm2 == 0):
-        raise BlankOutput(f"blank net radiation output at {time_UTC} UTC")
+        raise BlankOutput(f"blank net radiation output")
 
+    logger.info(f"running Surface Temperature Initiated Closure")
+    
+    timer_stic = TicToc()
+    timer_stic.tic()
+    
     STIC_results = STIC_JPL(
         geometry=geometry,
         time_UTC=time_UTC,
@@ -364,6 +384,9 @@ def JET(
         upscale_to_daylight=True,
         offline_mode=offline_mode
     )
+    
+    elapsed_time = timer_stic.tocvalue()
+    logger.info(f"completed processing STIC-JPL in {elapsed_time:.2f} seconds")
 
     LE_STIC_Wm2 = STIC_results["LE_Wm2"]
     check_distribution(LE_STIC_Wm2, "LE_STIC_Wm2")
@@ -386,6 +409,19 @@ def JET(
     with np.errstate(divide='ignore', invalid='ignore'):
         EF_STIC = rt.where((LE_STIC_Wm2 == 0) | ((Rn_Wm2 - G_STIC_Wm2) == 0), 0, LE_STIC_Wm2 / (Rn_Wm2 - G_STIC_Wm2))
 
+
+    G_SEBAL_Wm2 = calculate_SEBAL_soil_heat_flux(
+        Rn=Rn_Wm2,
+        ST_C=ST_C,
+        NDVI=NDVI,
+        albedo=albedo
+    )
+
+    logger.info(f"running Priestley-Taylor JPL with Soil Moisture")
+    
+    timer_ptjplsm = TicToc()
+    timer_ptjplsm.tic()
+    
     PTJPLSM_results = PTJPLSM(
         geometry=geometry,
         time_UTC=time_UTC,
@@ -393,6 +429,7 @@ def JET(
         emissivity=emissivity,
         NDVI=NDVI,
         albedo=albedo,
+        G_Wm2=G_SEBAL_Wm2,
         Rn_Wm2=Rn_Wm2,
         Ta_C=Ta_C,
         RH=RH,
@@ -408,6 +445,9 @@ def JET(
         upscale_to_daylight=True,
         offline_mode=offline_mode
     )
+    
+    elapsed_time = timer_ptjplsm.tocvalue()
+    logger.info(f"completed processing PT-JPL-SM in {elapsed_time:.2f} seconds")
 
     LE_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["LE_Wm2"], 0, None)
     check_distribution(LE_PTJPLSM_Wm2, "LE_PTJPLSM_Wm2")
@@ -424,11 +464,11 @@ def JET(
 
     if np.all(np.isnan(LE_PTJPLSM_Wm2)):
         raise BlankOutput(
-            f"blank PT-JPL-SM instantaneous ET output for at {time_UTC} UTC")
+            f"blank PT-JPL-SM instantaneous ET output for")
 
     if np.all(np.isnan(LE_PTJPLSM_Wm2)):
         raise BlankOutput(
-            f"blank daily ET output for at {time_UTC} UTC")
+            f"blank daily ET output for")
 
     LE_canopy_PTJPLSM_Wm2 = rt.clip(PTJPLSM_results["LE_canopy_Wm2"], 0, None)
     check_distribution(LE_canopy_PTJPLSM_Wm2, "LE_canopy_PTJPLSM_Wm2")
@@ -474,8 +514,13 @@ def JET(
     check_distribution(ESI_PTJPLSM, "ESI_PTJPLSM")
 
     if np.all(np.isnan(ESI_PTJPLSM)):
-        raise BlankOutput(f"blank ESI output for at {time_UTC} UTC")
+        raise BlankOutput(f"blank ESI output for")
 
+    logger.info(f"running Penman-Monteith JPL")
+    
+    timer_pmjpl = TicToc()
+    timer_pmjpl.tic()
+    
     PMJPL_results = PMJPL(
         geometry=geometry,
         time_UTC=time_UTC,
@@ -489,21 +534,33 @@ def JET(
         elevation_m=elevation_m,
         IGBP=IGBP,
         Rn_Wm2=Rn_Wm2,
+        G_Wm2=G_SEBAL_Wm2,
         GEOS5FP_connection=GEOS5FP_connection,
         upscale_to_daylight=True,
         offline_mode=offline_mode
     )
+    
+    elapsed_time = timer_pmjpl.tocvalue()
+    logger.info(f"completed processing PM-JPL in {elapsed_time:.2f} seconds")
 
     LE_PMJPL_Wm2 = PMJPL_results["LE_Wm2"]
     check_distribution(LE_PMJPL_Wm2, "LE_PMJPL_Wm2")
     
     ET_daylight_PMJPL_kg = PMJPL_results["ET_daylight_kg"]
-    check_distribution(ET_daylight_PMJPL_kg, "ET_daylight_PMJ")
+    check_distribution(ET_daylight_PMJPL_kg, "ET_daylight_PMJPL_kg")
     
     G_PMJPL_Wm2 = PMJPL_results["G_Wm2"]
     check_distribution(G_PMJPL_Wm2, "G_PMJPL_Wm2")
-
-    LE_instantaneous_Wm2 = np.nanmedian([np.array(LE_PTJPLSM_Wm2), np.array(LE_BESS_Wm2), np.array(LE_PMJPL_Wm2), np.array(LE_STIC_Wm2)], axis=0)
+    
+    # Suppress expected RuntimeWarning for all-NaN slices in median calculations
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', r'All-NaN (slice|axis) encountered')
+        G_Wm2 = np.nanmedian([np.array(G_BESS_Wm2), np.array(G_STIC_Wm2), np.array(G_SEBAL_Wm2)], axis=0)
+        LE_instantaneous_Wm2 = np.nanmedian([np.array(LE_PTJPLSM_Wm2), np.array(LE_BESS_Wm2), np.array(LE_PMJPL_Wm2), np.array(LE_STIC_Wm2)], axis=0)
+    
+    LE_Wm2 = LE_instantaneous_Wm2
+    
+    H_Wm2 = Rn_Wm2 - G_Wm2 - LE_Wm2 
     
     if processing_as_raster:
         LE_instantaneous_Wm2 = rt.Raster(LE_instantaneous_Wm2, geometry=geometry)
@@ -532,6 +589,11 @@ def JET(
         check_distribution(Rn_Wm2, "Rn_Wm2")
         check_distribution(SWin_Wm2, "SWin_Wm2")
 
+        logger.info(f"running AquaSEBS")
+        
+        timer_aquasebs = TicToc()
+        timer_aquasebs.tic()
+        
         # FIXME AquaSEBS need to do daylight upscaling
         AquaSEBS_results = AquaSEBS(
             WST_C=ST_C,
@@ -550,6 +612,9 @@ def JET(
             upscale_to_daylight=True,
             offline_mode=offline_mode
         )
+        
+        elapsed_time = timer_aquasebs.tocvalue()
+        logger.info(f"completed processing AquaSEBS in {elapsed_time:.2f} seconds")
 
         for key, value in AquaSEBS_results.items():
             check_distribution(value, key)
@@ -565,12 +630,15 @@ def JET(
         ET_daylight_AquaSEBS_kg = AquaSEBS_results["ET_daylight_kg"]
         check_distribution(ET_daylight_AquaSEBS_kg, "ET_daylight_AquaSEBS_kg")
 
-    ET_daylight_kg = np.nanmedian([
-        np.array(ET_daylight_PTJPLSM_kg),
-        np.array(ET_daylight_BESS_kg),
-        np.array(ET_daylight_PMJPL_kg),
-        np.array(ET_daylight_STIC_kg)
-    ], axis=0)
+    # Suppress expected RuntimeWarning for all-NaN slices in median calculation
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', r'All-NaN (slice|axis) encountered')
+        ET_daylight_kg = np.nanmedian([
+            np.array(ET_daylight_PTJPLSM_kg),
+            np.array(ET_daylight_BESS_kg),
+            np.array(ET_daylight_PMJPL_kg),
+            np.array(ET_daylight_STIC_kg)
+        ], axis=0)
     
     if isinstance(geometry, RasterGeometry):
         ET_daylight_kg = rt.Raster(ET_daylight_kg, geometry=geometry)
@@ -581,21 +649,25 @@ def JET(
         
     check_distribution(ET_daylight_kg, "ET_daylight_kg")
 
-    ET_uncertainty = np.nanstd([
-        np.array(ET_daylight_PTJPLSM_kg),
-        np.array(ET_daylight_BESS_kg),
-        np.array(ET_daylight_PMJPL_kg),
-        np.array(ET_daylight_STIC_kg)
-    ], axis=0)
+    # Suppress expected RuntimeWarning for all-NaN slices in uncertainty calculation
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', r'All-NaN (slice|axis) encountered')
+        ET_uncertainty = np.nanstd([
+            np.array(ET_daylight_PTJPLSM_kg),
+            np.array(ET_daylight_BESS_kg),
+            np.array(ET_daylight_PMJPL_kg),
+            np.array(ET_daylight_STIC_kg)
+        ], axis=0)
     
     if isinstance(geometry, RasterGeometry):
         ET_uncertainty = rt.Raster(ET_uncertainty, geometry=geometry)
 
     GPP_inst_g_m2_s = GPP_inst_umol_m2_s / 1000000 * 12.011
     ET_canopy_inst_kg_m2_s = LE_canopy_PTJPLSM_Wm2 / LATENT_VAPORIZATION_JOULES_PER_KILOGRAM
-    with np.errstate(divide='ignore', invalid='ignore'):
-        WUE = GPP_inst_g_m2_s / ET_canopy_inst_kg_m2_s
-    WUE = rt.where(np.isinf(WUE), np.nan, WUE)
+    with np.errstate(divide='ignore', invalid='ignore', over='ignore'):
+        WUE = np.divide(GPP_inst_g_m2_s, ET_canopy_inst_kg_m2_s)
+    # Mask cases with no canopy latent energy (undefined WUE), then cap large ratios
+    WUE = rt.where(np.isnan(LE_canopy_PTJPLSM_Wm2) | (LE_canopy_PTJPLSM_Wm2 <= 0), np.nan, WUE)
     WUE = rt.clip(WUE, 0, 10)
 
     results = {
@@ -628,6 +700,8 @@ def JET(
         'ET_daylight_PTJPLSM_kg': ET_daylight_PTJPLSM_kg,
         'G_PTJPLSM': G_PTJPLSM,
         'EF_PTJPLSM': EF_PTJPLSM,
+        'LE_Wm2': LE_Wm2,
+        'H_Wm2': H_Wm2,
         'LE_canopy_PTJPLSM_Wm2': LE_canopy_PTJPLSM_Wm2,
         'LE_canopy_fraction_PTJPLSM': LE_canopy_fraction_PTJPLSM,
         'LE_soil_PTJPLSM_Wm2': LE_soil_PTJPLSM_Wm2,
@@ -639,6 +713,7 @@ def JET(
         'LE_PMJPL_Wm2': LE_PMJPL_Wm2,
         'ET_daylight_PMJPL_kg': ET_daylight_PMJPL_kg,
         'G_PMJPL_Wm2': G_PMJPL_Wm2,
+        'G_Wm2': G_Wm2,
         'LE_instantaneous_Wm2': LE_instantaneous_Wm2,
         'wind_speed_mps': wind_speed_mps,
         'ET_daylight_kg': ET_daylight_kg,

@@ -21,6 +21,8 @@ from .generate_L3T_L4T_JET_runconfig import generate_L3T_L4T_JET_runconfig
 
 from .verify import verify
 
+from .ECOv002_calval_JET_inputs import load_ECOv002_calval_JET_inputs
+
 logger = logging.getLogger(__name__)  # Get a logger instance for this module.
 
 def L3T_L4T_JET(
