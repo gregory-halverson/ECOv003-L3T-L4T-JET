@@ -23,7 +23,7 @@ clean:
 # Run tests using pytest
 test:
 	# Execute all tests with pytest in verbose mode
-	pytest -vv
+	pytest -vv -p no:warnings
 
 # Verify the package installation and functionality
 verify:
