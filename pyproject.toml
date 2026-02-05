@@ -19,7 +19,7 @@ dependencies = [
     "BESS-JPL~=1.27.0",
     "check-distribution",
     "colored-logging~=1.1.0",
-    "ECOv002-calval-tables",
+    "ECOv002-calval-tables>=1.12.0",
     "ECOv002-granules~=1.2.1",
     "ECOv003-exit-codes~=1.1.0",
     "ECOv003-granules~=1.13.1",
