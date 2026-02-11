@@ -27,7 +27,9 @@ dependencies = [
     "GEOS5FP",
     "koppengeiger~=1.1.0",
     "monte-carlo-sensitivity>=1.9.1",
-    "numpy~=1.26.4",
+    "numpy>=1.26.4",
+    "onnx>=1.20.0",
+    "onnxruntime>=1.22.0",
     "pandas~=2.2.3",
     "PM-JPL~=1.11.0",
     "PTJPLSM~=1.10.0",
@@ -36,6 +38,7 @@ dependencies = [
     "rasters~=1.17.1",
     "rasterio~=1.3.11",
     "scikit-learn~=1.7.2",
+    "skl2onnx>=1.20.0",
     "solar-apparent-time~=1.5.4",
     "STIC-JPL~=1.6.0",
     "sun-angles~=1.7.0",
@@ -56,7 +59,7 @@ dev = [
 ]
 
 [tool.setuptools.package-data]
-ECOv003_L3T_L4T_JET = ["*.xml"]
+ECOv003_L3T_L4T_JET = ["*.xml", "*.onnx"]
 
 [project.urls]
 "Homepage" = "https://github.com/ECOSTRESS-Collection-2/ECOv003-L3T-L4T-JET"
