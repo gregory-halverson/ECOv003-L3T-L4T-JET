@@ -17,7 +17,7 @@ from ECOv002_granules import L2TLSTE as ECOv002L2TLSTE
 from ECOv003_exit_codes import SUCCESS_EXIT_CODE
 
 from .L3TL4TJETConfig import L3TL4TJETConfig
-from .exceptions import InputFilesInaccessible
+from JET3.exceptions import InputFilesInaccessible
 
 logger = logging.getLogger(__name__)
 
