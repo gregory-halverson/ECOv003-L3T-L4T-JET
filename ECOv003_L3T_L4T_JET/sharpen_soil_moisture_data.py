@@ -13,7 +13,7 @@ from GEOS5FP import GEOS5FP
 
 import logging
 
-from .exceptions import BlankOutputError
+from JET3.exceptions import BlankOutputError
 
 logger = logging.getLogger(__name__)
 

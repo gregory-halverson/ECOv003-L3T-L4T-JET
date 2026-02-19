@@ -9,7 +9,7 @@ from ECOv003_granules import L3TJET, L3TETAUX, L4TESI, L4TWUE
 from ECOv003_exit_codes import *
 
 from .version import __version__
-from .constants import *
+from JET3.constants import *
 
 from .runconfig import read_runconfig, ECOSTRESSRunConfig
 
