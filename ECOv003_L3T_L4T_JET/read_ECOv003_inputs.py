@@ -31,8 +31,8 @@ from ECOv002_granules import L2TSTARS as ECOv002L2TSTARS
 
 from JET3.constants import SZA_DEGREE_CUTOFF, GEOS_IN_SENTINEL_COARSE_CELL_SIZE
 from JET3.exceptions import InputFilesInaccessible, DaytimeFilter, BlankOutput
-from .sharpen_meteorology_data import sharpen_meteorology_data
-from .sharpen_soil_moisture_data import sharpen_soil_moisture_data
+from JET3.sharpen_meteorology_data import sharpen_meteorology_data
+from JET3.sharpen_soil_moisture_data import sharpen_soil_moisture_data
 from .version import __version__
 
 logger = logging.getLogger(__name__)
