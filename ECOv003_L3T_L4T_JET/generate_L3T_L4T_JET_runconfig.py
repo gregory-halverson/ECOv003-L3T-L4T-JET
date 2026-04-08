@@ -10,7 +10,7 @@ from ECOv002_granules import L2TLSTE
 import logging
 import colored_logging as cl
 
-from JET3.constants import *
+from .constants import *
 
 logger = logging.getLogger(__name__)
 
