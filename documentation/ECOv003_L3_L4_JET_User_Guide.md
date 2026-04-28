@@ -318,7 +318,7 @@ PT-JPL-SM, STIC-JPL, PM-JPL, and BESS-JPL models is upscaled to a daily ET estim
 in millimeters per day and recorded in the L3T JET product as ETdaily.
 The standard deviation between these multiple estimates of ET is
 considered the uncertainty for the ECOSTRESS evapotranspiration product, as
-ETinstUncertainty. The layers for the L3T JET products are listed in
+ETuncertainty. The layers for the L3T JET products are listed in
 Table 4. Note that the ETdaily product represents the integrated ET
 between sunrise and sunset.
 
