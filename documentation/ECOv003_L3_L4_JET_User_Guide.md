@@ -330,7 +330,7 @@ between sunrise and sunset.
 | BESSJPLdaily | BESS-JPL Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
 | PMJPLdaily | PM-JPL (MOD16) Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
 | ETdaily | Daily Evapotranspiration | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| ETinstUncertainty | Instantaneous Evapotranspiration Uncertainty | float32 | W m⁻² | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
+| ETuncertainty | Instantaneous Evapotranspiration Uncertainty | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
 | PTJPLSMcanopy | PT-JPL-SM Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
 | STICJPLcanopy | STIC-JPL Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
 | PTJPLSMsoil | PT-JPL-SM Soil | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
