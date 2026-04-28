@@ -211,7 +211,7 @@ missing values.
 ## Product Availability
 
 The ECOSTRESS products are available at the NASA Land Processes
-Distribution Active Archive Center (LP-DAAC),
+Distributed Active Archive Center (LP-DAAC),
 https://earthdata.nasa.gov/ and can be accessed via the Earthdata search
 engine.
 
