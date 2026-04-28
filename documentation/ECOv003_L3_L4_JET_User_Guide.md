@@ -255,7 +255,7 @@ bi-cubically resampled GEOS-5 FP.
 
 This same down-scaling procedure is applied to soil moisture (SM) from
 the GEOS-5 FP tavg1_2d_lnd_Nx product, which is recorded in the L3T ETAUX
-product listed in Table .
+product listed in Table 3.
 
 ## Surface Energy Balance
 
