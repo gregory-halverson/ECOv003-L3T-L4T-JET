@@ -182,9 +182,9 @@ including QGIS, ArcGIS, GDAL, the Raster package in R, rioxarray in
 Python, and Rasters.jl in Julia.
 
 Each float32 data layer occupies 4 bytes of storage per pixel, which
-amounts to an uncompressed size of 13.4 mb for each tiled data layer.
+amounts to an uncompressed size of 9.83 MB for each tiled data layer.
 The uint8 quality flag layers occupy a single byte per pixel, which
-amounts to an uncompressed size of 3.35 mb per tiled data quality layer.
+amounts to an uncompressed size of 2.46 MB per tiled data quality layer.
 
 Each .tif COG data layer in each L2T/L3T/L4T product additionally
 contains a rendered browse image in GeoJPEG format with a .jpeg
@@ -228,13 +228,13 @@ L3T ETAUX product are described in Table 3.
 
 | **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** | **Size** |
 |---|---|---|---|---|---|---|---|---|---|
-| Ta | Near-surface air temperature | float32 | °C | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| RH | Relative Humidity | float32 | Ratio | NaN | N/A | 0 | 1 | N/A | 12.06 mb |
-| Rg | Global Radiation | float32 | W m⁻² | NaN | N/A | 0 | N/A | N/A | 12.06 mb |
-| Rn | Net Radiation | float32 | W m⁻² | NaN | N/A | 0 | N/A | N/A | 12.06 mb |
-| SM | Soil Moisture | float32 | Ratio | NaN | N/A | 0 | 1 | N/A | 12.06 mb |
-| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
-| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| Ta | Near-surface air temperature | float32 | °C | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| RH | Relative Humidity | float32 | Ratio | NaN | N/A | 0 | 1 | N/A | 9.83 MB |
+| Rg | Global Radiation | float32 | W m⁻² | NaN | N/A | 0 | N/A | N/A | 9.83 MB |
+| Rn | Net Radiation | float32 | W m⁻² | NaN | N/A | 0 | N/A | N/A | 9.83 MB |
+| SM | Soil Moisture | float32 | Ratio | NaN | N/A | 0 | 1 | N/A | 9.83 MB |
+| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 2.46 MB |
+| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 2.46 MB |
 
 **Table 3.** Listing of the L3T ETAUX data layers.
 
@@ -324,19 +324,19 @@ between sunrise and sunset.
 
 | **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** | **Size** |
 |---|---|---|---|---|---|---|---|---|---|
-| PTJPLSMinst | PT-JPL-SM Instantaneous | float32 | W m⁻² | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| PTJPLSMdaily | PT-JPL-SM Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| STICJPLdaily | STIC-JPL Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| BESSJPLdaily | BESS-JPL Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| PMJPLdaily | PM-JPL (MOD16) Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| ETdaily | Daily Evapotranspiration | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| ETuncertainty | Instantaneous Evapotranspiration Uncertainty | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| PTJPLSMcanopy | PT-JPL-SM Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| STICJPLcanopy | STIC-JPL Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| PTJPLSMsoil | PT-JPL-SM Soil | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| PTJPLSMinterception | PT-JPL-SM Interception | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
-| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| PTJPLSMinst | PT-JPL-SM Instantaneous | float32 | W m⁻² | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| PTJPLSMdaily | PT-JPL-SM Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| STICJPLdaily | STIC-JPL Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| BESSJPLdaily | BESS-JPL Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| PMJPLdaily | PM-JPL (MOD16) Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| ETdaily | Daily Evapotranspiration | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| ETuncertainty | Instantaneous Evapotranspiration Uncertainty | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| PTJPLSMcanopy | PT-JPL-SM Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| STICJPLcanopy | STIC-JPL Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| PTJPLSMsoil | PT-JPL-SM Soil | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| PTJPLSMinterception | PT-JPL-SM Interception | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 2.46 MB |
+| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 2.46 MB |
 
 **Table 4.** Listing of the L3T JET data layers.
 
@@ -353,10 +353,10 @@ distributed in the L4T ESI product as listed in Table 5.
 
 | **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** | **Size** |
 |---|---|---|---|---|---|---|---|---|---|
-| ESI | Evaporative Stress Index | float32 | Ratio | NaN | N/A | 0 | 1 | N/A | 12.06 mb |
-| PET | Potential Evapotranspiration | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
-| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| ESI | Evaporative Stress Index | float32 | Ratio | NaN | N/A | 0 | 1 | N/A | 9.83 MB |
+| PET | Potential Evapotranspiration | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 2.46 MB |
+| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 2.46 MB |
 
 **Table 5.** Listing of the L4T ESI data layers.
 
@@ -370,10 +370,10 @@ WUE product as listed in Table 6.
 
 | **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** | **Size** |
 |---|---|---|---|---|---|---|---|---|---|
-| WUE | Water Use Efficiency | float32 | g C kg⁻¹ H₂O | NaN | N/A | 0 | 1 | N/A | 12.06 mb |
-| GPP | Gross Primary Production | float32 | μmol m⁻² s⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
-| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| WUE | Water Use Efficiency | float32 | g C kg⁻¹ H₂O | NaN | N/A | 0 | 1 | N/A | 9.83 MB |
+| GPP | Gross Primary Production | float32 | μmol m⁻² s⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 2.46 MB |
+| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 2.46 MB |
 
 **Table 6.** Listing of the L4T WUE data layers.
 
