@@ -285,7 +285,7 @@ models to produce a daily evapotranspiration estimate.
 The PT-JPL-SM model (Purdy et al., 2018), developed by Dr. Adam Purdy and Dr. Joshua Fisher
 was designed as a SM-sensitive evapotranspiration product for the Soil
 Moisture Active-Passive (SMAP) mission, and then reimplemented as an ET
-model in the ECOSTRESS and SBG processing chain, using the downscaled
+model in the ECOSTRESS processing chain, using the downscaled
 soil moisture from the L3T ETAUX product. Similar to the PT-JPL model used
 in ECOSTRESS Collection 1, The PT-JPL-SM model estimates instantaneous
 canopy transpiration, leaf surface evaporation, and soil moisture
@@ -295,7 +295,7 @@ flux in watts per square meter for the ensemble estimate.
 
 The Surface Temperature Initiated Closure (STIC-JPL) model (Mallick et al., 2018), contributed by
 Dr. Kaniska Mallick, was designed as a ST-sensitive ET model, adopted by
-ECOSTRESS and SBG for improved estimates of ET reflecting mid-day heat
+ECOSTRESS for improved estimates of ET reflecting mid-day heat
 stress. The STIC-JPL model estimates total latent heat flux directly. This
 instantaneous estimate of latent heat flux is included in the ensemble
 estimate.
@@ -317,7 +317,7 @@ The median of total latent heat flux in watts per square meter from the
 PT-JPL-SM, STIC-JPL, PM-JPL, and BESS-JPL models is upscaled to a daily ET estimate
 in millimeters per day and recorded in the L3T JET product as ETdaily.
 The standard deviation between these multiple estimates of ET is
-considered the uncertainty for the SBG evapotranspiration product, as
+considered the uncertainty for the ECOSTRESS evapotranspiration product, as
 ETinstUncertainty. The layers for the L3T JET products are listed in
 Table 4. Note that the ETdaily product represents the integrated ET
 between sunrise and sunset.
@@ -379,7 +379,7 @@ WUE product as listed in Table 6.
 
 # Standard Metadata
 
-Each SBG product bundle contains two sets of product metadata:
+Each ECOSTRESS product bundle contains two sets of product metadata:
 
 - ProductMetadata
 
@@ -454,7 +454,7 @@ products at each orbit/scene, as listed in Table 8.
 # Acknowledgements
 
 We would like to thank Joshua Fisher as the initial science lead of the
-SBG mission and PI of the ROSES project to re-design the SBG products.
+ECOSTRESS mission and PI of the ROSES project to re-design the ECOSTRESS products.
 
 We would like to thank Adam Purdy for contributing the PT-JPL-SM model.
 
