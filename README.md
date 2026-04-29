@@ -283,7 +283,7 @@ The ECOSTRESS Collection 3 L3T JET product uses an ensemble of four evapotranspi
 | BESSJPLdaily | BESS-JPL Daily | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
 | PMJPLdaily | PM-JPL (MOD16) Daily | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
 | ETdaily | Daily Evapotranspiration | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
-| ETuncertainty | Instantaneous Evapotranspiration Uncertainty | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| ETuncertainty | Daily Evapotranspiration Uncertainty | float32 | mm/day | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
 | PTJPLSMcanopy | PT-JPL-SM Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
 | STICJPLcanopy | STIC-JPL Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
 | PTJPLSMsoil | PT-JPL-SM Soil | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
