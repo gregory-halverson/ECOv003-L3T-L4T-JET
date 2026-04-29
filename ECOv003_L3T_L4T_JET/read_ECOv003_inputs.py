@@ -29,11 +29,12 @@ from ECOv003_granules import L2TLSTE, L2TSTARS
 from ECOv002_granules import L2TLSTE as ECOv002L2TLSTE
 from ECOv002_granules import L2TSTARS as ECOv002L2TSTARS
 
-from JET3.constants import SZA_DEGREE_CUTOFF, GEOS_IN_SENTINEL_COARSE_CELL_SIZE
-from JET3.exceptions import InputFilesInaccessible, DaytimeFilter, BlankOutput
-from .sharpen_meteorology_data import sharpen_meteorology_data
-from .sharpen_soil_moisture_data import sharpen_soil_moisture_data
+from JET3 import InputFilesInaccessible, DaytimeFilter, BlankOutput
+from JET3 import sharpen_meteorology_data
+from JET3 import sharpen_soil_moisture_data
+
 from .version import __version__
+from .constants import SZA_DEGREE_CUTOFF, GEOS_IN_SENTINEL_COARSE_CELL_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -247,9 +248,6 @@ def read_ECOv003_inputs(
                 coarse_geometry=coarse_geometry,
                 time_UTC=time_UTC,
                 date_UTC=date_UTC,
-                tile=tile,
-                orbit=orbit,
-                scene=scene,
                 upsampling=upsampling,
                 downsampling=downsampling,
                 GEOS5FP_connection=GEOS5FP_connection
@@ -277,9 +275,6 @@ def read_ECOv003_inputs(
                 coarse_geometry=coarse_geometry,
                 time_UTC=time_UTC,
                 date_UTC=date_UTC,
-                tile=tile,
-                orbit=orbit,
-                scene=scene,
                 upsampling=upsampling,
                 downsampling=downsampling,
                 GEOS5FP_connection=GEOS5FP_connection

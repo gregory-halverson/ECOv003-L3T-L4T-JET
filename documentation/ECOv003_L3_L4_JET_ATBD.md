@@ -210,7 +210,7 @@ The final ET partitioning includes canopy transpiration, leaf surface evaporatio
 
 ### STIC-JPL: General Form
 
-The Surface Temperature Initiated Closure-Jet Propulsion Laboratory (STIC-JPL) model, contributed by Dr. Kaniska Mallick, was designed as a surface temperature-sensitive ET model, adopted by ECOSTRESS and SBG for improved estimates of ET reflecting mid-day heat stress. The STIC-JPL model integrates LST into the Penman-Monteith Shuttleworth-Wallace system of ET equations and estimates total latent heat flux directly using thermal remote sensing observations.
+The Surface Temperature Initiated Closure-Jet Propulsion Laboratory (STIC-JPL) model, contributed by Dr. Kaniska Mallick, was designed as a surface temperature-sensitive ET model, adopted by ECOSTRESS for improved estimates of ET reflecting mid-day heat stress. The STIC-JPL model integrates LST into the Penman-Monteith Shuttleworth-Wallace system of ET equations and estimates total latent heat flux directly using thermal remote sensing observations.
 
 The general approach involves:
 
@@ -253,7 +253,7 @@ The AquaSEBS methodology has been extensively validated against 19 in situ open 
 
 ### Ensemble Processing
 
-The median of total latent heat flux in watts per square meter from the PT-JPL-SM, STIC-JPL, PM-JPL, and BESS-JPL models is upscaled to a daily ET estimate in millimeters per day and recorded in the L3T JET product as `ETdaily`. The standard deviation between these multiple estimates of ET is considered the uncertainty for the evapotranspiration product, as `ETinstUncertainty`. The ETdaily product represents the integrated ET between sunrise and sunset.
+The median of total latent heat flux in watts per square meter from the PT-JPL-SM, STIC-JPL, PM-JPL, and BESS-JPL models is upscaled to a daily ET estimate in millimeters per day and recorded in the L3T JET product as `ETdaily`. The standard deviation between these multiple estimates of ET is considered the uncertainty for the ECOSTRESS evapotranspiration product, as `ETuncertainty`. The ETdaily product represents the integrated ET between sunrise and sunset.
 
 ---
 

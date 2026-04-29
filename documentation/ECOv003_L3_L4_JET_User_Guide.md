@@ -2,7 +2,7 @@
 
 **ECOsystem Spaceborne Thermal Radiometer Experiment on Space Station (ECOSTRESS)**
 
-**October 8, 2025**
+**April 28, 2026**
 
 ## Authors
 
@@ -182,9 +182,9 @@ including QGIS, ArcGIS, GDAL, the Raster package in R, rioxarray in
 Python, and Rasters.jl in Julia.
 
 Each float32 data layer occupies 4 bytes of storage per pixel, which
-amounts to an uncompressed size of 13.4 mb for each tiled data layer.
+amounts to an uncompressed size of 9.83 MB for each tiled data layer.
 The uint8 quality flag layers occupy a single byte per pixel, which
-amounts to an uncompressed size of 3.35 mb per tiled data quality layer.
+amounts to an uncompressed size of 2.46 MB per tiled data quality layer.
 
 Each .tif COG data layer in each L2T/L3T/L4T product additionally
 contains a rendered browse image in GeoJPEG format with a .jpeg
@@ -211,7 +211,7 @@ missing values.
 ## Product Availability
 
 The ECOSTRESS products are available at the NASA Land Processes
-Distribution Active Archive Center (LP-DAAC),
+Distributed Active Archive Center (LP-DAAC),
 https://earthdata.nasa.gov/ and can be accessed via the Earthdata search
 engine.
 
@@ -228,13 +228,13 @@ L3T ETAUX product are described in Table 3.
 
 | **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** | **Size** |
 |---|---|---|---|---|---|---|---|---|---|
-| Ta | Near-surface air temperature | float32 | °C | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| RH | Relative Humidity | float32 | Ratio | NaN | N/A | 0 | 1 | N/A | 12.06 mb |
-| Rg | Global Radiation | float32 | W m⁻² | NaN | N/A | 0 | N/A | N/A | 12.06 mb |
-| Rn | Net Radiation | float32 | W m⁻² | NaN | N/A | 0 | N/A | N/A | 12.06 mb |
-| SM | Soil Moisture | float32 | Ratio | NaN | N/A | 0 | 1 | N/A | 12.06 mb |
-| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
-| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| Ta | Near-surface air temperature | float32 | °C | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| RH | Relative Humidity | float32 | Ratio | NaN | N/A | 0 | 1 | N/A | 9.83 MB |
+| Rg | Global Radiation | float32 | W m⁻² | NaN | N/A | 0 | N/A | N/A | 9.83 MB |
+| Rn | Net Radiation | float32 | W m⁻² | NaN | N/A | 0 | N/A | N/A | 9.83 MB |
+| SM | Soil Moisture | float32 | Ratio | NaN | N/A | 0 | 1 | N/A | 9.83 MB |
+| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 2.46 MB |
+| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 2.46 MB |
 
 **Table 3.** Listing of the L3T ETAUX data layers.
 
@@ -255,7 +255,7 @@ bi-cubically resampled GEOS-5 FP.
 
 This same down-scaling procedure is applied to soil moisture (SM) from
 the GEOS-5 FP tavg1_2d_lnd_Nx product, which is recorded in the L3T ETAUX
-product listed in Table .
+product listed in Table 3.
 
 ## Surface Energy Balance
 
@@ -285,7 +285,7 @@ models to produce a daily evapotranspiration estimate.
 The PT-JPL-SM model (Purdy et al., 2018), developed by Dr. Adam Purdy and Dr. Joshua Fisher
 was designed as a SM-sensitive evapotranspiration product for the Soil
 Moisture Active-Passive (SMAP) mission, and then reimplemented as an ET
-model in the ECOSTRESS and SBG processing chain, using the downscaled
+model in the ECOSTRESS processing chain, using the downscaled
 soil moisture from the L3T ETAUX product. Similar to the PT-JPL model used
 in ECOSTRESS Collection 1, The PT-JPL-SM model estimates instantaneous
 canopy transpiration, leaf surface evaporation, and soil moisture
@@ -295,7 +295,7 @@ flux in watts per square meter for the ensemble estimate.
 
 The Surface Temperature Initiated Closure (STIC-JPL) model (Mallick et al., 2018), contributed by
 Dr. Kaniska Mallick, was designed as a ST-sensitive ET model, adopted by
-ECOSTRESS and SBG for improved estimates of ET reflecting mid-day heat
+ECOSTRESS for improved estimates of ET reflecting mid-day heat
 stress. The STIC-JPL model estimates total latent heat flux directly. This
 instantaneous estimate of latent heat flux is included in the ensemble
 estimate.
@@ -317,26 +317,26 @@ The median of total latent heat flux in watts per square meter from the
 PT-JPL-SM, STIC-JPL, PM-JPL, and BESS-JPL models is upscaled to a daily ET estimate
 in millimeters per day and recorded in the L3T JET product as ETdaily.
 The standard deviation between these multiple estimates of ET is
-considered the uncertainty for the SBG evapotranspiration product, as
-ETinstUncertainty. The layers for the L3T JET products are listed in
+considered the uncertainty for the ECOSTRESS evapotranspiration product, as
+ETuncertainty. The layers for the L3T JET products are listed in
 Table 4. Note that the ETdaily product represents the integrated ET
 between sunrise and sunset.
 
 | **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** | **Size** |
 |---|---|---|---|---|---|---|---|---|---|
-| PTJPLSMinst | PT-JPL-SM Instantaneous | float32 | W m⁻² | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| PTJPLSMdaily | PT-JPL-SM Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| STICJPLdaily | STIC-JPL Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| BESSJPLdaily | BESS-JPL Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| PMJPLdaily | PM-JPL (MOD16) Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| ETdaily | Daily Evapotranspiration | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| ETinstUncertainty | Instantaneous Evapotranspiration Uncertainty | float32 | W m⁻² | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| PTJPLSMcanopy | PT-JPL-SM Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| STICJPLcanopy | STIC-JPL Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| PTJPLSMsoil | PT-JPL-SM Soil | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| PTJPLSMinterception | PT-JPL-SM Interception | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
-| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| PTJPLSMinst | PT-JPL-SM Instantaneous | float32 | W m⁻² | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| PTJPLSMdaily | PT-JPL-SM Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| STICJPLdaily | STIC-JPL Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| BESSJPLdaily | BESS-JPL Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| PMJPLdaily | PM-JPL (MOD16) Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| ETdaily | Daily Evapotranspiration | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| ETuncertainty | Daily Evapotranspiration Uncertainty | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| PTJPLSMcanopy | PT-JPL-SM Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| STICJPLcanopy | STIC-JPL Canopy | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| PTJPLSMsoil | PT-JPL-SM Soil | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| PTJPLSMinterception | PT-JPL-SM Interception | float32 | proportion | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 2.46 MB |
+| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 2.46 MB |
 
 **Table 4.** Listing of the L3T JET data layers.
 
@@ -353,10 +353,10 @@ distributed in the L4T ESI product as listed in Table 5.
 
 | **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** | **Size** |
 |---|---|---|---|---|---|---|---|---|---|
-| ESI | Evaporative Stress Index | float32 | Ratio | NaN | N/A | 0 | 1 | N/A | 12.06 mb |
-| PET | Potential Evapotranspiration | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
-| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| ESI | Evaporative Stress Index | float32 | Ratio | NaN | N/A | 0 | 1 | N/A | 9.83 MB |
+| PET | Potential Evapotranspiration | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 2.46 MB |
+| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 2.46 MB |
 
 **Table 5.** Listing of the L4T ESI data layers.
 
@@ -370,16 +370,16 @@ WUE product as listed in Table 6.
 
 | **Name** | **Description** | **Type** | **Units** | **Fill Value** | **No Data Value** | **Valid Min** | **Valid Max** | **Scale Factor** | **Size** |
 |---|---|---|---|---|---|---|---|---|---|
-| WUE | Water Use Efficiency | float32 | g C kg⁻¹ H₂O | NaN | N/A | 0 | 1 | N/A | 12.06 mb |
-| GPP | Gross Primary Production | float32 | μmol m⁻² s⁻¹ | NaN | N/A | N/A | N/A | N/A | 12.06 mb |
-| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
-| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 3.24 mb |
+| WUE | Water Use Efficiency | float32 | g C kg⁻¹ H₂O | NaN | N/A | 0 | 1 | N/A | 9.83 MB |
+| GPP | Gross Primary Production | float32 | μmol m⁻² s⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| cloud | Cloud mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 2.46 MB |
+| water | Water mask | uint8 | Mask | 255 | N/A | 0 | 1 | N/A | 2.46 MB |
 
 **Table 6.** Listing of the L4T WUE data layers.
 
 # Standard Metadata
 
-Each SBG product bundle contains two sets of product metadata:
+Each ECOSTRESS product bundle contains two sets of product metadata:
 
 - ProductMetadata
 
@@ -454,7 +454,7 @@ products at each orbit/scene, as listed in Table 8.
 # Acknowledgements
 
 We would like to thank Joshua Fisher as the initial science lead of the
-SBG mission and PI of the ROSES project to re-design the SBG products.
+ECOSTRESS mission and PI of the ROSES project to re-design the ECOSTRESS products.
 
 We would like to thank Adam Purdy for contributing the PT-JPL-SM model.
 
