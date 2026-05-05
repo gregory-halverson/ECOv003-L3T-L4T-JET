@@ -326,6 +326,7 @@ between sunrise and sunset.
 |---|---|---|---|---|---|---|---|---|---|
 | PTJPLSMinst | PT-JPL-SM Instantaneous | float32 | W m⁻² | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
 | PTJPLSMdaily | PT-JPL-SM Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
+| STICJPLinst | STIC-JPL Instantaneous | float32 | W m⁻² | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
 | STICJPLdaily | STIC-JPL Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
 | BESSJPLdaily | BESS-JPL Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
 | PMJPLdaily | PM-JPL (MOD16) Daily | float32 | mm day⁻¹ | NaN | N/A | N/A | N/A | N/A | 9.83 MB |
