@@ -2,7 +2,7 @@
 
 **ECOsystem Spaceborne Thermal Radiometer Experiment on Space Station (ECOSTRESS)**
 
-**April 28, 2026**
+**May 5, 2026**
 
 ## Authors
 
@@ -53,7 +53,7 @@ California Institute of Technology
 
 ---
 
-*© 2025 California Institute of Technology. Government sponsorship acknowledged.*
+*© 2026 California Institute of Technology. Government sponsorship acknowledged.*
 
 **National Aeronautics and Space Administration**  
 Jet Propulsion Laboratory  
@@ -70,7 +70,7 @@ by trade name, trademark, manufacturer, or otherwise, does not
 constitute or imply its endorsement by the United States Government or
 the Jet Propulsion Laboratory, California Institute of Technology.
 
-© 2025. California Institute of Technology. Government sponsorship
+© 2026. California Institute of Technology. Government sponsorship
 acknowledged.
 
 ---
@@ -98,13 +98,14 @@ the following:
 <!-- -->
 
 - Kerry Cawse-Nicholson
-
   MS 183-501\
   Jet Propulsion Laboratory\
   4800 Oak Grove Dr.\
   Pasadena, CA 91109\
   Email: <kerry-anne.cawse-nicholson@jpl.nasa.gov>\
   Office: (818) 354-1594
+
+<!-- -->
 
 - Margaret Johnson\
   Jet Propulsion Laboratory\
