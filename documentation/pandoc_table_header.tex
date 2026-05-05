@@ -1,0 +1,16 @@
+% Shared Pandoc LaTeX header to improve table rendering in PDFs.
+\usepackage{longtable,booktabs,array}
+\usepackage{pdflscape}
+\usepackage{xurl}
+
+% Reduce horizontal crowding in table columns.
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.12}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+
+% Shrink longtable body text slightly so dense tables fit better.
+\AtBeginEnvironment{longtable}{\small}
+
+% Allow TeX to stretch lines before overfull boxes appear.
+\emergencystretch=2em
