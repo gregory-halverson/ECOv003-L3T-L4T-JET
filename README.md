@@ -4,26 +4,24 @@
 
 This is the main repository for the ECOsystem Spaceborne Thermal Radiometer Experiment on Space Station (ECOSTRESS) collection 3 level 3/4 evapotranspiration data products algorithm.
 
-The ECOSTRESS collection 3 level 3/4 evapotranspiration data products algorithm is the pre-cursor to the [Surface Biology and Geology (SBG) collection 1 level 4 evapotranspiration data products algorithm](https://github.com/sbg-tir/SBG-TIR-L4-JET).
-
 [Gregory H. Halverson](https://github.com/gregory-halverson-jpl) (they/them)<br>
 [gregory.h.halverson@jpl.nasa.gov](mailto:gregory.h.halverson@jpl.nasa.gov)<br>
-NASA Jet Propulsion Laboratory 329G
+NASA Jet Propulsion Laboratory 321H
 
 [Kerry Cawse-Nicholson](https://github.com/kcawse) (she/her)<br>
 [kerry-anne.cawse-nicholson@jpl.nasa.gov](mailto:kerry-anne.cawse-nicholson@jpl.nasa.gov)<br>
-NASA Jet Propulsion Laboratory 329G
+NASA Jet Propulsion Laboratory 321H
 
 [Madeleine Pascolini-Campbell](https://github.com/madeleinepc) (she/her)<br>
 [madeleine.a.pascolini-campbell@jpl.nasa.gov](mailto:madeleine.a.pascolini-campbell@jpl.nasa.gov)<br>
-NASA Jet Propulsion Laboratory 329F
+NASA Jet Propulsion Laboratory
 
 [Evan Davis](https://github.com/evandjpl) (he/him)<br>
 [evan.w.davis@jpl.nasa.gov](mailto:evan.w.davis@jpl.nasa.gov)<br>
-NASA Jet Propulsion Laboratory 397K
+NASA Jet Propulsion Laboratory
 
 [Claire Villanueva-Weeks](https://github.com/clairesvw) (she/her)<br>
-NASA Jet Propulsion Laboratory 329G
+NASA Jet Propulsion Laboratory
 
 The code for the ECOSTRESS level 3 JET PGE has been developed using open-science practices based on the [ECOSTRESS Collection 2 JET PGE](https://github.com/ECOSTRESS-Collection-2/ECOv002-L3T-L4T-JET) with New Technology Report (NTR) and open-source license from NASA Jet Propulsion Laboratory.
 
